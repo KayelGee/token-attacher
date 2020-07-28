@@ -273,15 +273,14 @@
 			}
 		}
 		
-
 		/**
-		 * Save the selected walls so the selection can be reused later 
+		 * Save the selected objects so the selection can be reused later 
 		 */
-		static _SaveWallSelection(){
-			if(Object.keys(canvas.walls._controlled).length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoWallsSelected"));
-			const selectedWalls = Object.keys(canvas.walls._controlled);
+		static _SaveSelection(type){
+			if(Object.keys(canvas[type]._controlled).length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.No${type.toUpperCase()}Selected`));
+			const selected = Object.keys(canvas[type]._controlled);
 			
-			canvas.scene.setFlag("token-attacher","selected", {type:"walls", data:selectedWalls});
+			window['token-attacher'].selected= {type:type, data:selected};
 			ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.SelectionSaved"));
 		}
 
@@ -314,7 +313,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveWallSelection(),
+						onClick: () => TokenAttacher._SaveSelection('walls'),
 						button: true
 					  });
 				}
