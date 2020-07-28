@@ -3,9 +3,16 @@
 	class TokenAttacher {
 		static initialize(){
 			if(TokenAttacher.isFirstActiveGM()){
-				canvas.scene.setFlag("token-attacher","selected", {});
+				canvas.scene.unsetFlag("token-attacher","selected");
 				console.log("Token Attacher| Initzialized");
 			}
+
+			window['token-attacher'] = {};
+			window['token-attacher'].selected = {};
+			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
+			window['token-attacher'].updateSight={};
+			window['token-attacher'].updateSight.walls=[];
+
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateWallsWithToken(parent, doc, update, options, userId));
 			Hooks.on("UpdateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
@@ -212,7 +219,7 @@
 			for (let index = 0; index < controlledTokens.length; index++) {
 				const controlledToken = canvas.tokens.get(controlledTokens[index]);
 				
-				const selection=canvas.scene.getFlag("token-attacher","selected") || {};
+				const selection=window['token-attacher'].selected || {};
 				if(selection.hasOwnProperty("type")){
 					let attached=controlledToken.getFlag("token-attacher", "attached") || {};
 					switch ( selection.type ) {
@@ -225,7 +232,7 @@
 						default:
 							;
 					  }
-					canvas.scene.unsetFlag("token-attacher","selected");
+					window['token-attacher'].selected = {};
 					return; 
 				}
 			}
@@ -315,10 +322,6 @@
 			console.log("WallToTokenLinker | Tools added.");
 		}
 	}
-	//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-	window['token-attacher'] = {};
-	window['token-attacher'].updateSight={};
-	window['token-attacher'].updateSight.walls=[];
 
 	Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
 	Hooks.on('canvasReady', () => TokenAttacher.initialize());
