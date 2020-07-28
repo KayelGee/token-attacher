@@ -1,0 +1,25 @@
+{
+	"name": "token-attacher",
+	"title": "Token Attacher",
+	"description": "Allows to attach walls to tokens, so that they move when the token moves and rotate/move when the token rotates.",
+	"version": "1.0.0",
+	"minimumCoreVersion": "0.6.0",
+	"minimumCompatibleVersion": "0.6.5",
+	"author": "KayelGee - KayelGee#5241",
+	"scripts": [
+		"token-attacher.js"
+	],
+	"styles": [],
+	"packs": [],
+	"languages": [
+		{
+			"lang": "en",
+			"path": "languages/en.json"
+		}
+	],
+	"socket": true,
+	"url": "https://github.com/KayelGee/token-attacher",
+  "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
+  "download": "https://github.com/KayelGee/token-attacher/releases/download/v1.0.0/v1.0.0.zip",
+  "readme": "https://github.com/KayelGee/token-attacher/blob/v1.0.0/README.md"
+}
