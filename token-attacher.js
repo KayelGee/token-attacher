@@ -292,7 +292,7 @@
 			for (let i = 0; i < controls.length; i++) {
 				if(controls[i].name === "token"){
 					controls[i].tools.push({
-						name: "WLAttachToToken",
+						name: "TAAttachToToken",
 						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
@@ -300,7 +300,7 @@
 						button: true
 					  });
 					  controls[i].tools.push({
-						  name: "WLDetachFromToken",
+						  name: "TADetachFromToken",
 						  title: game.i18n.localize("TOKENATTACHER.button.DetachFromToken"),
 						  icon: "fas fa-unlink",
 						  visible: game.user.isGM,
@@ -310,7 +310,7 @@
 				}
 				else if(controls[i].name === "walls"){
 					controls[i].tools.push({
-						name: "WLSaveWallSelection",
+						name: "TASaveWallSelection",
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
