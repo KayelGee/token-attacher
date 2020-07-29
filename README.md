@@ -7,7 +7,9 @@
 **[Systems]**: *any*  
 **[Languages]**: *English*  
 
-Attach Walls to Tokens, so they move and rotate when the token moves or rotates.
+Attach anything(except other tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. 
+
+To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
 
 ## Installation
 
@@ -16,7 +18,7 @@ Attach Walls to Tokens, so they move and rotate when the token moves or rotates.
 
 ## Usage
 
-Select the walls tool. Select your walls you wish to attach to a token, then click the "Save selection for attaching" tool. 
+Select for example the walls tool. Select your walls you wish to attach to a token, then click the "Save selection for attaching" tool. 
 Select your token and click the "Attach selection to token" tool.
 If you want to detach walls from a token, select the token and click the "Detach all from token" tool.
 
