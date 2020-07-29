@@ -14,7 +14,7 @@
 			window['token-attacher'].updateSight.walls=[];
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
-			Hooks.on("UpdateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
+			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
 		}
@@ -24,7 +24,7 @@
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag("token-attacher", "attached") || {};
 			const tokenCenter = token.center;
-			if(Object.keys(attached).length = 0) return;
+			if(Object.keys(attached).length == 0) return;
 
 			console.log("WallToTokenLinker |  this is a attached ");
 			TokenAttacher.detectGM();
@@ -74,7 +74,7 @@
 		static AfterUpdateWallsWithToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag("token-attacher", "attached") || {};
-			if(Object.keys(attached).length = 0) return;
+			if(Object.keys(attached).length == 0) return;
 			
 			let needUpdate= false;
 			if(		update.hasOwnProperty("x")
