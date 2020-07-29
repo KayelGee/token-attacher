@@ -47,28 +47,21 @@
 			}
 			
 			if(!needUpdate) return;
+			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
+			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
+			TokenAttacher.updateAttached(attached, deltas, "walls", TokenAttacher._updateWalls);
+		}
 
-			if(attached.hasOwnProperty("tiles")){
-				console.log("Token Attacher| this is a attached with attached tiles");
+		static updateAttached(attached, deltas, type, callback){
+			if(attached.hasOwnProperty(type)){
+				console.log("Token Attacher| this is a attached with attached" + type);
 
-				const data = [attached.tiles, tokenCenter, deltaX, deltaY, deltaRot];
+				const data = [attached[type]].concat(deltas);
 				if(TokenAttacher.isFirstActiveGM()){
-					TokenAttacher._updateTiles(...data);
+					callback(...data);
 				}
 				else{
-					game.socket.emit('module.token-attacher', {event: "updateTiles", eventdata: data});
-				}
-				
-			}
-			if(attached.hasOwnProperty("walls")){
-				console.log("Token Attacher| this is a attached with attached walls");
-
-				const data = [attached.walls, tokenCenter, deltaX, deltaY, deltaRot];
-				if(TokenAttacher.isFirstActiveGM()){
-					TokenAttacher._updateWalls(...data);
-				}
-				else{
-					game.socket.emit('module.token-attacher', {event: "updateWalls", eventdata: data});
+					game.socket.emit('module.token-attacher', {event: `update${type.charAt(0).toUpperCase() + type.slice(1)}`, eventdata: data});
 				}
 				
 			}
@@ -146,8 +139,8 @@
 						if(Object.keys(wall).length == 0) return;
 
 						let c = duplicate(wall.data.c);
-						[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1]}, tokenCenter,deltaX, deltaY, deltaRot);
-						[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3]}, tokenCenter,deltaX, deltaY, deltaRot);
+						[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
+						[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
 
 						let p0 = layer._getWallEndpointCoordinates({x: c[0], y: c[1]}, {snap});
 						let p1 = layer._getWallEndpointCoordinates({x: c[2], y: c[3]}, {snap});
@@ -220,6 +213,7 @@
 		static moveRotatePoint(point, anchor, deltaX, deltaY, deltaRot){			
 			point.x += deltaX;
 			point.y += deltaY;
+			point.rotation+=deltaRot;
 			if(deltaRot !=0){
 				// get vector from center to template
 				const deltaRotRad = toRadians(deltaRot);
@@ -227,7 +221,7 @@
 				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchor.x, anchor.y, point.x, point.y, deltaRotRad);
 				
 			}	
-			return [point.x, point.y];
+			return [point.x, point.y, point.rotation];
 		}
 
 		/**
@@ -322,7 +316,7 @@
 			
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
-			
+
 			token.unsetFlag("token-attacher", "attached").then(()=>{
 				token.setFlag("token-attacher", "attached", attached);
 			});
