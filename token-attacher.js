@@ -403,7 +403,7 @@
 
 			const controlledTokens = canvas.tokens.controlled;
 			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = canvas.tokens.get(controlledTokens[index].data._id);
+				const controlledToken = controlledTokens[index];
 				
 				const selection=window['token-attacher'].selected || {};
 				if(selection.hasOwnProperty("type")){
@@ -491,7 +491,7 @@
 
 			const controlledTokens = canvas.tokens.controlled;
 			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = canvas.tokens.get(controlledTokens[index].data._id);
+				const controlledToken = controlledTokens[index];
 				
 				controlledToken.unsetFlag("token-attacher", "attached");
 				ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
