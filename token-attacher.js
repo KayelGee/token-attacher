@@ -50,6 +50,7 @@
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
 			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
 			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
+			TokenAttacher.updateAttached(attached, deltas, "sounds", TokenAttacher._updateSounds);
 			TokenAttacher.updateAttached(attached, deltas, "walls", TokenAttacher._updateWalls);
 		}
 
@@ -186,6 +187,22 @@
 			}
 		}
 
+		static _updateSounds(sounds, tokenCenter, deltaX, deltaY, deltaRot){
+			const layer = AmbientSound.layer;
+					
+			// Move Sound
+			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+				let updates = sounds.map(w => {
+					const sound = canvas.sounds.get(w) || {};
+					let p = TokenAttacher.moveRotatePoint({x:sound.data.x, y:sound.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
+					return {_id: sound.data._id, x: p[0], y: p[1]};
+				});
+				updates = updates.filter(n => n);
+				if(Object.keys(updates).length == 0)  return; 
+				canvas.scene.updateEmbeddedEntity("AmbientSound", updates);
+			}
+		}
+
 		static computeRotatedPosition(x,y,x2,y2,rotRad){
 			const dx = x2 - x,
 			dy = y2 - y;
@@ -275,17 +292,23 @@
 					}
 					break;
 				case "updateTiles":
-						if(TokenAttacher.isFirstActiveGM()){
-							console.log("Token Attacher| Event updateTiles");
-							TokenAttacher._updateTiles(...data.eventdata);
-						}
-						break;
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateTiles");
+						TokenAttacher._updateTiles(...data.eventdata);
+					}
+					break;
 				case "updateLighting":
-						if(TokenAttacher.isFirstActiveGM()){
-							console.log("Token Attacher| Event updateLighting");
-							TokenAttacher._updateLighting(...data.eventdata);
-						}
-						break;
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateLighting");
+						TokenAttacher._updateLighting(...data.eventdata);
+					}
+					break;				
+				case "updateSounds":
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateSounds");
+						TokenAttacher._updateSounds(...data.eventdata);
+					}
+					break;
 				case "updateSight":
 					console.log("Token Attacher| Event updateSight");
 					TokenAttacher.pushSightUpdate(...data.eventdata);
@@ -316,6 +339,9 @@
 						ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 					})
 					switch ( selection.type ) {
+						case "sounds":
+							console.log("Token Attacher| Attach Sounds");
+							break;
 						case "lighting":
 							console.log("Token Attacher| Attach Lighting");
 							break;
@@ -340,6 +366,7 @@
 		static _CheckAttachedOfToken(token){
 			let attached=token.getFlag("token-attacher", "attached") || {};
 			
+			attached = TokenAttacher._removeAttachedRemnants(attached, "sounds");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "lighting");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
@@ -438,6 +465,16 @@
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._SaveSelection('lighting'),
+						button: true
+					  });
+				}
+				else if(controls[i].name === "sounds"){
+					controls[i].tools.push({
+						name: "TASaveSoundsSelection",
+						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
+						icon: "fas fa-object-group",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._SaveSelection('sounds'),
 						button: true
 					  });
 				}
