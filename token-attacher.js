@@ -47,6 +47,7 @@
 			}
 			
 			if(!needUpdate) return;
+
 			if(attached.hasOwnProperty("tiles")){
 				console.log("Token Attacher| this is a attached with attached tiles");
 
@@ -87,7 +88,6 @@
 
 			if(!needUpdate) return;
 
-				
 			if(TokenAttacher.isFirstActiveGM()){
 				TokenAttacher._CheckAttachedOfToken(token);
 			}
@@ -132,7 +132,6 @@
 		}
 		
 		static _updateWalls(walls, tokenCenter, deltaX, deltaY, deltaRot){
-			
 				//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 				TokenAttacher.pushSightUpdate(...[{walls:walls}]);
 				game.socket.emit('module.token-attacher', {event: "updateSight", eventdata: [{walls:walls}]});
@@ -162,7 +161,6 @@
 		}
 
 		static _updateTiles(tiles, tokenCenter, deltaX, deltaY, deltaRot){
-
 			const layer = Tile.layer;
 			const snap = false;
 					
