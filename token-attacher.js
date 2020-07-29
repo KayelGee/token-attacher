@@ -13,14 +13,14 @@
 			window['token-attacher'].updateSight={};
 			window['token-attacher'].updateSight.walls=[];
 
-			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateWallsWithToken(parent, doc, update, options, userId));
+			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("UpdateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
 		}
 
 
-		static UpdateWallsWithToken(parent, doc, update, options, userId){
+		static UpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag("token-attacher", "attached") || {};
 			const tokenCenter = token.center;
