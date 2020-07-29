@@ -48,6 +48,7 @@
 			
 			if(!needUpdate) return;
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
+			TokenAttacher.updateAttached(attached, deltas, "templates", TokenAttacher._updateTemplates);
 			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
 			TokenAttacher.updateAttached(attached, deltas, "drawings", TokenAttacher._updateDrawings);
 			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
@@ -157,6 +158,23 @@
 				}
 		}
 
+		static _updateTemplates(templates, tokenCenter, deltaX, deltaY, deltaRot){
+			const layer = MeasuredTemplate.layer;
+					
+			// Move MeasuredTemplate
+			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+				let updates = templates.map(w => {
+					const template = canvas.templates.get(w) || {};
+					if(Object.keys(template).length == 0) return;
+					let movedrect = TokenAttacher.moveRotateRectangle(template, tokenCenter, deltaX, deltaY, deltaRot);
+					return {_id: movedrect._id, x: movedrect.x, y: movedrect.y, direction: movedrect.rotation};
+				});
+				updates = updates.filter(n => n);
+				if(Object.keys(updates).length == 0)  return; 
+				canvas.scene.updateEmbeddedEntity("MeasuredTemplate", updates);
+			}
+		}
+
 		static _updateDrawings(drawings, tokenCenter, deltaX, deltaY, deltaRot){
 			const layer = Drawing.layer;
 					
@@ -246,7 +264,7 @@
 
 		/**
 		 * Moves a rectangle by delta values and rotates around an anchor by a delta
-		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation
+		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
 		static moveRotateRectangle(rect, anchor, deltaX, deltaY, deltaRot){			
 			let rectCenter = duplicate(rect.center);
@@ -257,7 +275,13 @@
 			let y = rect.data.y;
 			x +=deltaX;
 			y +=deltaY;
-			let rotation = rect.data.rotation;
+			let rotation = 0;
+			if(rect.data.hasOwnProperty("rotation")){
+			 	rotation = rect.data.rotation;
+			}
+			else if(rect.data.hasOwnProperty("direction")){
+				rotation = rect.data.direction;
+			}
 
 			if(deltaRot !=0){
 				// get vector from center to template
@@ -323,6 +347,12 @@
 					if(TokenAttacher.isFirstActiveGM()){
 						console.log("Token Attacher| Event updateWalls");
 						TokenAttacher._updateWalls(...data.eventdata);
+					}
+					break;
+				case "updateTemplates":
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateTemplates");
+						TokenAttacher._updateTemplates(...data.eventdata);
 					}
 					break;
 				case "updateDrawings":
@@ -403,6 +433,9 @@
 						case "tiles":
 							console.log("Token Attacher| Attach Tiles");
 							break;
+						case "templates":
+							console.log("Token Attacher| Attach Templates");
+							break;
 						default:
 							;
 					  }
@@ -424,7 +457,12 @@
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "drawings");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
-
+			attached = TokenAttacher._removeAttachedRemnants(attached, "templates");
+			
+			if(Object.keys(attached).length == 0){
+				token.unsetFlag("token-attacher", "attached");
+				return;
+			}
 			token.unsetFlag("token-attacher", "attached").then(()=>{
 				token.setFlag("token-attacher", "attached", attached);
 			});
@@ -439,6 +477,7 @@
 				});
 				objects = objects.filter(n => n);
 				attached[type]=objects;
+				if(Object.keys(attached[type]).length == 0) delete attached[type];
 			}	
 			return attached;
 		}
@@ -549,6 +588,16 @@
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._SaveSelection('drawings'),
+						button: true
+					  });
+				}
+				else if(controls[i].name === "measure"){
+					controls[i].tools.push({
+						name: "TASaveTemplatesSelection",
+						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
+						icon: "fas fa-object-group",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._SaveSelection('templates'),
 						button: true
 					  });
 				}
