@@ -49,6 +49,7 @@
 			if(!needUpdate) return;
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
 			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
+			TokenAttacher.updateAttached(attached, deltas, "drawings", TokenAttacher._updateDrawings);
 			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
 			TokenAttacher.updateAttached(attached, deltas, "sounds", TokenAttacher._updateSounds);
 			TokenAttacher.updateAttached(attached, deltas, "notes", TokenAttacher._updateNotes);
@@ -154,6 +155,22 @@
 					if(Object.keys(updates).length == 0)  return; 
 					canvas.scene.updateEmbeddedEntity("Wall", updates);
 				}
+		}
+
+		static _updateDrawings(drawings, tokenCenter, deltaX, deltaY, deltaRot){
+			const layer = Drawing.layer;
+					
+			// Move Drawing
+			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+				let updates = drawings.map(w => {
+					const drawing = canvas.drawings.get(w) || {};
+					if(Object.keys(drawing).length == 0) return;
+					return TokenAttacher.moveRotateRectangle(drawing, tokenCenter, deltaX, deltaY, deltaRot);
+				});
+				updates = updates.filter(n => n);
+				if(Object.keys(updates).length == 0)  return; 
+				canvas.scene.updateEmbeddedEntity("Drawing", updates);
+			}
 		}
 
 		static _updateTiles(tiles, tokenCenter, deltaX, deltaY, deltaRot){
@@ -308,6 +325,12 @@
 						TokenAttacher._updateWalls(...data.eventdata);
 					}
 					break;
+				case "updateDrawings":
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateDrawings");
+						TokenAttacher._updateDrawings(...data.eventdata);
+					}
+					break;
 				case "updateTiles":
 					if(TokenAttacher.isFirstActiveGM()){
 						console.log("Token Attacher| Event updateTiles");
@@ -374,6 +397,9 @@
 						case "walls":
 							console.log("Token Attacher| Attach Walls");
 							break;
+						case "drawings":
+							console.log("Token Attacher| Attach Drawings");
+							break;
 						case "tiles":
 							console.log("Token Attacher| Attach Tiles");
 							break;
@@ -396,6 +422,7 @@
 			attached = TokenAttacher._removeAttachedRemnants(attached, "sounds");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "lighting");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
+			attached = TokenAttacher._removeAttachedRemnants(attached, "drawings");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
 
 			token.unsetFlag("token-attacher", "attached").then(()=>{
@@ -512,6 +539,16 @@
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._SaveSelection('notes'),
+						button: true
+					  });
+				}
+				else if(controls[i].name === "drawings"){
+					controls[i].tools.push({
+						name: "TASaveDrawingsSelection",
+						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
+						icon: "fas fa-object-group",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._SaveSelection('drawings'),
 						button: true
 					  });
 				}
