@@ -51,6 +51,7 @@
 			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
 			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
 			TokenAttacher.updateAttached(attached, deltas, "sounds", TokenAttacher._updateSounds);
+			TokenAttacher.updateAttached(attached, deltas, "notes", TokenAttacher._updateNotes);
 			TokenAttacher.updateAttached(attached, deltas, "walls", TokenAttacher._updateWalls);
 		}
 
@@ -203,6 +204,22 @@
 			}
 		}
 
+		static _updateNotes(notes, tokenCenter, deltaX, deltaY, deltaRot){
+			const layer = Note.layer;
+					
+			// Move Note
+			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+				let updates = notes.map(w => {
+					const note = canvas.sounds.get(w) || {};
+					let p = TokenAttacher.moveRotatePoint({x:note.data.x, y:note.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
+					return {_id: note.data._id, x: p[0], y: p[1]};
+				});
+				updates = updates.filter(n => n);
+				if(Object.keys(updates).length == 0)  return; 
+				canvas.scene.updateEmbeddedEntity("Note", updates);
+			}
+		}
+
 		static computeRotatedPosition(x,y,x2,y2,rotRad){
 			const dx = x2 - x,
 			dy = y2 - y;
@@ -309,6 +326,12 @@
 						TokenAttacher._updateSounds(...data.eventdata);
 					}
 					break;
+				case "updateNotes":
+					if(TokenAttacher.isFirstActiveGM()){
+						console.log("Token Attacher| Event updateNotes");
+						TokenAttacher._updateNotes(...data.eventdata);
+					}
+					break;
 				case "updateSight":
 					console.log("Token Attacher| Event updateSight");
 					TokenAttacher.pushSightUpdate(...data.eventdata);
@@ -339,6 +362,9 @@
 						ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 					})
 					switch ( selection.type ) {
+						case "notes":
+							console.log("Token Attacher| Attach Notes");
+							break;
 						case "sounds":
 							console.log("Token Attacher| Attach Sounds");
 							break;
@@ -366,6 +392,7 @@
 		static _CheckAttachedOfToken(token){
 			let attached=token.getFlag("token-attacher", "attached") || {};
 			
+			attached = TokenAttacher._removeAttachedRemnants(attached, "notes");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "sounds");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "lighting");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
@@ -475,6 +502,16 @@
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._SaveSelection('sounds'),
+						button: true
+					  });
+				}
+				else if(controls[i].name === "notes"){
+					controls[i].tools.push({
+						name: "TASaveNotesSelection",
+						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
+						icon: "fas fa-object-group",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._SaveSelection('notes'),
 						button: true
 					  });
 				}
