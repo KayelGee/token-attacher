@@ -49,6 +49,7 @@
 			if(!needUpdate) return;
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
 			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
+			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
 			TokenAttacher.updateAttached(attached, deltas, "walls", TokenAttacher._updateWalls);
 		}
 
@@ -169,6 +170,22 @@
 			}
 		}
 
+		static _updateLighting(lighting, tokenCenter, deltaX, deltaY, deltaRot){
+			const layer = AmbientLight.layer;
+					
+			// Move Light
+			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+				let updates = lighting.map(w => {
+					const light = canvas.lighting.get(w) || {};
+					let p = TokenAttacher.moveRotatePoint({x:light.data.x, y:light.data.y, rotation:light.data.rotation}, tokenCenter, deltaX, deltaY, deltaRot);
+					return {_id: light.data._id, x: p[0], y: p[1], rotation: p[2]};
+				});
+				updates = updates.filter(n => n);
+				if(Object.keys(updates).length == 0)  return; 
+				canvas.scene.updateEmbeddedEntity("AmbientLight", updates);
+			}
+		}
+
 		static computeRotatedPosition(x,y,x2,y2,rotRad){
 			const dx = x2 - x,
 			dy = y2 - y;
@@ -263,6 +280,12 @@
 							TokenAttacher._updateTiles(...data.eventdata);
 						}
 						break;
+				case "updateLighting":
+						if(TokenAttacher.isFirstActiveGM()){
+							console.log("Token Attacher| Event updateLighting");
+							TokenAttacher._updateLighting(...data.eventdata);
+						}
+						break;
 				case "updateSight":
 					console.log("Token Attacher| Event updateSight");
 					TokenAttacher.pushSightUpdate(...data.eventdata);
@@ -293,6 +316,9 @@
 						ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 					})
 					switch ( selection.type ) {
+						case "lighting":
+							console.log("Token Attacher| Attach Lighting");
+							break;
 						case "walls":
 							console.log("Token Attacher| Attach Walls");
 							break;
@@ -314,6 +340,7 @@
 		static _CheckAttachedOfToken(token){
 			let attached=token.getFlag("token-attacher", "attached") || {};
 			
+			attached = TokenAttacher._removeAttachedRemnants(attached, "lighting");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
 
@@ -401,6 +428,16 @@
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._SaveSelection('walls'),
+						button: true
+					  });
+				}
+				else if(controls[i].name === "lighting"){
+					controls[i].tools.push({
+						name: "TASaveLightingSelection",
+						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
+						icon: "fas fa-object-group",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._SaveSelection('lighting'),
 						button: true
 					  });
 				}
