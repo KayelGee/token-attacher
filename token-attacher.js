@@ -399,17 +399,18 @@
 		 * Attach previously saved selection to the currently selected token
 		 */
 		static _AttachToToken(){
-			if(Object.keys(canvas.tokens._controlled).length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(canvas.tokens.controlled.length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 
-			const controlledTokens = Object.keys(canvas.tokens._controlled);
+			const controlledTokens = canvas.tokens.controlled;
 			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = canvas.tokens.get(controlledTokens[index]);
+				const controlledToken = canvas.tokens.get(controlledTokens[index].data._id);
 				
 				const selection=window['token-attacher'].selected || {};
 				if(selection.hasOwnProperty("type")){
 					let attached=controlledToken.getFlag("token-attacher", "attached") || {};
 					
 					attached[selection.type]=selection.data;
+					
 					controlledToken.unsetFlag("token-attacher", "attached").then(()=>{
 						controlledToken.setFlag("token-attacher", "attached", attached);
 						ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
@@ -486,11 +487,11 @@
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static _DetachFromToken(){
-			if(Object.keys(canvas.tokens._controlled).length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(canvas.tokens.controlled.length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 
-			const controlledTokens = Object.keys(canvas.tokens._controlled);
+			const controlledTokens = canvas.tokens.controlled;
 			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = canvas.tokens.get(controlledTokens[index]);
+				const controlledToken = canvas.tokens.get(controlledTokens[index].data._id);
 				
 				controlledToken.unsetFlag("token-attacher", "attached");
 				ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
@@ -501,8 +502,10 @@
 		 * Save the selected objects so the selection can be reused later 
 		 */
 		static _SaveSelection(type){
-			if(Object.keys(canvas[type]._controlled).length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
-			const selected = Object.keys(canvas[type]._controlled);
+			if(canvas[type].controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+			const selected = canvas[type].controlled.map(w => {
+				return w.data._id;
+			});
 			
 			window['token-attacher'].selected= {type:type, data:selected};
 			ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.SelectionSaved"));
