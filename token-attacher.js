@@ -162,7 +162,6 @@
 
 		static _updateTiles(tiles, tokenCenter, deltaX, deltaY, deltaRot){
 			const layer = Tile.layer;
-			const snap = false;
 					
 			// Move Tile
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
@@ -320,28 +319,26 @@
 		 */
 		static _CheckAttachedOfToken(token){
 			let attached=token.getFlag("token-attacher", "attached") || {};
-					
-			if(attached.hasOwnProperty("walls")){
-				let walls=attached.walls.map(w => {
-					const wall = canvas.walls.get(w) || {};
-					if(Object.keys(wall).length == 0) return;
-					return w;
-				});
-				walls = walls.filter(n => n);
-				attached.walls=walls;
-			}
-			if(attached.hasOwnProperty("tiles")){
-				let tiles=attached.tiles.map(w => {
-					const tile = canvas.tiles.get(w) || {};
-					if(Object.keys(tile).length == 0) return;
-					return w;
-				});
-				tiles = tiles.filter(n => n);
-				attached.tiles=tiles;
-			}
+			
+			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
+			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
+			
 			token.unsetFlag("token-attacher", "attached").then(()=>{
 				token.setFlag("token-attacher", "attached", attached);
 			});
+		}
+
+		static _removeAttachedRemnants(attached, type){
+			if(attached.hasOwnProperty(type)){
+				let objects=attached[type].map(w => {
+					const obj = canvas[type].get(w) || {};
+					if(Object.keys(obj).length == 0) return;
+					return w;
+				});
+				objects = objects.filter(n => n);
+				attached[type]=objects;
+			}	
+			return attached;
 		}
 
 		/**
@@ -363,7 +360,7 @@
 		 * Save the selected objects so the selection can be reused later 
 		 */
 		static _SaveSelection(type){
-			if(Object.keys(canvas[type]._controlled).length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.No${type.toUpperCase()}Selected`));
+			if(Object.keys(canvas[type]._controlled).length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
 			const selected = Object.keys(canvas[type]._controlled);
 			
 			window['token-attacher'].selected= {type:type, data:selected};

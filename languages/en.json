@@ -1,5 +1,5 @@
 {
-	"TOKENATTACHER.error.NoWallsSelected": "No walls are selected!",
+	"TOKENATTACHER.error.NothingSelected": "No objects are selected!",
 	"TOKENATTACHER.error.NoTokensSelected": "No tokens are selected!",
 	"TOKENATTACHER.error.NoActiveGMFound": "No active GM found! Attached objects were not correctly updated. Please move your token to the previous location and contact your GM.",	
 	"TOKENATTACHER.info.ObjectsAttached": "Objects attached to token.",
