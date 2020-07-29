@@ -210,7 +210,7 @@
 			// Move Note
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
 				let updates = notes.map(w => {
-					const note = canvas.sounds.get(w) || {};
+					const note = canvas.notes.get(w) || {};
 					let p = TokenAttacher.moveRotatePoint({x:note.data.x, y:note.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
 					return {_id: note.data._id, x: p[0], y: p[1]};
 				});
