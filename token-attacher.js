@@ -29,6 +29,22 @@
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
 		}
 
+		static get layerMap(){
+			return {
+				"MeasuredTemplate":TokenAttacher._updateTemplates,
+				"Tile":TokenAttacher._updateTiles,
+				"Drawing":TokenAttacher._updateDrawings,
+				"AmbientLight":TokenAttacher._updateLighting,
+				"AmbientSound":TokenAttacher._updateSounds,
+				"Note":TokenAttacher._updateNotes,
+				"Wall":TokenAttacher._updateWalls
+			}
+		}
+
+		static getLayerCallback(className){
+			if(TokenAttacher.layerMap.hasOwnProperty(className)) return this.layerMap[className];
+			return () => {console.log("Token Attacher - Unknown object attached, if you need support contact me.")};
+		}
 
 		static UpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
