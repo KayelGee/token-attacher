@@ -405,7 +405,7 @@
 		/**
 		 * Attach previously saved selection to the currently selected token
 		 */
-		static _AttachToToken(token, suppresNotification=false){
+		static _AttachToToken(token, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 
 			const selection=window['token-attacher'].selected || {};
@@ -416,7 +416,7 @@
 				
 				token.unsetFlag("token-attacher", "attached").then(()=>{
 					token.setFlag("token-attacher", "attached", attached);
-					if(!suppresNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
+					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 				})
 				switch ( selection.type ) {
 					case "notes":
@@ -623,24 +623,24 @@
 			return 'unknown';
 		}
 
-		static attachElementToToken(element, target_token, suppresNotification=false){
+		static attachElementToToken(element, target_token, suppressNotification=false){
 			const type = TokenAttacher.lookupType(element);
 			const selected = [element.data._id];
 			window['token-attacher'].selected= {type:type, data:selected};
-			TokenAttacher._AttachToToken(target_token, suppresNotification);
+			TokenAttacher._AttachToToken(target_token, suppressNotification);
 		}
 
-		static attachElementsToToken(element_array, target_token, suppresNotification=false){
+		static attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
 				const type = TokenAttacher.lookupType(element);
-				if(!Object.hasOwnProperty(type)) selected[type] = [];
+				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
 					window['token-attacher'].selected= {type:key, data:selected[key]};
-					TokenAttacher._AttachToToken(target_token, suppresNotification);
+					TokenAttacher._AttachToToken(target_token, suppressNotification);
 				}
 			}
 		}
