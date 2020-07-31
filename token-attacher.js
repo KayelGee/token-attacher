@@ -398,51 +398,46 @@
 		/**
 		 * Attach previously saved selection to the currently selected token
 		 */
-		static _AttachToToken(){
-			if(canvas.tokens.controlled.length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+		static _AttachToToken(token, suppresNotification=false){
+			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 
-			const controlledTokens = canvas.tokens.controlled;
-			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = controlledTokens[index];
+			const selection=window['token-attacher'].selected || {};
+			if(selection.hasOwnProperty("type")){
+				let attached=token.getFlag("token-attacher", "attached") || {};
 				
-				const selection=window['token-attacher'].selected || {};
-				if(selection.hasOwnProperty("type")){
-					let attached=controlledToken.getFlag("token-attacher", "attached") || {};
-					
-					attached[selection.type]=selection.data;
-					
-					controlledToken.unsetFlag("token-attacher", "attached").then(()=>{
-						controlledToken.setFlag("token-attacher", "attached", attached);
-						ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
-					})
-					switch ( selection.type ) {
-						case "notes":
-							console.log("Token Attacher| Attach Notes");
-							break;
-						case "sounds":
-							console.log("Token Attacher| Attach Sounds");
-							break;
-						case "lighting":
-							console.log("Token Attacher| Attach Lighting");
-							break;
-						case "walls":
-							console.log("Token Attacher| Attach Walls");
-							break;
-						case "drawings":
-							console.log("Token Attacher| Attach Drawings");
-							break;
-						case "tiles":
-							console.log("Token Attacher| Attach Tiles");
-							break;
-						case "templates":
-							console.log("Token Attacher| Attach Templates");
-							break;
-						default:
-							;
-					  }
-					window['token-attacher'].selected = {};
-					return; 
-				}
+				attached[selection.type]=selection.data;
+				
+				token.unsetFlag("token-attacher", "attached").then(()=>{
+					token.setFlag("token-attacher", "attached", attached);
+					if(!suppresNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
+				})
+				switch ( selection.type ) {
+					case "notes":
+						console.log("Token Attacher| Attach Notes");
+						break;
+					case "sounds":
+						console.log("Token Attacher| Attach Sounds");
+						break;
+					case "lighting":
+						console.log("Token Attacher| Attach Lighting");
+						break;
+					case "walls":
+						console.log("Token Attacher| Attach Walls");
+						break;
+					case "drawings":
+						console.log("Token Attacher| Attach Drawings");
+						break;
+					case "tiles":
+						console.log("Token Attacher| Attach Tiles");
+						break;
+					case "templates":
+						console.log("Token Attacher| Attach Templates");
+						break;
+					default:
+						;
+					}
+				window['token-attacher'].selected = {};
+				return; 
 			}
 		}
 
@@ -522,7 +517,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._AttachToToken(),
+						onClick: () => TokenAttacher._AttachToToken(canvas.tokens.controlled[0]),
 						button: true
 					  });
 					  controls[i].tools.push({
