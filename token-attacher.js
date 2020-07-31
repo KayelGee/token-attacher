@@ -13,6 +13,13 @@
 			window['token-attacher'].updateSight={};
 			window['token-attacher'].updateSight.walls=[];
 
+			
+			window['token-attacher'] = {
+				...window['token-attacher'], 
+				attachElementToToken: TokenAttacher.attachElementToToken,
+				attachElementsToToken: TokenAttacher.attachElementsToToken
+			};
+
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
@@ -601,6 +608,41 @@
 				}
 			}
 			console.log("WallToTokenLinker | Tools added.");
+		}
+
+		static lookupType(element){
+			switch(element.constructor.name){
+				case "MeasuredTemplate": return 'templates';
+				case "Drawing": return 'drawings';
+				case "Note": return 'notes';
+				case "AmbientSound": return 'sounds';
+				case "AmbientLight": return 'lighting';
+				case "Wall": return 'walls';
+				case "Tile": return 'tiles';
+			}
+			return 'unknown';
+		}
+
+		static attachElementToToken(element, target_token, suppresNotification=false){
+			const type = TokenAttacher.lookupType(element);
+			const selected = [element.data._id];
+			window['token-attacher'].selected= {type:type, data:selected};
+			TokenAttacher._AttachToToken(target_token, suppresNotification);
+		}
+
+		static attachElementsToToken(element_array, target_token, suppresNotification=false){
+			let selected = {}
+			for (const element of element_array) {
+				const type = TokenAttacher.lookupType(element);
+				if(!Object.hasOwnProperty(type)) selected[type] = [];
+				selected[type].push(element.data._id);
+			}
+			for (const key in selected) {
+				if (selected.hasOwnProperty(key)) {
+					window['token-attacher'].selected= {type:key, data:selected[key]};
+					TokenAttacher._AttachToToken(target_token, suppresNotification);
+				}
+			}
 		}
 	}
 
