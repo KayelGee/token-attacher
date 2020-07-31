@@ -7,17 +7,20 @@
 				console.log("Token Attacher| Initzialized");
 			}
 
-			window['token-attacher'] = {};
-			window['token-attacher'].selected = {};
+			window.tokenAttacher = {};
+			window.tokenAttacher.selected = {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			window['token-attacher'].updateSight={};
-			window['token-attacher'].updateSight.walls=[];
+			window.tokenAttacher.updateSight={};
+			window.tokenAttacher.updateSight.walls=[];
 
 			
 			window['token-attacher'] = {
 				...window['token-attacher'], 
 				attachElementToToken: TokenAttacher.attachElementToToken,
-				attachElementsToToken: TokenAttacher.attachElementsToToken
+				attachElementsToToken: TokenAttacher.attachElementsToToken,
+				detachElementFromToken: TokenAttacher.detachElementFromToken,
+				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
+				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
 			};
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
@@ -33,7 +36,6 @@
 			const tokenCenter = token.center;
 			if(Object.keys(attached).length == 0) return;
 
-			console.log("WallToTokenLinker |  this is a attached ");
 			TokenAttacher.detectGM();
 
 			let deltaX = 0;
@@ -102,12 +104,12 @@
 		 * Workaround until 0.7.x fixes wall sight behaviour
 		 */
 		static performSightUpdates(entity, data, options, userId){
-			if(window['token-attacher'].updateSight.hasOwnProperty("walls")) {
-				if(window['token-attacher'].updateSight.walls.length > 0){
-					const index = window['token-attacher'].updateSight.walls.indexOf(data._id);
+			if(window.tokenAttacher.updateSight.hasOwnProperty("walls")) {
+				if(window.tokenAttacher.updateSight.walls.length > 0){
+					const index = window.tokenAttacher.updateSight.walls.indexOf(data._id);
 					if(index != -1){
-						window['token-attacher'].updateSight.walls.splice(index, 1);
-						if(window['token-attacher'].updateSight.walls.length == 0){
+						window.tokenAttacher.updateSight.walls.splice(index, 1);
+						if(window.tokenAttacher.updateSight.walls.length == 0){
 							TokenAttacher.updateSight();
 						}
 					}
@@ -130,7 +132,7 @@
 		static pushSightUpdate(attached){
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					window['token-attacher'].updateSight[key]= Array.from(new Set((window['token-attacher'].updateSight[key] || []).concat(attached[key])));
+					window.tokenAttacher.updateSight[key]= Array.from(new Set((window.tokenAttacher.updateSight[key] || []).concat(attached[key])));
 					
 				}
 			}			
@@ -405,47 +407,45 @@
 		/**
 		 * Attach previously saved selection to the currently selected token
 		 */
-		static _AttachToToken(token, suppressNotification=false){
+		static _AttachToToken(token, elements, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(!elements.hasOwnProperty("type")) return;
 
-			const selection=window['token-attacher'].selected || {};
-			if(selection.hasOwnProperty("type")){
-				let attached=token.getFlag("token-attacher", "attached") || {};
-				
-				attached[selection.type]=selection.data;
-				
-				token.unsetFlag("token-attacher", "attached").then(()=>{
-					token.setFlag("token-attacher", "attached", attached);
-					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
-				})
-				switch ( selection.type ) {
-					case "notes":
-						console.log("Token Attacher| Attach Notes");
-						break;
-					case "sounds":
-						console.log("Token Attacher| Attach Sounds");
-						break;
-					case "lighting":
-						console.log("Token Attacher| Attach Lighting");
-						break;
-					case "walls":
-						console.log("Token Attacher| Attach Walls");
-						break;
-					case "drawings":
-						console.log("Token Attacher| Attach Drawings");
-						break;
-					case "tiles":
-						console.log("Token Attacher| Attach Tiles");
-						break;
-					case "templates":
-						console.log("Token Attacher| Attach Templates");
-						break;
-					default:
-						;
-					}
-				window['token-attacher'].selected = {};
-				return; 
-			}
+			let attached=token.getFlag("token-attacher", `attached.${elements.type}`) || [];
+			
+			attached=elements.data;
+			
+			token.setFlag("token-attacher", `attached.${elements.type}`, attached).then(()=>{
+				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
+			});
+			switch ( elements.type ) {
+				case "notes":
+					console.log("Token Attacher| Attach Notes");
+					break;
+				case "sounds":
+					console.log("Token Attacher| Attach Sounds");
+					break;
+				case "lighting":
+					console.log("Token Attacher| Attach Lighting");
+					break;
+				case "walls":
+					console.log("Token Attacher| Attach Walls");
+					break;
+				case "drawings":
+					console.log("Token Attacher| Attach Drawings");
+					break;
+				case "tiles":
+					console.log("Token Attacher| Attach Tiles");
+					break;
+				case "templates":
+					console.log("Token Attacher| Attach Templates");
+					break;
+				default:
+					console.log("Token Attacher| Attach Unknown");
+				}
+			window.tokenAttacher.selected = {};
+			return; 
+			
 		}
 
 		/**
@@ -488,15 +488,22 @@
 		/**
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
-		static _DetachFromToken(){
-			if(canvas.tokens.controlled.length <= 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+		static _DetachFromToken(token, elements, suppressNotification=false){
+			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(!elements || !elements.hasOwnProperty("type")){
+				token.unsetFlag("token-attacher", "attached");
+				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
+				return;
+			}
+			else{
+				let attached=token.getFlag("token-attacher", `attached.${elements.type}`) || [];
+				if(attached.length === 0) return;
 
-			const controlledTokens = canvas.tokens.controlled;
-			for (let index = 0; index < controlledTokens.length; index++) {
-				const controlledToken = controlledTokens[index];
+				attached= attached.filter((item) => !elements.data.includes(item));
 				
-				controlledToken.unsetFlag("token-attacher", "attached");
-				ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
+				token.setFlag("token-attacher", `attached.${elements.type}`, attached).then(()=>{
+					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
+				});
 			}
 		}
 		
@@ -509,7 +516,7 @@
 				return w.data._id;
 			});
 			
-			window['token-attacher'].selected= {type:type, data:selected};
+			window.tokenAttacher.selected= {type:type, data:selected};
 			ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.SelectionSaved"));
 		}
 
@@ -524,7 +531,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._AttachToToken(canvas.tokens.controlled[0]),
+						onClick: () => TokenAttacher._AttachToToken(canvas.tokens.controlled[0], window.tokenAttacher.selected || {}),
 						button: true
 					  });
 					  controls[i].tools.push({
@@ -532,7 +539,7 @@
 						  title: game.i18n.localize("TOKENATTACHER.button.DetachFromToken"),
 						  icon: "fas fa-unlink",
 						  visible: game.user.isGM,
-						  onClick: () => TokenAttacher._DetachFromToken(),
+						  onClick: () => TokenAttacher._DetachFromToken(canvas.tokens.controlled[0]),
 						  button: true
 						});
 				}
@@ -626,8 +633,7 @@
 		static attachElementToToken(element, target_token, suppressNotification=false){
 			const type = TokenAttacher.lookupType(element);
 			const selected = [element.data._id];
-			window['token-attacher'].selected= {type:type, data:selected};
-			TokenAttacher._AttachToToken(target_token, suppressNotification);
+			TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
 		}
 
 		static attachElementsToToken(element_array, target_token, suppressNotification=false){
@@ -639,10 +645,33 @@
 			}
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
-					window['token-attacher'].selected= {type:key, data:selected[key]};
-					TokenAttacher._AttachToToken(target_token, suppressNotification);
+					TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
 				}
 			}
+		}
+
+		static detachElementFromToken(element, target_token, suppressNotification=false){
+			const type = TokenAttacher.lookupType(element);
+			const selected = [element.data._id];
+			TokenAttacher._DetachFromToken(target_token, {type:type, data:selected}, suppressNotification);
+		}
+
+		static detachElementsFromToken(element_array, target_token, suppressNotification=false){
+			let selected = {}
+			for (const element of element_array) {
+				const type = TokenAttacher.lookupType(element);
+				if(!selected.hasOwnProperty(type)) selected[type] = [];
+				selected[type].push(element.data._id);
+			}
+			for (const key in selected) {
+				if (selected.hasOwnProperty(key)) {
+					TokenAttacher._DetachFromToken(target_token, {type:key, data:selected[key]}, suppressNotification);
+				}
+			}
+		}
+
+		static detachAllElementsFromToken(target_token, suppressNotification=false){
+			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
 		}
 	}
 
