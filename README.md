@@ -11,6 +11,13 @@ Attach anything(except other tokens) to tokens, so that they move when the token
 
 To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
 
+A public interface for usage in macros can be accessed via tokenAttacher, following functions can be called:
+ - tokenAttacher.attachElementToToken(element, target_token, suppresNotification=false)
+ - tokenAttacher.attachElementsToToken(element_array, target_token, suppresNotification=false)
+ - tokenAttacher.detachElementFromToken(element, target_token, suppressNotification=false)
+ - tokenAttacher.detachElementsFromToken(element_array, target_token, suppressNotification=false)
+ - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
+
 ## Installation
 
 1. token-attacher using manifest URL: https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json
