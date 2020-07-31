@@ -418,31 +418,7 @@
 			token.setFlag("token-attacher", `attached.${elements.type}`, attached).then(()=>{
 				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			});
-			switch ( elements.type ) {
-				case "notes":
-					console.log("Token Attacher| Attach Notes");
-					break;
-				case "sounds":
-					console.log("Token Attacher| Attach Sounds");
-					break;
-				case "lighting":
-					console.log("Token Attacher| Attach Lighting");
-					break;
-				case "walls":
-					console.log("Token Attacher| Attach Walls");
-					break;
-				case "drawings":
-					console.log("Token Attacher| Attach Drawings");
-					break;
-				case "tiles":
-					console.log("Token Attacher| Attach Tiles");
-					break;
-				case "templates":
-					console.log("Token Attacher| Attach Templates");
-					break;
-				default:
-					console.log("Token Attacher| Attach Unknown");
-				}
+
 			window.tokenAttacher.selected = {};
 			return; 
 			
