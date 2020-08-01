@@ -2,6 +2,20 @@
 	const moduleName = "token-attacher";
 	//CONFIG.debug.hooks = true
 	class TokenAttacher {
+		static get typeMap(){
+			let map = {
+				"MeasuredTemplate":{updateCallback: TokenAttacher._updateRectangleEntities},
+				"Tile":{updateCallback: TokenAttacher._updateRectangleEntities},
+				"Drawing":{updateCallback: TokenAttacher._updateRectangleEntities},
+				"AmbientLight":{updateCallback: TokenAttacher._updatePointEntities},
+				"AmbientSound":{updateCallback: TokenAttacher._updatePointEntities},
+				"Note":{updateCallback: TokenAttacher._updatePointEntities},
+				"Wall":{updateCallback: TokenAttacher._updateWalls},
+			};
+			Hooks.callAll(`${moduleName}.getTypeMap`, map);
+			return map;
+		}
+
 		static initialize(){
 			if(TokenAttacher.isFirstActiveGM()){
 				canvas.scene.unsetFlag(moduleName,"selected");
@@ -32,18 +46,7 @@
 			Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 		}
 
-		static get typeMap(){
-			let map = {
-				"MeasuredTemplate":{updateCallback: TokenAttacher._updateTemplates},
-				"Tile":{updateCallback: TokenAttacher._updateTiles},
-				"Drawing":{updateCallback: TokenAttacher._updateDrawings},
-				"AmbientLight":{updateCallback: TokenAttacher._updatePointEntities},
-				"AmbientSound":{updateCallback: TokenAttacher._updatePointEntities},
-				"Note":{updateCallback: TokenAttacher._updatePointEntities},
-				"Wall":{updateCallback: TokenAttacher._updateWalls},
 			};
-			Hooks.callAll("token-attacher.getTypeMap", map);
-			return map;
 		}
 
 		static getTypeCallback(className){
@@ -87,7 +90,7 @@
 		}
 
 		static updateAttached(type, data){
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher.getLayerCallback(type)(...data);
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher.getTypeCallback(type)(...data);
 			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
@@ -153,76 +156,29 @@
 				TokenAttacher.pushSightUpdate(...[{walls:walls}]);
 				game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
 
-				const layer = Wall.layer;
-				const snap = false;
+				_updateLineEntities(walls, tokenCenter, deltaX, deltaY, deltaRot);
+		}
+
+		static _updateLineEntities(type, line_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+			const layer = eval(type).layer;
 						
-				// Move Wall
-				if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-					let updates = walls.map(w => {
-						const wall = canvas.walls.get(w) || {};
-						if(Object.keys(wall).length == 0) return;
-
-						let c = duplicate(wall.data.c);
-						[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
-						[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
-
-						let p0 = layer._getWallEndpointCoordinates({x: c[0], y: c[1]}, {snap});
-						let p1 = layer._getWallEndpointCoordinates({x: c[2], y: c[3]}, {snap});
-
-						return {_id: wall.data._id, c: p0.concat(p1)}
-					});
-					updates = updates.filter(n => n);
-					if(Object.keys(updates).length == 0)  return; 
-					canvas.scene.updateEmbeddedEntity("Wall", updates);
-				}
-		}
-
-		static _updateTemplates(templates, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = MeasuredTemplate.layer;
-					
-			// Move MeasuredTemplate
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = templates.map(w => {
-					const template = canvas.templates.get(w) || {};
-					if(Object.keys(template).length == 0) return;
-					let movedrect = TokenAttacher.moveRotateRectangle(template, tokenCenter, deltaX, deltaY, deltaRot);
-					return {_id: movedrect._id, x: movedrect.x, y: movedrect.y, direction: movedrect.rotation};
+				let updates = line_entities.map(w => {
+					const line_entity = layer.get(w) || {};
+					if(Object.keys(line_entity).length == 0) return;
+
+					let c = duplicate(line_entity.data.c);
+					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
+					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
+
+					//let p0 = layer._getWallEndpointCoordinates({x: c[0], y: c[1]}, {snap});
+					//let p1 = layer._getWallEndpointCoordinates({x: c[2], y: c[3]}, {snap});
+
+					return {_id: line_entity.data._id, c: c}
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("MeasuredTemplate", updates);
-			}
-		}
-
-		static _updateDrawings(drawings, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = Drawing.layer;
-					
-			// Move Drawing
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = drawings.map(w => {
-					const drawing = canvas.drawings.get(w) || {};
-					if(Object.keys(drawing).length == 0) return;
-					return TokenAttacher.moveRotateRectangle(drawing, tokenCenter, deltaX, deltaY, deltaRot);
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("Drawing", updates);
-			}
-		}
-
-		static _updateTiles(tiles, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = Tile.layer;
-					
-			// Move Tile
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = tiles.map(w => {
-					const tile = canvas.tiles.get(w) || {};
-					if(Object.keys(tile).length == 0) return;
-					return TokenAttacher.moveRotateRectangle(tile, tokenCenter, deltaX, deltaY, deltaRot);
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("Tile", updates);
+				canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
@@ -231,9 +187,9 @@
 
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
 				let updates = rect_entities.map(w => {
-					const tile = layer.get(w) || {};
-					if(Object.keys(tile).length == 0) return;
-					return TokenAttacher.moveRotateRectangle(tile, tokenCenter, deltaX, deltaY, deltaRot);
+					const rect_entity = layer.get(w) || {};
+					if(Object.keys(rect_entity).length == 0) return;
+					return TokenAttacher.moveRotateRectangle(rect_entity, tokenCenter, deltaX, deltaY, deltaRot);
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
@@ -296,6 +252,9 @@
 			let rectDeltaY = rectCenter.y-(rect.center.y+deltaY);
 			x += rectDeltaX;
 			y += rectDeltaY;
+		   if(rect.data.hasOwnProperty("direction")){
+				return {_id: rect.data._id, x: x, y: y, direction: rotation};
+		   }
 			return {_id: rect.data._id, x: x, y: y, rotation: rotation};
 		}
 
@@ -339,60 +298,27 @@
 		}
 		
 		/**
-		 * Listen to custom socket events, so players can move walls indirectly through the gm
+		 * Listen to custom socket events, so players can move elements indirectly through the gm
 		 */
 		static listen(data){
 			console.log("Token Attacher| some event");
-			switch (data.event) {
-				case "updateWalls":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateWalls");
-						TokenAttacher._updateWalls(...data.eventdata);
-					}
-					break;
-				case "updateTemplates":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateTemplates");
-						TokenAttacher._updateTemplates(...data.eventdata);
-					}
-					break;
-				case "updateDrawings":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateDrawings");
-						TokenAttacher._updateDrawings(...data.eventdata);
-					}
-					break;
-				case "updateTiles":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateTiles");
-						TokenAttacher._updateTiles(...data.eventdata);
-					}
-					break;
-				case "updateLighting":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateLighting");
-						TokenAttacher._updateLighting(...data.eventdata);
-					}
-					break;				
-				case "updateSounds":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateSounds");
-						TokenAttacher._updateSounds(...data.eventdata);
-					}
-					break;
-				case "updateNotes":
-					if(TokenAttacher.isFirstActiveGM()){
-						console.log("Token Attacher| Event updateNotes");
-						TokenAttacher._updateNotes(...data.eventdata);
-					}
-					break;
-				case "updateSight":
-					console.log("Token Attacher| Event updateSight");
-					TokenAttacher.pushSightUpdate(...data.eventdata);
-					break;
-				default:
-					console.log("Token Attacher| wtf did I just read?");
-					break;
+			if(data.event.indexOf("attachedUpdate") === 1){
+				if(TokenAttacher.isFirstActiveGM()){
+					console.log("Token Attacher| Event " + data.event);
+					const type = data.event.split("attachedUpdate")[1];
+					TokenAttacher.getTypeCallback(type)(...data.eventdata);
+				}
+			}
+			else {
+				switch (data.event) {
+					case "updateSight":
+						console.log("Token Attacher| Event updateSight");
+						TokenAttacher.pushSightUpdate(...data.eventdata);
+						break;
+					default:
+						console.log("Token Attacher| wtf did I just read?");
+						break;
+				}
 			}
 		}
 
@@ -410,25 +336,32 @@
 			token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
 				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			});
-
-			window.tokenAttacher.selected = {};
 			return; 
-			
+		}
+
+		static _AttachToTokenViaUI(){
+			if(!canvas.tokens.controlled.length > 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			const target_token = canvas.tokens.controlled[0];
+			const selected = window.tokenAttacher.selected;
+			for (const key in selected) {
+				if (selected.hasOwnProperty(key)) {
+					TokenAttacher._AttachToToken( target_token, {type:key, data:selected[key]});
+				}
+			}
+			window.tokenAttacher.selected = {};	
 		}
 
 		/**
 		 * Check previously attached of the token and remove deleted items
 		 */
 		static _CheckAttachedOfToken(token){
-			let attached=token.getFlag("token-attacher", "attached") || {};
-			
-			attached = TokenAttacher._removeAttachedRemnants(attached, "notes");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "sounds");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "lighting");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "walls");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "drawings");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
-			attached = TokenAttacher._removeAttachedRemnants(attached, "templates");
+			let attached=token.getFlag(moduleName, "attached") || {};
+			let reducedAttached = duplicate(attached);
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					reducedAttached = TokenAttacher._removeAttachedRemnants(reducedAttached, key);
+				}
+			}
 			
 			if(Object.keys(reducedAttached).length == 0){
 				token.unsetFlag(moduleName, "attached");
@@ -440,16 +373,17 @@
 		}
 
 		static _removeAttachedRemnants(attached, type){
-			if(attached.hasOwnProperty(type)){
-				let objects=attached[type].map(w => {
-					const obj = canvas[type].get(w) || {};
-					if(Object.keys(obj).length == 0) return;
-					return w;
-				});
-				objects = objects.filter(n => n);
-				attached[type]=objects;
-				if(Object.keys(attached[type]).length == 0) delete attached[type];
-			}	
+			const col = eval(type).layer ?? eval(type).collection;
+			
+			let objects=attached[type].map(w => {
+				const obj = col.get(w) || {};
+				if(Object.keys(obj).length == 0) return;
+				return w;
+			});
+			objects = objects.filter(n => n);
+			attached[type]=objects;
+			if(Object.keys(attached[type]).length == 0) delete attached[type];
+			
 			return attached;
 		}
 
@@ -478,13 +412,16 @@
 		/**
 		 * Save the selected objects so the selection can be reused later 
 		 */
-		static _SaveSelection(type){
-			if(canvas[type].controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
-			const selected = canvas[type].controlled.map(w => {
-				return w.data._id;
-			});
-			
-			window.tokenAttacher.selected= {type:type, data:selected};
+		static _SaveSelection(layer){
+			if(layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+
+			let selected = {}
+			for (const element of layer.controlled) {
+				const type = element.constructor.name;
+				if(!selected.hasOwnProperty(type)) selected[type] = [];
+				selected[type].push(element.data._id);
+			}		
+			window.tokenAttacher.selected= selected;
 			ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.SelectionSaved"));
 		}
 
@@ -499,7 +436,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._AttachToToken(canvas.tokens.controlled[0], window.tokenAttacher.selected || {}),
+						onClick: () => TokenAttacher._AttachToTokenViaUI(),
 						button: true
 					  });
 					  controls[i].tools.push({
@@ -517,7 +454,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('tiles'),
+						onClick: () => TokenAttacher._SaveSelection(Tile.layer),
 						button: true
 					  });
 				}
@@ -527,7 +464,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('walls'),
+						onClick: () => TokenAttacher._SaveSelection(Wall.layer),
 						button: true
 					  });
 				}
@@ -537,7 +474,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('lighting'),
+						onClick: () => TokenAttacher._SaveSelection(AmbientLight.layer),
 						button: true
 					  });
 				}
@@ -547,7 +484,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('sounds'),
+						onClick: () => TokenAttacher._SaveSelection(AmbientSound.layer),
 						button: true
 					  });
 				}
@@ -557,7 +494,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('notes'),
+						onClick: () => TokenAttacher._SaveSelection(Note.layer),
 						button: true
 					  });
 				}
@@ -567,7 +504,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('drawings'),
+						onClick: () => TokenAttacher._SaveSelection(Drawing.layer),
 						button: true
 					  });
 				}
@@ -577,7 +514,7 @@
 						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
 						icon: "fas fa-object-group",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection('templates'),
+						onClick: () => TokenAttacher._SaveSelection(MeasuredTemplate.layer),
 						button: true
 					  });
 				}
