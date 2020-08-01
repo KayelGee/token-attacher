@@ -45,8 +45,70 @@
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
 			Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 		}
+		
+		static registerSettings() {
+			game.settings.register(moduleName,"data-model-version",{
+				name: "token attacher dataModelVersion",
+				hint: "token attacher dataModelVersion",
+				default: 0,
+				type: Number,
+				scope: "world",
+				config: false
+			});
+		}
 
+		static async startMigration(){
+
+			const dataModelVersion = 2;
+			let currentDataModelVersion = game.settings.get(moduleName, "data-model-version");
+
+			if(currentDataModelVersion < 2){
+				await TokenAttacher.migrateToDataModel_2();
+				currentDataModelVersion = 2;
+			}
+			game.settings.set(moduleName, "data-model-version", currentDataModelVersion);
+		}
+
+		static async migrateToDataModel_2(){
+			let lookupType = (element) =>{
+				switch(element){
+					case "templates": return 'MeasuredTemplate';
+					case "drawings": return 'Drawing';
+					case "notes": return 'Note';
+					case "sounds": return 'AmbientSound';
+					case "lighting": return 'AmbientLight';
+					case "walls": return 'Wall';
+					case "tiles": return 'Tile';
+				}
+				return 'unknown';
 			};
+			for (const scene of Scene.collection) {
+				let deleteData = [];
+				let updateData = [];
+				let backupData = [];
+				for (const token of scene.data.tokens) {
+					const key = `${moduleName}.attached`;
+					const attached=getProperty(token.flags, key)|| {};
+					if(Object.keys(attached).length > 0){
+						let migratedAttached = {};
+						for (const key in attached) {
+							if (attached.hasOwnProperty(key)) {
+								migratedAttached[lookupType(key)] = attached[key];
+							}
+						}						
+						backupData.push({_id: token._id, [`flags.${moduleName}.migrationBackup.1`]:  attached});
+						deleteData.push({_id: token._id, [`flags.${moduleName}.-=attached`]:  null});
+						updateData.push({_id: token._id, [`flags.${moduleName}.attached`]:  migratedAttached});
+					}
+				}
+
+				if(updateData.length > 0){ 
+					await scene.updateEmbeddedEntity("Token", backupData);
+					await scene.updateEmbeddedEntity("Token", deleteData);
+					await scene.updateEmbeddedEntity("Token", updateData);
+					ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.DataModelMergedTo") + " 2");
+				}					
+			}
 		}
 
 		static getTypeCallback(className){
@@ -579,6 +641,13 @@
 			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
 		}
 	}
+
+	Hooks.on('ready', () => {
+		TokenAttacher.registerSettings();
+		if(TokenAttacher.isFirstActiveGM()){
+			TokenAttacher.startMigration();
+		}
+	});
 
 	Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
 	Hooks.on('canvasReady', () => TokenAttacher.initialize());
