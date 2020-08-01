@@ -14,8 +14,8 @@
 			window.tokenAttacher.updateSight.walls=[];
 
 			
-			window['token-attacher'] = {
-				...window['token-attacher'], 
+			window.tokenAttacher = {
+				...window.tokenAttacher, 
 				attachElementToToken: TokenAttacher.attachElementToToken,
 				attachElementsToToken: TokenAttacher.attachElementsToToken,
 				detachElementFromToken: TokenAttacher.detachElementFromToken,
