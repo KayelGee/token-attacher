@@ -21,29 +21,33 @@
 				detachElementFromToken: TokenAttacher.detachElementFromToken,
 				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
 				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
+				get typeMap() {return TokenAttacher.typeMap},
 			};
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
+			Hooks.on("token-attacher.getTypeMap", (map) => {map.test = 5;console.log("hooked", map);});
 		}
 
-		static get layerMap(){
-			return {
-				"MeasuredTemplate":TokenAttacher._updateTemplates,
-				"Tile":TokenAttacher._updateTiles,
-				"Drawing":TokenAttacher._updateDrawings,
-				"AmbientLight":TokenAttacher._updateLighting,
-				"AmbientSound":TokenAttacher._updateSounds,
-				"Note":TokenAttacher._updateNotes,
-				"Wall":TokenAttacher._updateWalls
-			}
+		static get typeMap(){
+			let map = {
+				"MeasuredTemplate":{updateCallback: TokenAttacher._updateTemplates},
+				"Tile":{updateCallback: TokenAttacher._updateTiles},
+				"Drawing":{updateCallback: TokenAttacher._updateDrawings},
+				"AmbientLight":{updateCallback: TokenAttacher._updatePointEntities},
+				"AmbientSound":{updateCallback: TokenAttacher._updatePointEntities},
+				"Note":{updateCallback: TokenAttacher._updatePointEntities},
+				"Wall":{updateCallback: TokenAttacher._updateWalls},
+			};
+			Hooks.callAll("token-attacher.getTypeMap", map);
+			return map;
 		}
 
-		static getLayerCallback(className){
-			if(TokenAttacher.layerMap.hasOwnProperty(className)) return this.layerMap[className];
-			return () => {console.log("Token Attacher - Unknown object attached, if you need support contact me.")};
+		static getTypeCallback(className){
+			if(TokenAttacher.typeMap.hasOwnProperty(className)) return this.typeMap[className].updateCallback;
+			return () => {console.log("Token Attacher - Unknown object attached, if you need support add a callback to the typeMap though the token-attacher.getTypeMap hook.")};
 		}
 
 		static UpdateAttachedOfToken(parent, doc, update, options, userId){
@@ -72,29 +76,18 @@
 			}
 			
 			if(!needUpdate) return;
-			const deltas = [tokenCenter, deltaX, deltaY, deltaRot];
-			TokenAttacher.updateAttached(attached, deltas, "templates", TokenAttacher._updateTemplates);
-			TokenAttacher.updateAttached(attached, deltas, "tiles", TokenAttacher._updateTiles);
-			TokenAttacher.updateAttached(attached, deltas, "drawings", TokenAttacher._updateDrawings);
-			TokenAttacher.updateAttached(attached, deltas, "lighting", TokenAttacher._updateLighting);
-			TokenAttacher.updateAttached(attached, deltas, "sounds", TokenAttacher._updateSounds);
-			TokenAttacher.updateAttached(attached, deltas, "notes", TokenAttacher._updateNotes);
-			TokenAttacher.updateAttached(attached, deltas, "walls", TokenAttacher._updateWalls);
+			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					console.log("Token Attacher| this has attached with attached " + key);
+					TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
+				}
+			}
 		}
 
-		static updateAttached(attached, deltas, type, callback){
-			if(attached.hasOwnProperty(type)){
-				console.log("Token Attacher| this is a attached with attached" + type);
-
-				const data = [attached[type]].concat(deltas);
-				if(TokenAttacher.isFirstActiveGM()){
-					callback(...data);
-				}
-				else{
-					game.socket.emit('module.token-attacher', {event: `update${type.charAt(0).toUpperCase() + type.slice(1)}`, eventdata: data});
-				}
-				
-			}
+		static updateAttached(type, data){
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher.getLayerCallback(type)(...data);
+			else game.socket.emit('module.token-attacher', {event: `update${type}`, eventdata: data});
 		}
 
 		static AfterUpdateWallsWithToken(parent, doc, update, options, userId){
@@ -232,51 +225,33 @@
 			}
 		}
 
-		static _updateLighting(lighting, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = AmbientLight.layer;
-					
-			// Move Light
+		static _updateRectangleEntities(type, rect_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+			const layer = eval(type).layer;
+
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = lighting.map(w => {
-					const light = canvas.lighting.get(w) || {};
-					let p = TokenAttacher.moveRotatePoint({x:light.data.x, y:light.data.y, rotation:light.data.rotation}, tokenCenter, deltaX, deltaY, deltaRot);
-					return {_id: light.data._id, x: p[0], y: p[1], rotation: p[2]};
+				let updates = rect_entities.map(w => {
+					const tile = layer.get(w) || {};
+					if(Object.keys(tile).length == 0) return;
+					return TokenAttacher.moveRotateRectangle(tile, tokenCenter, deltaX, deltaY, deltaRot);
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("AmbientLight", updates);
+				canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
-		static _updateSounds(sounds, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = AmbientSound.layer;
-					
-			// Move Sound
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = sounds.map(w => {
-					const sound = canvas.sounds.get(w) || {};
-					let p = TokenAttacher.moveRotatePoint({x:sound.data.x, y:sound.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
-					return {_id: sound.data._id, x: p[0], y: p[1]};
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("AmbientSound", updates);
-			}
-		}
+		static _updatePointEntities(type, point_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+			const layer = eval(type).layer;
 
-		static _updateNotes(notes, tokenCenter, deltaX, deltaY, deltaRot){
-			const layer = Note.layer;
-					
-			// Move Note
 			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = notes.map(w => {
-					const note = canvas.notes.get(w) || {};
-					let p = TokenAttacher.moveRotatePoint({x:note.data.x, y:note.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
-					return {_id: note.data._id, x: p[0], y: p[1]};
+				let updates = point_entities.map(w => {
+					const point_entity = layer.get(w) || {};
+					let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
+					return {_id: point_entity.data._id, x: p[0], y: p[1]};
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity("Note", updates);
+				canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
