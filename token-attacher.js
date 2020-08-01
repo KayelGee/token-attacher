@@ -1,9 +1,10 @@
 (async () => {
+	const moduleName = "token-attacher";
 	//CONFIG.debug.hooks = true
 	class TokenAttacher {
 		static initialize(){
 			if(TokenAttacher.isFirstActiveGM()){
-				canvas.scene.unsetFlag("token-attacher","selected");
+				canvas.scene.unsetFlag(moduleName,"selected");
 				console.log("Token Attacher| Initzialized");
 			}
 
@@ -28,7 +29,7 @@
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
-			Hooks.on("token-attacher.getTypeMap", (map) => {map.test = 5;console.log("hooked", map);});
+			Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 		}
 
 		static get typeMap(){
@@ -47,12 +48,12 @@
 
 		static getTypeCallback(className){
 			if(TokenAttacher.typeMap.hasOwnProperty(className)) return this.typeMap[className].updateCallback;
-			return () => {console.log("Token Attacher - Unknown object attached, if you need support add a callback to the typeMap though the token-attacher.getTypeMap hook.")};
+			return () => {console.log(`Token Attacher - Unknown object attached, if you need support add a callback to the typeMap though the ${moduleName}.getTypeMap hook.`)};
 		}
 
 		static UpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
-			const attached=token.getFlag("token-attacher", "attached") || {};
+			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = token.center;
 			if(Object.keys(attached).length == 0) return;
 
@@ -87,12 +88,12 @@
 
 		static updateAttached(type, data){
 			if(TokenAttacher.isFirstActiveGM()) TokenAttacher.getLayerCallback(type)(...data);
-			else game.socket.emit('module.token-attacher', {event: `update${type}`, eventdata: data});
+			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
 		static AfterUpdateWallsWithToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
-			const attached=token.getFlag("token-attacher", "attached") || {};
+			const attached=token.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
 			
 			let needUpdate= false;
@@ -150,7 +151,7 @@
 		static _updateWalls(walls, tokenCenter, deltaX, deltaY, deltaRot){
 				//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 				TokenAttacher.pushSightUpdate(...[{walls:walls}]);
-				game.socket.emit('module.token-attacher', {event: "updateSight", eventdata: [{walls:walls}]});
+				game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
 
 				const layer = Wall.layer;
 				const snap = false;
@@ -402,11 +403,11 @@
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements.hasOwnProperty("type")) return;
 
-			let attached=token.getFlag("token-attacher", `attached.${elements.type}`) || [];
+			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 			
 			attached=elements.data;
 			
-			token.setFlag("token-attacher", `attached.${elements.type}`, attached).then(()=>{
+			token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
 				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			});
 
@@ -429,12 +430,12 @@
 			attached = TokenAttacher._removeAttachedRemnants(attached, "tiles");
 			attached = TokenAttacher._removeAttachedRemnants(attached, "templates");
 			
-			if(Object.keys(attached).length == 0){
-				token.unsetFlag("token-attacher", "attached");
+			if(Object.keys(reducedAttached).length == 0){
+				token.unsetFlag(moduleName, "attached");
 				return;
 			}
-			token.unsetFlag("token-attacher", "attached").then(()=>{
-				token.setFlag("token-attacher", "attached", attached);
+			token.unsetFlag(moduleName, "attached").then(()=>{
+				token.setFlag(moduleName, "attached", reducedAttached);
 			});
 		}
 
@@ -458,17 +459,17 @@
 		static _DetachFromToken(token, elements, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements || !elements.hasOwnProperty("type")){
-				token.unsetFlag("token-attacher", "attached");
+				token.unsetFlag(moduleName, "attached");
 				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
 				return;
 			}
 			else{
-				let attached=token.getFlag("token-attacher", `attached.${elements.type}`) || [];
+				let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 				if(attached.length === 0) return;
 
 				attached= attached.filter((item) => !elements.data.includes(item));
 				
-				token.setFlag("token-attacher", `attached.${elements.type}`, attached).then(()=>{
+				token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
 					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
 				});
 			}
@@ -645,6 +646,6 @@
 	Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
 	Hooks.on('canvasReady', () => TokenAttacher.initialize());
 	Hooks.once('ready', () => {
-		game.socket.on('module.token-attacher', (data) => TokenAttacher.listen(data));
+		game.socket.on(`module.${moduleName}`, (data) => TokenAttacher.listen(data));
 	});
 })();
