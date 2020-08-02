@@ -41,6 +41,8 @@
 				get typeMap() {return TokenAttacher.typeMap},
 			};
 
+			TokenAttacher.updatedLockedAttached();
+
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
@@ -118,6 +120,43 @@
 		static getTypeCallback(className){
 			if(TokenAttacher.typeMap.hasOwnProperty(className)) return this.typeMap[className].updateCallback;
 			return () => {console.log(`Token Attacher - Unknown object attached, if you need support add a callback to the typeMap though the ${moduleName}.getTypeMap hook.`)};
+		}
+
+		static updatedLockedAttached(){
+			const tokens = canvas.tokens.placeables;
+			for (const token of tokens) {
+				const attached=token.getFlag(moduleName, "attached") || {};
+				if(Object.keys(attached).length == 0) continue;
+				const isLocked = token.getFlag(moduleName, "locked") || false;
+				if(isLocked)
+					for (const key in attached) {
+						if (attached.hasOwnProperty(key) && key !== "unknown") {
+							let layer = eval(key).layer ?? eval(key).collection;
+							for (const elementid of attached[key]) {
+								let element = layer.get(elementid);
+								TokenAttacher.lockElement(key, element, false);
+							}
+						}
+					}
+			}
+		}
+
+		static lockElement(type, element, interactive){
+			switch(type){
+				case "Wall":{
+					element.line.interactive = interactive;
+					element.endpoints.interactive = interactive;
+					break;
+				}
+				case "AmbientLight":
+				case "AmbientSound":
+				case "Note":
+				case "MeasuredTemplate":
+					element.controlIcon.interactive = interactive;
+					break;
+				default:
+					element.interactive = interactive;
+			}
 		}
 
 		static UpdateAttachedOfToken(parent, doc, update, options, userId){
@@ -421,9 +460,9 @@
 		/**
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
-		static _StartTokenAttach(token){
+		static async _StartTokenAttach(token){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
-			canvas.scene.setFlag(moduleName, "attach_token", token.data._id);
+			await canvas.scene.setFlag(moduleName, "attach_token", token.data._id);
 			TokenAttacher.showTokenAttacherUI();
 		}
 
@@ -510,103 +549,9 @@
 					controls[i].tools.push({
 						name: "TAStartTokenAttach",
 						title: game.i18n.localize("TOKENATTACHER.button.StartTokenAttach"),
-						icon: "fas fa-address-card",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
-						button: true
-					  });
-					controls[i].tools.push({
-						name: "TAshowTokenAttacherUI",
-						title: game.i18n.localize("TOKENATTACHER.button.showTokenAttacherUI"),
-						icon: "far fa-address-card",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher.showTokenAttacherUI(),
-						button: true
-					});
-					controls[i].tools.push({
-						name: "TAAttachToToken",
-						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
-						onClick: () => TokenAttacher._AttachToTokenViaUI(),
-						button: true
-					  });
-					  controls[i].tools.push({
-						  name: "TADetachFromToken",
-						  title: game.i18n.localize("TOKENATTACHER.button.DetachFromToken"),
-						  icon: "fas fa-unlink",
-						  visible: game.user.isGM,
-						  onClick: () => TokenAttacher._DetachFromToken(canvas.tokens.controlled[0]),
-						  button: true
-						});
-				}
-				else if(controls[i].name === "tiles"){
-					controls[i].tools.push({
-						name: "TASaveTileSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(Tile.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "walls"){
-					controls[i].tools.push({
-						name: "TASaveWallSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(Wall.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "lighting"){
-					controls[i].tools.push({
-						name: "TASaveLightingSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(AmbientLight.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "sounds"){
-					controls[i].tools.push({
-						name: "TASaveSoundsSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(AmbientSound.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "notes"){
-					controls[i].tools.push({
-						name: "TASaveNotesSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(Note.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "drawings"){
-					controls[i].tools.push({
-						name: "TASaveDrawingsSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(Drawing.layer),
-						button: true
-					  });
-				}
-				else if(controls[i].name === "measure"){
-					controls[i].tools.push({
-						name: "TASaveTemplatesSelection",
-						title: game.i18n.localize("TOKENATTACHER.button.SaveSelection"),
-						icon: "fas fa-object-group",
-						visible: game.user.isGM,
-						onClick: () => TokenAttacher._SaveSelection(MeasuredTemplate.layer),
+						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
 						button: true
 					  });
 				}
@@ -657,7 +602,7 @@
 				icons[1].classList.toggle("hidden", false);
 			}
 
-			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
+			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
@@ -685,7 +630,6 @@
 			$(highlight_tool).click(()=>{
 				TokenAttacher.highlightAttached(token, highlight_tool);
 			});
-			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
 		}
 
 		static lockAttached(token, button){
@@ -699,9 +643,8 @@
 					let layer = eval(key).layer ?? eval(key).collection;
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
-						if(!isLocked) element.interactive = false;
-						else element.interactive = true;
-						element.setFlag(moduleName, "locked", !isLocked); 
+						if(!isLocked) TokenAttacher.lockElement(key, element, false);
+						else TokenAttacher.lockElement(key, element, true);
 					}
 				}
 			}
