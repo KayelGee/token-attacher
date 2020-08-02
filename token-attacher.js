@@ -25,9 +25,10 @@
 			window.tokenAttacher = {};
 			window.tokenAttacher.selected = {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			window.tokenAttacher.updateSight={};
-			window.tokenAttacher.updateSight.walls=[];
-
+			if(window.tokenAttacher.isPreSightUpdateVersion){
+				window.tokenAttacher.updateSight={};
+				window.tokenAttacher.updateSight.walls=[];
+			}
 			
 			window.tokenAttacher = {
 				...window.tokenAttacher, 
@@ -37,15 +38,18 @@
 				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
 				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
 				get typeMap() {return TokenAttacher.typeMap},
+				isPreSightUpdateVersion: isNewerVersion('0.7.0', game.data.version),
 			};
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
-			Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
+			if(window.tokenAttacher.isPreSightUpdateVersion){
+				Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
+				Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
+				}
 		}
-		
+
 		static registerSettings() {
 			game.settings.register(moduleName,"data-model-version",{
 				name: "token attacher dataModelVersion",
@@ -215,10 +219,11 @@
 		
 		static _updateWalls(walls, tokenCenter, deltaX, deltaY, deltaRot){
 				//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-				TokenAttacher.pushSightUpdate(...[{walls:walls}]);
-				game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
-
 				_updateLineEntities(walls, tokenCenter, deltaX, deltaY, deltaRot);
+				if(window.tokenAttacher.isPreSightUpdateVersion){
+					TokenAttacher.pushSightUpdate(...[{walls:walls}]);
+					game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
+				}
 		}
 
 		static _updateLineEntities(type, line_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
