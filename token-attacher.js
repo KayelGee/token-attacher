@@ -638,6 +638,7 @@
 			if(!canvas.scene.getFlag(moduleName, "attach_token")) return;
 			const token = canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token"));
 			const path = `/modules/${moduleName}/templates`;
+			const locked_status = token.getFlag(moduleName, "locked") || false;
 			// Get the handlebars output
 			const myHtml = await renderTemplate(`${path}/tokenAttacherUI.html`, {["token-image"]: token.data.img});
 
@@ -646,8 +647,15 @@
 			let close_button=document.getElementById("tokenAttacher").getElementsByClassName("close")[0];
 			let link_tool=document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
 			let unlink_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
-			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlinkAll")[0];
+			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
 			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
+			let highlight_tool=document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
+
+			if(locked_status){
+				let icons = lock_tool.getElementsByTagName("i");
+				icons[0].classList.toggle("hidden", true);
+				icons[1].classList.toggle("hidden", false);
+			}
 
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
 			$(link_tool).click(()=>{
@@ -671,7 +679,67 @@
 			$(unlinkAll_tool).click(()=>{
 				TokenAttacher._DetachFromToken(token);
 			});
+			$(lock_tool).click(()=>{
+				TokenAttacher.lockAttached(token, lock_tool);
+			});
+			$(highlight_tool).click(()=>{
+				TokenAttacher.highlightAttached(token, highlight_tool);
+			});
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
+		}
+
+		static lockAttached(token, button){
+			const attached=token.getFlag(moduleName, "attached") || {};
+			if(Object.keys(attached).length == 0) return;
+			const isLocked = token.getFlag(moduleName, "locked") || false;
+			let icons = button.getElementsByTagName("i");
+			
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key) && key !== "unknown") {
+					let layer = eval(key).layer ?? eval(key).collection;
+					for (const elementid of attached[key]) {
+						let element = layer.get(elementid);
+						if(!isLocked) element.interactive = false;
+						else element.interactive = true;
+						element.setFlag(moduleName, "locked", !isLocked); 
+					}
+				}
+			}
+			if(!isLocked){
+				icons[0].classList.toggle("hidden", true);
+				icons[1].classList.toggle("hidden", false);
+			}
+			else{
+				icons[0].classList.toggle("hidden", false);
+				icons[1].classList.toggle("hidden", true);
+			}
+			token.setFlag(moduleName, "locked", !isLocked); 
+		}
+
+		static highlightAttached(token, button){
+			const attached=token.getFlag(moduleName, "attached") || {};
+			if(Object.keys(attached).length == 0) return;
+			let icons = button.getElementsByTagName("i");
+			const isHighlighted = icons[0].classList.contains("hidden");
+
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key) && key !== "unknown") {
+					let layer = eval(key).layer ?? eval(key).collection;
+					for (const elementid of attached[key]) {
+						let element = layer.get(elementid);
+						if(!isHighlighted) element.alpha = 0.5;
+						else element.alpha = 1;
+					}
+				}
+			}
+			if(!isHighlighted){
+				icons[0].classList.toggle("hidden", true);
+				icons[1].classList.toggle("hidden", false);
+			}
+			else{
+				icons[0].classList.toggle("hidden", false);
+				icons[1].classList.toggle("hidden", true);
+			}
 		}
 
 		static async closeTokenAttacherUI(){
