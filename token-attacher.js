@@ -419,6 +419,15 @@
 		}
 
 		/**
+		 * Detach previously saved selection of walls to the currently selected token
+		 */
+		static _StartTokenAttach(token){
+			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			canvas.scene.setFlag(moduleName, "attach_token", token.data._id);
+			TokenAttacher.showTokenAttacherUI();
+		}
+
+		/**
 		 * Check previously attached of the token and remove deleted items
 		 */
 		static _CheckAttachedOfToken(token){
@@ -498,6 +507,22 @@
 		static _getControlButtons(controls){
 			for (let i = 0; i < controls.length; i++) {
 				if(controls[i].name === "token"){
+					controls[i].tools.push({
+						name: "TAStartTokenAttach",
+						title: game.i18n.localize("TOKENATTACHER.button.StartTokenAttach"),
+						icon: "fas fa-address-card",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
+						button: true
+					  });
+					controls[i].tools.push({
+						name: "TAshowTokenAttacherUI",
+						title: game.i18n.localize("TOKENATTACHER.button.showTokenAttacherUI"),
+						icon: "far fa-address-card",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher.showTokenAttacherUI(),
+						button: true
+					});
 					controls[i].tools.push({
 						name: "TAAttachToToken",
 						title: game.i18n.localize("TOKENATTACHER.button.AttachToToken"),
@@ -607,6 +632,52 @@
 					TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
 				}
 			}
+		}
+
+		static async showTokenAttacherUI(){
+			if(!canvas.scene.getFlag(moduleName, "attach_token")) return;
+			const token = canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token"));
+			const path = `/modules/${moduleName}/templates`;
+			// Get the handlebars output
+			const myHtml = await renderTemplate(`${path}/tokenAttacherUI.html`, {["token-image"]: token.data.img});
+
+			document.getElementById("hud").insertAdjacentHTML('afterend', myHtml);
+
+			let close_button=document.getElementById("tokenAttacher").getElementsByClassName("close")[0];
+			let link_tool=document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
+			let unlink_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
+			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlinkAll")[0];
+			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
+
+			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
+			$(link_tool).click(()=>{
+				const current_layer = canvas.activeLayer;
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length == 1)
+					TokenAttacher.attachElementToToken(current_layer.controlled[0], token);
+				else{
+					TokenAttacher.attachElementsToToken(current_layer.controlled, token);
+				}
+			});
+			$(unlink_tool).click(()=>{
+				const current_layer = canvas.activeLayer;
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length == 1)
+					TokenAttacher.detachElementFromToken(current_layer.controlled[0], token);
+				else{
+					TokenAttacher.detachElementsFromToken(current_layer.controlled, token);
+				}
+			});
+			$(unlinkAll_tool).click(()=>{
+				TokenAttacher._DetachFromToken(token);
+			});
+			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI()});
+		}
+
+		static async closeTokenAttacherUI(){
+			document.getElementById("tokenAttacher").remove();
+			canvas.scene.unsetFlag(moduleName, "attach_token");
+		
 		}
 
 		static detachElementFromToken(element, target_token, suppressNotification=false){
