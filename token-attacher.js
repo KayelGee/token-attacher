@@ -23,7 +23,7 @@
 			}
 
 			window.tokenAttacher = {};
-			window.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
+			window.tokenAttacher.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
 			window.tokenAttacher.selected = {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
@@ -217,13 +217,13 @@
 			}			
 		}
 		
-		static _updateWalls(walls, tokenCenter, deltaX, deltaY, deltaRot){
+		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
 				//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-				_updateLineEntities(walls, tokenCenter, deltaX, deltaY, deltaRot);
 				if(window.tokenAttacher.isPreSightUpdateVersion){
 					TokenAttacher.pushSightUpdate(...[{walls:walls}]);
 					game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
 				}
+				TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
 		}
 
 		static _updateLineEntities(type, line_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
@@ -425,7 +425,7 @@
 			let attached=token.getFlag(moduleName, "attached") || {};
 			let reducedAttached = duplicate(attached);
 			for (const key in attached) {
-				if (attached.hasOwnProperty(key)) {
+				if (attached.hasOwnProperty(key) && key !== "unknown") {
 					reducedAttached = TokenAttacher._removeAttachedRemnants(reducedAttached, key);
 				}
 			}
@@ -589,21 +589,8 @@
 			console.log("WallToTokenLinker | Tools added.");
 		}
 
-		static lookupType(element){
-			switch(element.constructor.name){
-				case "MeasuredTemplate": return 'templates';
-				case "Drawing": return 'drawings';
-				case "Note": return 'notes';
-				case "AmbientSound": return 'sounds';
-				case "AmbientLight": return 'lighting';
-				case "Wall": return 'walls';
-				case "Tile": return 'tiles';
-			}
-			return 'unknown';
-		}
-
 		static attachElementToToken(element, target_token, suppressNotification=false){
-			const type = TokenAttacher.lookupType(element);
+			const type = element.constructor.name;
 			const selected = [element.data._id];
 			TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
 		}
@@ -611,7 +598,7 @@
 		static attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
-				const type = TokenAttacher.lookupType(element);
+				const type = element.constructor.name;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
@@ -623,7 +610,7 @@
 		}
 
 		static detachElementFromToken(element, target_token, suppressNotification=false){
-			const type = TokenAttacher.lookupType(element);
+			const type = element.constructor.name;
 			const selected = [element.data._id];
 			TokenAttacher._DetachFromToken(target_token, {type:type, data:selected}, suppressNotification);
 		}
@@ -631,7 +618,7 @@
 		static detachElementsFromToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
-				const type = TokenAttacher.lookupType(element);
+				const type = element.constructor.name;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
