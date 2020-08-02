@@ -23,6 +23,7 @@
 			}
 
 			window.tokenAttacher = {};
+			window.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
 			window.tokenAttacher.selected = {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
@@ -38,11 +39,10 @@
 				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
 				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
 				get typeMap() {return TokenAttacher.typeMap},
-				isPreSightUpdateVersion: isNewerVersion('0.7.0', game.data.version),
 			};
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
-			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateWallsWithToken(parent, doc, update, options, userId));
+			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
 				Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
@@ -160,7 +160,7 @@
 			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
-		static AfterUpdateWallsWithToken(parent, doc, update, options, userId){
+		static AfterUpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
