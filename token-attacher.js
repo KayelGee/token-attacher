@@ -45,6 +45,8 @@
 
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
+			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
+			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
 				Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
@@ -188,7 +190,7 @@
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					console.log("Token Attacher| this has attached with attached " + key);
+					//console.log("Token Attacher| this has attached with attached " + key);
 					TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
 				}
 			}
@@ -199,7 +201,7 @@
 			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
-		static AfterUpdateAttachedOfToken(parent, doc, update, options, userId){
+		static async AfterUpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
@@ -214,6 +216,7 @@
 			if(!needUpdate) return;
 
 			if(TokenAttacher.isFirstActiveGM()){
+				await token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}});
 				TokenAttacher._CheckAttachedOfToken(token);
 			}
 		}
@@ -723,6 +726,36 @@
 			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
 		}
 
+		static getObjectsFromIds(type, idArray, tokenxy, token_center){
+			let layer = eval(type).layer ?? eval(type).collection;
+			let copyArray = [];
+			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
+			for (const elementid of idArray) {
+				let element = {data:layer.get(elementid).data};
+				delete element._id;
+				copyArray.push(element);
+				if(offset.x == Number.MAX_SAFE_INTEGER){
+					offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
+					offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+				}
+				else{
+					let x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
+					let y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+					if(x < offset.x) offset.x = x;
+					if(y < offset.y) offset.y = y;
+				}
+			}
+			if(type == "Wall"){
+				offset.x -= tokenxy.x;
+				offset.y -= tokenxy.y;
+			}
+			else{
+				offset.x -= token_center.x; 
+				offset.y -= token_center.y;
+			}
+			return {objs: copyArray, offset: offset};
+		}
+
 		static async copyAttached(token){
 			let copyObjects = {};
 			const attached=token.getFlag(moduleName, "attached") || {};
@@ -730,34 +763,9 @@
 		
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
-					let copyArray = [];
-					let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
-					for (const elementid of attached[key]) {
-						const element = {data:layer.get(elementid).data};
-						copyArray.push(element);
-						if(offset.x == Number.MAX_SAFE_INTEGER){
-							offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
-							offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
-						}
-						else{
-							let x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
-							let y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
-							if(x < offset.x) offset.x = x;
-							if(y < offset.y) offset.y = y;
-						}
-					}
-					if(key == "Wall"){
-						offset.x -= token.data.x;
-						offset.y -= token.data.y;
-					}
-					else{
-						offset.x -= token.center.x; 
-						offset.y -= token.center.y;
-					}
-					copyObjects[key]={};
-					copyObjects[key].objs=copyArray;
-					copyObjects[key].offset=offset;
+					const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], {x:token.data.x, y:token.data.y}, token.center);
+
+					copyObjects[key]=offsetObjs;
 				}
 			}
 			await game.user.unsetFlag(moduleName, "copy");			
@@ -773,7 +781,6 @@
 			for (const key in copyObjects) {
 				if (copyObjects.hasOwnProperty(key) && key !== "unknown") {
 					let layer = eval(key).layer ?? eval(key).collection;
-					layer._copy = copyObjects[key].objs;
 
 					let pos = {x:token.data.x + copyObjects[key].offset.x , y:token.data.y+ copyObjects[key].offset.y};
 					const created = await TokenAttacher.pasteObjects(layer, copyObjects[key].objs, pos);
@@ -808,7 +815,7 @@
 
 			// Iterate over objects
 			const toCreate = [];
-			for ( let c of layer._copy ) {
+			for ( let c of objects) {
 				let data = duplicate(c.data);
 				delete data._id;
 				toCreate.push(mergeObject(data, {
@@ -858,6 +865,71 @@
 			const created = await canvas.scene.createEmbeddedEntity("Wall", toCreate);
 			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
 			return created;
+		}
+
+		static async updateAttachedPrototype(entity, data, options, userId){
+			console.log("updateActor");
+			console.log(data);
+			if(data.hasOwnProperty("token")){
+				if(data.token.flags.hasOwnProperty(moduleName)){
+					const attached = data.token.flags[moduleName].attached || {};
+					if(Object.keys(attached).length == 0) return;
+
+					let prototypeAttached = {};
+					for (const key in attached) {
+						if (attached.hasOwnProperty(key)) {
+							
+							const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], data.token.flags[moduleName].pos.xy, data.token.flags[moduleName].pos.center);
+							let layer = eval(key).layer ?? eval(key).collection;
+							prototypeAttached[key] = {};
+							// for (const id of attached[key]) {
+							// 	const element =  layer.get(id);
+							// 	let updateData = duplicate(element.data);
+							// 	delete updateData._id;
+							// 	prototypeAttached[key].push(updateData);
+							// }
+							prototypeAttached[key] = offsetObjs;
+						}
+					}	
+					let deletes = {_id:data._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
+					let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached}};
+					await entity.update(deletes);
+					await entity.update(updates);
+				}
+			}
+		}
+
+		static async updateAttachedCreatedToken(parent, entity, options, userId){
+			console.log("createToken");
+			console.log(entity);
+			const token = canvas.tokens.get(entity._id);
+			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
+			console.log(prototypeAttached);
+
+
+			const copyObjects = game.user.getFlag(moduleName, "copy") || {};
+			if(Object.keys(prototypeAttached).length == 0) return;
+		
+			let pasted = [];
+			for (const key in prototypeAttached) {
+				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
+					let layer = eval(key).layer ?? eval(key).collection;
+
+					let pos = {x:token.data.x + prototypeAttached[key].offset.x , y:token.data.y+ prototypeAttached[key].offset.y};
+					const created = await TokenAttacher.pasteObjects(layer, prototypeAttached[key].objs, pos);
+					if(Array.isArray(created)){
+						pasted = pasted.concat(created.map((obj)=>{
+							return layer.get(obj._id);
+						}));
+					}
+					else{
+						pasted.push(layer.get(created._id));
+					}
+				}
+			}
+			if(pasted.length <= 0) return;
+			TokenAttacher.attachElementsToToken(pasted, token, true);
+			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 	}
 
