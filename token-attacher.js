@@ -595,6 +595,8 @@
 			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
 			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
 			let highlight_tool=document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
+			let copy_tool=document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
+			let paste_tool=document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
 
 			if(locked_status){
 				let icons = lock_tool.getElementsByTagName("i");
@@ -629,6 +631,12 @@
 			});
 			$(highlight_tool).click(()=>{
 				TokenAttacher.highlightAttached(token, highlight_tool);
+			});
+			$(copy_tool).click(()=>{
+				TokenAttacher.copyAttached(token);
+			});
+			$(paste_tool).click(()=>{
+				TokenAttacher.pasteAttached(token);
 			});
 		}
 
@@ -713,6 +721,133 @@
 
 		static detachAllElementsFromToken(target_token, suppressNotification=false){
 			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
+		}
+
+		static async copyAttached(token){
+			let copyObjects = {};
+			const attached=token.getFlag(moduleName, "attached") || {};
+			if(Object.keys(attached).length == 0) return;
+		
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key) && key !== "unknown") {
+					let layer = eval(key).layer ?? eval(key).collection;
+					let copyArray = [];
+					let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
+					for (const elementid of attached[key]) {
+						const element = {data:layer.get(elementid).data};
+						copyArray.push(element);
+						if(offset.x == Number.MAX_SAFE_INTEGER){
+							offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
+							offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+						}
+						else{
+							let x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
+							let y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+							if(x < offset.x) offset.x = x;
+							if(y < offset.y) offset.y = y;
+						}
+					}
+					if(key == "Wall"){
+						offset.x -= token.data.x;
+						offset.y -= token.data.y;
+					}
+					else{
+						offset.x -= token.center.x - token.width;
+						offset.y -= token.center.y - token.height;
+					}
+					copyObjects[key]={};
+					copyObjects[key].objs=copyArray;
+					copyObjects[key].offset=offset;
+				}
+			}
+			await game.user.unsetFlag(moduleName, "copy");			
+			game.user.setFlag(moduleName, "copy", copyObjects);		
+		}
+
+		static async pasteAttached(token){
+			const copyObjects = game.user.getFlag(moduleName, "copy") || {};
+			if(Object.keys(copyObjects).length == 0) return;
+		
+			let pasted = [];
+			for (const key in copyObjects) {
+				if (copyObjects.hasOwnProperty(key) && key !== "unknown") {
+					let layer = eval(key).layer ?? eval(key).collection;
+					layer._copy = copyObjects[key].objs;
+					let objCount = copyObjects[key].objs.length;
+					const hookFunc = (parent, entity, options, userId) => {
+						pasted.push(layer.get(entity._id));
+						objCount--;
+						if(objCount > 0){
+							Hooks.once(`create${key}`, hookFunc);
+						}};
+					Hooks.once(`create${key}`, hookFunc);
+
+					let pos = {x:token.data.x + copyObjects[key].offset.x , y:token.data.y+ copyObjects[key].offset.y};
+					await layer.pasteObjects(pos);
+				}
+			}
+			if(pasted.length <= 0) return;
+			TokenAttacher.attachElementsToToken(pasted, token, true);
+		}
+
+		static pasteObjects(layer, objects, pos, {hidden = false} = {}){
+			if ( !objects.length ) return [];
+			const cls = layer.constructor.placeableClass;
+			// Iterate over objects
+			const toCreate = [];
+			for ( let c of layer._copy ) {
+			let data = duplicate(c.data);
+			let snapped = canvas.grid.getSnappedPosition(position.x + (data.x - x), position.y + (data.y - y), 1);
+			delete data._id;
+			toCreate.push(mergeObject(data, {
+				x: pos.x + data.x,
+				y: pos.y + data.y,
+				hidden: data.hidden || hidden
+			}));
+			}
+
+			// Create all objects
+			const created = await canvas.scene.createEmbeddedEntity(cls.name, toCreate);
+			ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
+			return created;
+
+
+			//----------------------------------------------------------------------------
+			if ( !this._copy.length ) return;
+			const cls = this.constructor.placeableClass;
+		
+			// Transform walls to reference their upper-left coordinates as {x,y}
+			const [xs, ys] = this._copy.reduce((arr, w) => {
+			  arr[0].push(Math.min(w.data.c[0], w.data.c[2]));
+			  arr[1].push(Math.min(w.data.c[1], w.data.c[3]));
+			  return arr;
+			}, [[], []]);
+		
+			// Get the top-left most coordinate
+			const topX = Math.min(...xs);
+			const topY = Math.min(...ys);
+		
+			// Get the magnitude of shift
+			const dx = Math.floor(topX - position.x);
+			const dy = Math.floor(topY - position.y);
+			const shift = [dx, dy, dx, dy];
+		
+			// Iterate over objects
+			const toCreate = [];
+			for ( let w of this._copy ) {
+			  let data = duplicate(w.data);
+			  data.c = data.c.map((c, i) => c - shift[i]);
+			  delete data._id;
+			  toCreate.push(data);
+			}
+		
+			// Call paste hooks
+			Hooks.call(`paste${cls.name}`, this._copy, toCreate);
+		
+			// Create all objects
+			await canvas.scene.createEmbeddedEntity("Wall", toCreate);
+			ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
+			return toCreate;
 		}
 	}
 
