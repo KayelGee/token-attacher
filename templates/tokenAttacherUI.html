@@ -1,5 +1,5 @@
 <div id="tokenAttacher" class="flexrow">
-    <div class="app image" style="content:url({{token-image}});"></div>
+    <div class="app image" style="background-image:url({{token-image}});"><span class="token-name"><span>{{token-name}}</span></span></div>
     <ol class="control-tools flexcol">
         <li class="control-tool link">
             <i class="fas fa-link"></i>
@@ -17,6 +17,12 @@
         <li class="control-tool highlight">
             <i class="fas fa-sun"></i>
             <i class="far fa-sun hidden"></i>
+        </li>
+        <li class="control-tool copy">
+            <i class="fas fa-copy"></i>
+        </li>
+        <li class="control-tool paste">
+            <i class="fas fa-paste"></i>
         </li>
     </ol>
     <div class="control-tool close">

@@ -7,9 +7,38 @@
 }
 #tokenAttacher .image {
 	height: 142px;
+	min-width: 142px;
 	margin: 0.5em 0;
 	border: 1px solid #000;
 	border-radius: 5px;
+	background-size: cover;
+	background-repeat: no-repeat;
+	position: relative;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+#tokenAttacher .image .token-name{
+	position: absolute;
+	bottom: -27px;
+	width:100%;
+	text-align:center;
+	
+	box-sizing: content-box;
+	font-size: 18px;
+	background: rgba(0, 0, 0, 0.5);
+	margin: 0 -8px;
+	color: #BBB;
+	text-align: center;
+	border: 1px solid #000;
+	border-radius: 5px;
+	overflow: hidden;
+}
+#tokenAttacher .image .token-name span{
+	margin: 0 -5%;
+	width: 90%;
+	display: inline-block;
+	overflow: hidden;
+	white-space: nowrap;
+	height: 20px;
 }
 #tokenAttacher ol{
 	list-style: none;

@@ -48,7 +48,7 @@
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
 				Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
-				Hooks.on(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
+				Hooks.once(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 				}
 		}
 
@@ -585,7 +585,7 @@
 			const path = `/modules/${moduleName}/templates`;
 			const locked_status = token.getFlag(moduleName, "locked") || false;
 			// Get the handlebars output
-			const myHtml = await renderTemplate(`${path}/tokenAttacherUI.html`, {["token-image"]: token.data.img});
+			const myHtml = await renderTemplate(`${path}/tokenAttacherUI.html`, {["token-image"]: token.data.img, ["token-name"]: token.data.name});
 
 			document.getElementById("hud").insertAdjacentHTML('afterend', myHtml);
 
