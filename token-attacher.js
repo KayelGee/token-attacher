@@ -761,7 +761,8 @@
 				}
 			}
 			await game.user.unsetFlag(moduleName, "copy");			
-			game.user.setFlag(moduleName, "copy", copyObjects);		
+			await game.user.setFlag(moduleName, "copy", copyObjects);	
+			ui.notifications.info(`Copied attached elements.`);	
 		}
 
 		static async pasteAttached(token){
@@ -777,7 +778,7 @@
 					let pos = {x:token.data.x + copyObjects[key].offset.x , y:token.data.y+ copyObjects[key].offset.y};
 					const created = await TokenAttacher.pasteObjects(layer, copyObjects[key].objs, pos);
 					if(Array.isArray(created)){
-						pasted.concat(created.map((obj)=>{
+						pasted = pasted.concat(created.map((obj)=>{
 							return layer.get(obj._id);
 						}));
 					}
@@ -788,12 +789,15 @@
 			}
 			if(pasted.length <= 0) return;
 			TokenAttacher.attachElementsToToken(pasted, token, true);
+			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 
 		static async pasteObjects(layer, objects, pos, {hidden = false} = {}){
 			if ( !objects.length ) return [];
 			const cls = layer.constructor.placeableClass;
-			if(cls.name == "Wall") return [];
+
+			if(cls.name == "Wall") return TokenAttacher.pasteWalls(layer, objects, pos);
+
 			// Adjust the pasted position for half a grid space
 			pos.x += canvas.dimensions.size / 2;
 			pos.y += canvas.dimensions.size / 2;
@@ -816,16 +820,17 @@
 
 			// Create all objects
 			const created = await canvas.scene.createEmbeddedEntity(cls.name, toCreate);
-			ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
+			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
 			return created;
+		}
 
-
+		static async pasteWalls(layer, objects, pos, options = {}){
 			//----------------------------------------------------------------------------
-			/* if ( !this._copy.length ) return;
-			cls = this.constructor.placeableClass;
+			if ( !objects.length ) return;
+			const cls = layer.constructor.placeableClass;
 		
 			// Transform walls to reference their upper-left coordinates as {x,y}
-			const [xs, ys] = this._copy.reduce((arr, w) => {
+			const [xs, ys] = objects.reduce((arr, w) => {
 			  arr[0].push(Math.min(w.data.c[0], w.data.c[2]));
 			  arr[1].push(Math.min(w.data.c[1], w.data.c[3]));
 			  return arr;
@@ -836,26 +841,23 @@
 			const topY = Math.min(...ys);
 		
 			// Get the magnitude of shift
-			const dx = Math.floor(topX - position.x);
-			const dy = Math.floor(topY - position.y);
+			const dx = Math.floor(topX - pos.x);
+			const dy = Math.floor(topY - pos.y);
 			const shift = [dx, dy, dx, dy];
 		
 			// Iterate over objects
 			const toCreate = [];
-			for ( let w of this._copy ) {
+			for ( let w of objects ) {
 			  let data = duplicate(w.data);
 			  data.c = data.c.map((c, i) => c - shift[i]);
 			  delete data._id;
 			  toCreate.push(data);
 			}
 		
-			// Call paste hooks
-			Hooks.call(`paste${cls.name}`, this._copy, toCreate);
-		
 			// Create all objects
-			await canvas.scene.createEmbeddedEntity("Wall", toCreate);
-			ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
-			return toCreate; */
+			const created = await canvas.scene.createEmbeddedEntity("Wall", toCreate);
+			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
+			return created;
 		}
 	}
 
