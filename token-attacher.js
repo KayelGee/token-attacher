@@ -500,7 +500,10 @@
 			});
 			objects = objects.filter(n => n);
 			attached[type]=objects;
-			if(Object.keys(attached[type]).length == 0) delete attached[type];
+			if(Object.keys(attached[type]).length == 0) {
+				delete attached[type];
+				attached[`-=${type}`] = null;
+			}
 			
 			return attached;
 		}
