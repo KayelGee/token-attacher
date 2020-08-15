@@ -485,9 +485,7 @@
 				token.unsetFlag(moduleName, "attached");
 				return;
 			}
-			token.unsetFlag(moduleName, "attached").then(()=>{
-				token.setFlag(moduleName, "attached", reducedAttached);
-			});
+			token.setFlag(moduleName, "attached", reducedAttached);
 		}
 
 		static _removeAttachedRemnants(attached, type){
