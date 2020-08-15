@@ -752,8 +752,8 @@
 						offset.y -= token.data.y;
 					}
 					else{
-						offset.x -= token.center.x - token.width;
-						offset.y -= token.center.y - token.height;
+						offset.x -= token.center.x; 
+						offset.y -= token.center.y;
 					}
 					copyObjects[key]={};
 					copyObjects[key].objs=copyArray;
@@ -773,37 +773,45 @@
 				if (copyObjects.hasOwnProperty(key) && key !== "unknown") {
 					let layer = eval(key).layer ?? eval(key).collection;
 					layer._copy = copyObjects[key].objs;
-					let objCount = copyObjects[key].objs.length;
-					const hookFunc = (parent, entity, options, userId) => {
-						pasted.push(layer.get(entity._id));
-						objCount--;
-						if(objCount > 0){
-							Hooks.once(`create${key}`, hookFunc);
-						}};
-					Hooks.once(`create${key}`, hookFunc);
 
 					let pos = {x:token.data.x + copyObjects[key].offset.x , y:token.data.y+ copyObjects[key].offset.y};
-					await layer.pasteObjects(pos);
+					const created = await TokenAttacher.pasteObjects(layer, copyObjects[key].objs, pos);
+					if(Array.isArray(created)){
+						pasted.concat(created.map((obj)=>{
+							return layer.get(obj._id);
+						}));
+					}
+					else{
+						pasted.push(layer.get(created._id));
+					}
 				}
 			}
 			if(pasted.length <= 0) return;
 			TokenAttacher.attachElementsToToken(pasted, token, true);
 		}
 
-		static pasteObjects(layer, objects, pos, {hidden = false} = {}){
+		static async pasteObjects(layer, objects, pos, {hidden = false} = {}){
 			if ( !objects.length ) return [];
 			const cls = layer.constructor.placeableClass;
+			if(cls.name == "Wall") return [];
+			// Adjust the pasted position for half a grid space
+			pos.x += canvas.dimensions.size / 2;
+			pos.y += canvas.dimensions.size / 2;
+
+			// Get the left-most object in the set
+			objects.sort((a, b) => a.data.x - b.data.x);
+			let {x, y} = objects[0].data;
+
 			// Iterate over objects
 			const toCreate = [];
 			for ( let c of layer._copy ) {
-			let data = duplicate(c.data);
-			let snapped = canvas.grid.getSnappedPosition(position.x + (data.x - x), position.y + (data.y - y), 1);
-			delete data._id;
-			toCreate.push(mergeObject(data, {
-				x: pos.x + data.x,
-				y: pos.y + data.y,
-				hidden: data.hidden || hidden
-			}));
+				let data = duplicate(c.data);
+				delete data._id;
+				toCreate.push(mergeObject(data, {
+					x: pos.x + (data.x - x),
+					y: pos.y + (data.y - y),
+					hidden: data.hidden || hidden
+				}));
 			}
 
 			// Create all objects
@@ -813,8 +821,8 @@
 
 
 			//----------------------------------------------------------------------------
-			if ( !this._copy.length ) return;
-			const cls = this.constructor.placeableClass;
+			/* if ( !this._copy.length ) return;
+			cls = this.constructor.placeableClass;
 		
 			// Transform walls to reference their upper-left coordinates as {x,y}
 			const [xs, ys] = this._copy.reduce((arr, w) => {
@@ -847,7 +855,7 @@
 			// Create all objects
 			await canvas.scene.createEmbeddedEntity("Wall", toCreate);
 			ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
-			return toCreate;
+			return toCreate; */
 		}
 	}
 
