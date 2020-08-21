@@ -19,7 +19,7 @@
 		static initialize(){
 			if(TokenAttacher.isFirstActiveGM()){
 				canvas.scene.unsetFlag(moduleName,"selected");
-				console.log("Token Attacher| Initzialized");
+				console.log("Token Attacher| Initialized");
 			}
 
 			window.tokenAttacher = {};
@@ -208,7 +208,6 @@
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					//console.log("Token Attacher| this has attached with attached " + key);
 					TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
 				}
 			}
@@ -429,10 +428,9 @@
 		 * Listen to custom socket events, so players can move elements indirectly through the gm
 		 */
 		static listen(data){
-			console.log("Token Attacher| some event");
+			//console.log("Token Attacher| some event");
 			if(data.event.indexOf("attachedUpdate") === 1){
 				if(TokenAttacher.isFirstActiveGM()){
-					console.log("Token Attacher| Event " + data.event);
 					const type = data.event.split("attachedUpdate")[1];
 					TokenAttacher.getTypeCallback(type)(...data.eventdata);
 				}
@@ -887,8 +885,6 @@
 		}
 
 		static async updateAttachedPrototype(entity, data, options, userId){
-			console.log("updateActor");
-			console.log(data);
 			if(data.hasOwnProperty("token")){
 				if(data.token.flags.hasOwnProperty(moduleName)){
 					const attached = data.token.flags[moduleName].attached || {};
@@ -901,12 +897,6 @@
 							const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], data.token.flags[moduleName].pos.xy, data.token.flags[moduleName].pos.center);
 							let layer = eval(key).layer ?? eval(key).collection;
 							prototypeAttached[key] = {};
-							// for (const id of attached[key]) {
-							// 	const element =  layer.get(id);
-							// 	let updateData = duplicate(element.data);
-							// 	delete updateData._id;
-							// 	prototypeAttached[key].push(updateData);
-							// }
 							prototypeAttached[key] = offsetObjs;
 						}
 					}	
@@ -919,12 +909,8 @@
 		}
 
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
-			console.log("createToken");
-			console.log(parent);
-			console.log(entity);
 			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = await token.getFlag(moduleName, "prototypeAttached") || {};
-			console.log(prototypeAttached);
 
 			if(Object.keys(prototypeAttached).length == 0) return;
 		
