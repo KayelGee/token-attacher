@@ -2,7 +2,7 @@
 	"name": "token-attacher",
 	"title": "Token Attacher",
 	"description": "Attach anything(except other tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.",
-	"version": "2.1.1",
+	"version": "3.0.0",
 	"minimumCoreVersion": "0.6.0",
 	"compatibleCoreVersion": "0.6.5",
 	"author": "KayelGee - KayelGee#5241",
@@ -21,6 +21,6 @@
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
   "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v2.1.1/v2.1.1.zip",
-  "readme": "https://github.com/KayelGee/token-attacher/blob/v2.1.1/README.md"
+  "download": "https://github.com/KayelGee/token-attacher/releases/download/v3.0.0/v3.0.0.zip",
+  "readme": "https://github.com/KayelGee/token-attacher/blob/v3.0.0/README.md"
 }
