@@ -12,7 +12,7 @@
 				"Note":{updateCallback: TokenAttacher._updatePointEntities},
 				"Wall":{updateCallback: TokenAttacher._updateWalls},
 			};
-			Hooks.callAll(`${moduleName}.getTypeMap`, map);
+			//Hooks.callAll(`${moduleName}.getTypeMap`, map);
 			return map;
 		}
 
@@ -30,6 +30,9 @@
 				window.tokenAttacher.updateSight={};
 				window.tokenAttacher.updateSight.walls=[];
 			}
+			else{
+				Hooks.off("updateWall", TokenAttacher.performSightUpdates)
+			}
 			
 			window.tokenAttacher = {
 				...window.tokenAttacher, 
@@ -43,15 +46,30 @@
 
 			TokenAttacher.updatedLockedAttached();
 
+		}
+
+		static registerHooks(){
+			Hooks.on('ready', () => {
+				TokenAttacher.registerSettings();
+				if(TokenAttacher.isFirstActiveGM()){
+					TokenAttacher.startMigration();
+				}
+			});
+		
+			Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
+			Hooks.on('canvasReady', () => TokenAttacher.initialize());
+			Hooks.once('ready', () => {
+				game.socket.on(`module.${moduleName}`, (data) => TokenAttacher.listen(data));
+			});
+		
 			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
+		
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			if(window.tokenAttacher.isPreSightUpdateVersion){
-				Hooks.on("updateWall", (entity, data, options, userId) => TokenAttacher.performSightUpdates(entity, data, options, userId));
-				Hooks.once(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
-				}
+			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
+			Hooks.once(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 		}
 
 		static registerSettings() {
@@ -164,8 +182,8 @@
 		static UpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
-			const tokenCenter = token.center;
-			if(Object.keys(attached).length == 0) return;
+			const tokenCenter = duplicate(token.center);
+			if(Object.keys(attached).length == 0) return true;
 
 			TokenAttacher.detectGM();
 
@@ -186,7 +204,7 @@
 				needUpdate=true;
 			}
 			
-			if(!needUpdate) return;
+			if(!needUpdate) return true;
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
@@ -194,6 +212,7 @@
 					TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
 				}
 			}
+			return true;
 		}
 
 		static updateAttached(type, data){
@@ -434,7 +453,7 @@
 		/**
 		 * Attach previously saved selection to the currently selected token
 		 */
-		static _AttachToToken(token, elements, suppressNotification=false){
+		static async _AttachToToken(token, elements, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements.hasOwnProperty("type")) return;
 
@@ -442,9 +461,8 @@
 			
 			attached=elements.data;
 			
-			token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
-				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
-			});
+			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
+			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
 		}
 
@@ -569,7 +587,7 @@
 			TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
 		}
 
-		static attachElementsToToken(element_array, target_token, suppressNotification=false){
+		static async attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
 				const type = element.constructor.name;
@@ -578,7 +596,7 @@
 			}
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
-					TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
+					await TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
 				}
 			}
 		}
@@ -732,8 +750,8 @@
 			let copyArray = [];
 			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
 			for (const elementid of idArray) {
-				let element = {data:layer.get(elementid).data};
-				delete element._id;
+				let element = {data:duplicate(layer.get(elementid).data)};
+				delete element.data._id;
 				copyArray.push(element);
 				if(offset.x == Number.MAX_SAFE_INTEGER){
 					offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
@@ -902,13 +920,12 @@
 
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
 			console.log("createToken");
+			console.log(parent);
 			console.log(entity);
 			const token = canvas.tokens.get(entity._id);
-			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
+			const prototypeAttached = await token.getFlag(moduleName, "prototypeAttached") || {};
 			console.log(prototypeAttached);
 
-
-			const copyObjects = game.user.getFlag(moduleName, "copy") || {};
 			if(Object.keys(prototypeAttached).length == 0) return;
 		
 			let pasted = [];
@@ -930,20 +947,10 @@
 			}
 			if(pasted.length <= 0) return;
 			TokenAttacher.attachElementsToToken(pasted, token, true);
+			token.unsetFlag(moduleName, "prototypeAttached");
 			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 	}
 
-	Hooks.on('ready', () => {
-		TokenAttacher.registerSettings();
-		if(TokenAttacher.isFirstActiveGM()){
-			TokenAttacher.startMigration();
-		}
-	});
-
-	Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
-	Hooks.on('canvasReady', () => TokenAttacher.initialize());
-	Hooks.once('ready', () => {
-		game.socket.on(`module.${moduleName}`, (data) => TokenAttacher.listen(data));
-	});
+	TokenAttacher.registerHooks();
 })();
