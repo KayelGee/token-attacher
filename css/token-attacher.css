@@ -1,0 +1,91 @@
+#tokenAttacher {
+	position: fixed;
+	top: 60px;
+	left: 120px;
+	padding: 0;
+	z-index: 30;
+}
+#tokenAttacher .image {
+	height: 142px;
+	min-width: 142px;
+	margin: 0.5em 0;
+	border: 1px solid #000;
+	border-radius: 5px;
+	background-size: cover;
+	background-repeat: no-repeat;
+	position: relative;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+#tokenAttacher .image .token-name{
+	position: absolute;
+	bottom: -27px;
+	width:100%;
+	text-align:center;
+	
+	box-sizing: content-box;
+	font-size: 18px;
+	background: rgba(0, 0, 0, 0.5);
+	margin: 0 -8px;
+	color: #BBB;
+	text-align: center;
+	border: 1px solid #000;
+	border-radius: 5px;
+	overflow: hidden;
+}
+#tokenAttacher .image .token-name span{
+	margin: 0 -5%;
+	width: 90%;
+	display: inline-block;
+	overflow: hidden;
+	white-space: nowrap;
+	height: 20px;
+}
+#tokenAttacher ol{
+	list-style: none;
+	padding-left: 0.25em;
+}
+#tokenAttacher li{
+	height: 24px;
+	width: 24px;
+}
+#tokenAttacher .control-tool{
+	width: 36px;
+	height: 36px;
+	box-sizing: content-box;
+	font-size: 24px;
+	line-height: 36px;
+	background: rgba(0, 0, 0, 0.5);
+	box-shadow: 0 0 10px #000;
+	margin: 0 0 8px;
+	color: #BBB;
+	text-align: center;
+	border: 1px solid #000;
+	border-radius: 5px;
+	cursor: pointer;
+}
+#tokenAttacher .control-tool:hover{
+	color: #FFF;
+	border: 1px solid red;
+	border-bottom: 1px solid #ff6400;
+	box-shadow: 0 0 10px #ff6400;
+}
+#tokenAttacher li i{
+	height: 24px;
+	width: 24px;
+	line-height: 24px;
+	font-size: 24px;
+	margin: 2px;
+}
+#tokenAttacher .close{
+	cursor: pointer;
+	position: absolute;
+	margin: 0.3em 0;
+	color: white;
+	z-index: 31;
+	background: rgba(0, 0, 0, 1);
+	box-shadow: none;
+}
+
+#tokenAttacher li i.hidden{
+	display: none;
+}

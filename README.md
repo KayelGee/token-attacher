@@ -18,6 +18,12 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.detachElementsFromToken(element_array, target_token, suppressNotification=false)
  - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
 
+## Known Issues
+ - Moving multiple tokens at the same time doesn't work. Don't do it.
+ - Locked elements can still be moved when selected with unlocked elements via box select
+ - Assign Token doesn't clear flags, so to be sure you should always assign to a fresh actor
+ - Moving a token rapidly(by holding a keyboard arrow key for example) will cause the attached elements to lag behind.
+
 ## Installation
 
 1. token-attacher using manifest URL: https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json
@@ -25,11 +31,33 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
 
 ## Usage
 
-Select for example the walls tool. Select your walls you wish to attach to a token, then click the "Save selection for attaching" tool. 
-Select your token and click the "Attach selection to token" tool.
-If you want to detach walls from a token, select the token and click the "Detach all from token" tool.
+Select a token and open the attaching UI.
 
-![](token-attacher.gif)
+![](gifs/open_close_ui.gif)
+
+Attach or detach an element by selecting it and pressing the attach or detach button.
+
+![](gifs/attach_detach.gif)
+
+Detach all elements by clicking the detach all button.
+
+![](gifs/detach_all.gif)
+
+Prevent attached elements from being interacted with by pressing the lock/unlock button.
+
+![](gifs/lock_unlock.gif)
+
+Highlight your attached elements by pressing the highlight button.
+
+![](gifs/highlight.gif)
+
+Copy and paste all attached elements by pressing the copy button on the source token and the paste button on the target token.
+
+![](gifs/copy_paste.gif)
+
+Make a prefab by adding a token with attached elements to the prototype Token of an Actor.
+
+![](gifs/prefab.webm)
 
 ## Contact
 
