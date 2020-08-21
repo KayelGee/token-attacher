@@ -820,7 +820,7 @@
 			if ( !objects.length ) return [];
 			const cls = layer.constructor.placeableClass;
 
-			if(cls.name == "Wall") return TokenAttacher.pasteWalls(layer, objects, pos);
+			if(cls.name == "Wall") return await TokenAttacher.pasteWalls(layer, objects, pos);
 
 			// Adjust the pasted position for half a grid space
 			pos.x += canvas.dimensions.size / 2;
@@ -933,7 +933,7 @@
 			}
 			if(pasted.length <= 0) return;
 			TokenAttacher.attachElementsToToken(pasted, token, true);
-			token.unsetFlag(moduleName, "prototypeAttached");
+			await token.unsetFlag(moduleName, "prototypeAttached");
 			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 	}
