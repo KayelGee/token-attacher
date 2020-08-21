@@ -601,6 +601,8 @@
 
 		static async showTokenAttacherUI(){
 			if(!canvas.scene.getFlag(moduleName, "attach_token")) return;
+			if(document.getElementById("tokenAttacher"))TokenAttacher.closeTokenAttacherUI();
+			
 			const token = canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token"));
 			const path = `/modules/${moduleName}/templates`;
 			const locked_status = token.getFlag(moduleName, "locked") || false;
