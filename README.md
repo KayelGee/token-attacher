@@ -57,7 +57,7 @@ Copy and paste all attached elements by pressing the copy button on the source t
 
 Make a prefab by adding a token with attached elements to the prototype Token of an Actor.
 
-![](gifs/prefab.webm)
+![](gifs/prefab.gif)
 
 ## Contact
 
