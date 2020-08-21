@@ -18,6 +18,9 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.detachElementsFromToken(element_array, target_token, suppressNotification=false)
  - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
 
+## Known Issues
+ - moving multiple tokens at the same time won't update the attached elements correctly
+
 ## Installation
 
 1. token-attacher using manifest URL: https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json
