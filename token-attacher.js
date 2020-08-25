@@ -429,7 +429,7 @@
 		 */
 		static listen(data){
 			//console.log("Token Attacher| some event");
-			if(data.event.indexOf("attachedUpdate") === 1){
+			if(data.event.indexOf("attachedUpdate") === 0){
 				if(TokenAttacher.isFirstActiveGM()){
 					const type = data.event.split("attachedUpdate")[1];
 					TokenAttacher.getTypeCallback(type)(...data.eventdata);
