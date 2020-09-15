@@ -4,7 +4,7 @@
 	"description": "Attach anything(except other tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.",
 	"version": "3.0.2",
 	"minimumCoreVersion": "0.6.0",
-	"compatibleCoreVersion": "0.6.5",
+	"compatibleCoreVersion": "0.6.6",
 	"author": "KayelGee - KayelGee#5241",
 	"scripts": [
 		"token-attacher.js"
