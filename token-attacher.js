@@ -888,24 +888,26 @@
 
 		static async updateAttachedPrototype(entity, data, options, userId){
 			if(data.hasOwnProperty("token")){
-				if(data.token.flags.hasOwnProperty(moduleName)){
-					const attached = data.token.flags[moduleName].attached || {};
-					if(Object.keys(attached).length == 0) return;
+				if(data.token.hasOwnProperty("flags")){
+					if(data.token.flags.hasOwnProperty(moduleName)){
+						const attached = data.token.flags[moduleName].attached || {};
+						if(Object.keys(attached).length == 0) return;
 
-					let prototypeAttached = {};
-					for (const key in attached) {
-						if (attached.hasOwnProperty(key)) {
-							
-							const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], data.token.flags[moduleName].pos.xy, data.token.flags[moduleName].pos.center);
-							let layer = eval(key).layer ?? eval(key).collection;
-							prototypeAttached[key] = {};
-							prototypeAttached[key] = offsetObjs;
-						}
-					}	
-					let deletes = {_id:data._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
-					let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached}};
-					await entity.update(deletes);
-					await entity.update(updates);
+						let prototypeAttached = {};
+						for (const key in attached) {
+							if (attached.hasOwnProperty(key)) {
+								
+								const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], data.token.flags[moduleName].pos.xy, data.token.flags[moduleName].pos.center);
+								let layer = eval(key).layer ?? eval(key).collection;
+								prototypeAttached[key] = {};
+								prototypeAttached[key] = offsetObjs;
+							}
+						}	
+						let deletes = {_id:data._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
+						let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached}};
+						await entity.update(deletes);
+						await entity.update(updates);
+					}
 				}
 			}
 		}
