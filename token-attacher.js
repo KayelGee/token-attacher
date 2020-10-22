@@ -25,6 +25,7 @@
 			window.tokenAttacher = {};
 			window.tokenAttacher.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
 			window.tokenAttacher.selected = {};
+			window.tokenAttacher.copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
 				window.tokenAttacher.updateSight={};
@@ -68,10 +69,24 @@
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
+			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 		
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
 			Hooks.once(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
+
+			//Monkeypatch PlaceablesLayer.copyObjects to hook into it
+			var oldCopyObjects= PlaceablesLayer.prototype.copyObjects;
+
+			PlaceablesLayer.prototype.copyObjects= function() {
+				const result = oldCopyObjects.apply(this, arguments);
+				switch(this.constructor.placeableClass.name){
+					case "Token": 
+						TokenAttacher.copyTokens(this, result);
+					break;
+				}
+				return result;
+			};
 		}
 
 		static registerSettings() {
@@ -909,16 +924,7 @@
 						const attached = data.token.flags[moduleName].attached || {};
 						if(Object.keys(attached).length == 0) return;
 
-						let prototypeAttached = {};
-						for (const key in attached) {
-							if (attached.hasOwnProperty(key)) {
-								
-								const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], data.token.flags[moduleName].pos.xy, data.token.flags[moduleName].pos.center);
-								let layer = eval(key).layer ?? eval(key).collection;
-								prototypeAttached[key] = {};
-								prototypeAttached[key] = offsetObjs;
-							}
-						}	
+						let prototypeAttached = TokenAttacher.generatePrototypeAttached(data.token, attached);
 						let deletes = {_id:data._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
 						let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached}};
 						await entity.update(deletes);
@@ -928,12 +934,55 @@
 			}
 		}
 
+		static generatePrototypeAttached(token_data, attached){
+			let prototypeAttached = {};
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					
+					const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], token_data.flags[moduleName].pos.xy, token_data.flags[moduleName].pos.center);
+					let layer = eval(key).layer ?? eval(key).collection;
+					prototypeAttached[key] = {};
+					prototypeAttached[key] = offsetObjs;
+				}
+			}	
+			return prototypeAttached;
+		}
+
+		static async copyTokens(layer, tokens){
+			const prototypeMap= {};
+			tokens.forEach(token => {
+				if(		token.data.flags.hasOwnProperty(moduleName)
+					&& 	token.data.flags[moduleName].hasOwnProperty("attached")){
+					prototypeMap[token.id] = TokenAttacher.generatePrototypeAttached(token.data, token.data.flags[moduleName].attached);
+				}
+			});
+			window.tokenAttacher.copyPrototypeMap[layer.constructor.placeableClass.name] = prototypeMap;
+			await game.user.unsetFlag(moduleName, "prototypeMap");
+			await game.user.setFlag(moduleName, "prototypeMap", window.tokenAttacher.copyPrototypeMap);
+		}
+
+		static pasteTokens(copy, toCreate){
+			for (let i = 0; i < toCreate.length; i++) {
+				if(		toCreate[i].flags.hasOwnProperty(moduleName)
+					&& 	toCreate[i].flags[moduleName].hasOwnProperty("attached")){
+					delete toCreate[i].flags[moduleName].attached;
+					if(window.tokenAttacher.copyPrototypeMap.hasOwnProperty(copy[i].layer.constructor.placeableClass.name))
+						toCreate[i].flags[moduleName].prototypeAttached = window.tokenAttacher.copyPrototypeMap[copy[i].layer.constructor.placeableClass.name][copy[i].data._id];				
+				}
+			}
+		}
+
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
 			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = await token.getFlag(moduleName, "prototypeAttached") || {};
+			const attached = await token.getFlag(moduleName, "attached") || {};
 
-			if(Object.keys(prototypeAttached).length == 0) return;
-		
+			if(Object.keys(prototypeAttached).length > 0) await TokenAttacher.regenerateAttachedFromPrototype(token, prototypeAttached);
+			//else if(Object.keys(attached).length > 0) await TokenAttacher.regenerateAttachedFromAttachedObjects(token, attached);
+			return;
+		}
+
+		static async regenerateAttachedFromPrototype(token, prototypeAttached){
 			let pasted = [];
 			for (const key in prototypeAttached) {
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
@@ -955,6 +1004,11 @@
 			TokenAttacher.attachElementsToToken(pasted, token, true);
 			await token.unsetFlag(moduleName, "prototypeAttached");
 			ui.notifications.info(`Pasted elements and attached to token.`);
+		}
+		
+		static async regenerateAttachedFromAttachedObjects(token, attached){
+			await token.unsetFlag(moduleName, "attached");
+			return TokenAttacher.regenerateAttachedFromPrototype(token, window.tokenAttacher.copyPrototypeMap[token.layer.constructor.placeableClass.name][token.id]);
 		}
 	}
 
