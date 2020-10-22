@@ -179,7 +179,7 @@
 			}
 		}
 
-		static UpdateAttachedOfToken(parent, doc, update, options, userId){
+		static async UpdateAttachedOfToken(parent, doc, update, options, userId){
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = duplicate(token.center);
@@ -208,14 +208,14 @@
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
+					await TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
 				}
 			}
 			return true;
 		}
 
 		static updateAttached(type, data){
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher.getTypeCallback(type)(...data);
+			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher.getTypeCallback(type)(...data);
 			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
@@ -283,7 +283,7 @@
 					TokenAttacher.pushSightUpdate(...[{walls:walls}]);
 					game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
 				}
-				TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
+				return TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
 		}
 
 		static _updateLineEntities(type, line_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
@@ -305,7 +305,7 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity(type, updates);
+				return canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
@@ -320,7 +320,7 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity(type, updates);
+				return canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
@@ -335,7 +335,7 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				canvas.scene.updateEmbeddedEntity(type, updates);
+				return canvas.scene.updateEmbeddedEntity(type, updates);
 			}
 		}
 
