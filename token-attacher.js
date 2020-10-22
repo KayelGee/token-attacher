@@ -234,9 +234,13 @@
 			if(!needUpdate) return;
 
 			if(TokenAttacher.isFirstActiveGM()){
-				await token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}});
+				await TokenAttacher.saveTokenPositon(token);
 				TokenAttacher._CheckAttachedOfToken(token);
 			}
+		}
+
+		static async saveTokenPositon(token){
+			return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}});
 		}
 
 		/**
@@ -460,6 +464,8 @@
 			attached=elements.data;
 			
 			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
+
+			await TokenAttacher.saveTokenPositon(token);
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
 		}
