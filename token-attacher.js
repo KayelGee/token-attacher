@@ -25,7 +25,6 @@
 			window.tokenAttacher = {};
 			window.tokenAttacher.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
 			window.tokenAttacher.selected = {};
-			window.tokenAttacher.copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			if(window.tokenAttacher.isPreSightUpdateVersion){
 				window.tokenAttacher.updateSight={};
@@ -949,6 +948,7 @@
 		}
 
 		static async copyTokens(layer, tokens){
+			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
 			const prototypeMap= {};
 			tokens.forEach(token => {
 				if(		token.data.flags.hasOwnProperty(moduleName)
@@ -956,18 +956,20 @@
 					prototypeMap[token.id] = TokenAttacher.generatePrototypeAttached(token.data, token.data.flags[moduleName].attached);
 				}
 			});
-			window.tokenAttacher.copyPrototypeMap[layer.constructor.placeableClass.name] = prototypeMap;
-			await game.user.unsetFlag(moduleName, "prototypeMap");
-			await game.user.setFlag(moduleName, "prototypeMap", window.tokenAttacher.copyPrototypeMap);
+			copyPrototypeMap[layer.constructor.placeableClass.name] = prototypeMap;
+			await game.user.unsetFlag(moduleName, "copyPrototypeMap");
+			await game.user.setFlag(moduleName, "copyPrototypeMap", copyPrototypeMap);
 		}
 
 		static pasteTokens(copy, toCreate){
+			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
 			for (let i = 0; i < toCreate.length; i++) {
 				if(		toCreate[i].flags.hasOwnProperty(moduleName)
 					&& 	toCreate[i].flags[moduleName].hasOwnProperty("attached")){
 					delete toCreate[i].flags[moduleName].attached;
-					if(window.tokenAttacher.copyPrototypeMap.hasOwnProperty(copy[i].layer.constructor.placeableClass.name))
-						toCreate[i].flags[moduleName].prototypeAttached = window.tokenAttacher.copyPrototypeMap[copy[i].layer.constructor.placeableClass.name][copy[i].data._id];				
+					const clsname = copy[i].layer.constructor.placeableClass.name;
+					if(copyPrototypeMap.hasOwnProperty(clsname))
+						toCreate[i].flags[moduleName].prototypeAttached = copyPrototypeMap[clsname][copy[i].data._id];				
 				}
 			}
 		}
@@ -1007,8 +1009,9 @@
 		}
 		
 		static async regenerateAttachedFromAttachedObjects(token, attached){
+			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
 			await token.unsetFlag(moduleName, "attached");
-			return TokenAttacher.regenerateAttachedFromPrototype(token, window.tokenAttacher.copyPrototypeMap[token.layer.constructor.placeableClass.name][token.id]);
+			return TokenAttacher.regenerateAttachedFromPrototype(token, copyPrototypeMap[token.layer.constructor.placeableClass.name][token.id]);
 		}
 	}
 
