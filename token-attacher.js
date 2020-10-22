@@ -1,5 +1,6 @@
 (async () => {
 	const moduleName = "token-attacher";
+	const templatePath = `/modules/${moduleName}/templates`;
 	//CONFIG.debug.hooks = true
 	class TokenAttacher {
 		static get typeMap(){
@@ -44,6 +45,7 @@
 				getAllAttachedElementsOfToken: TokenAttacher.getAllAttachedElementsOfToken,
 				getAllAttachedElementsByTypeOfToken: TokenAttacher.getAllAttachedElementsByTypeOfToken,
 				getActorsWithPrototype: TokenAttacher.getActorsWithPrototype,
+				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
 				importFromJSON: TokenAttacher.importFromJSON,
 				get typeMap() {return TokenAttacher.typeMap},
 			};
@@ -629,10 +631,9 @@
 			if(document.getElementById("tokenAttacher"))TokenAttacher.closeTokenAttacherUI();
 			
 			const token = canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token"));
-			const path = `/modules/${moduleName}/templates`;
 			const locked_status = token.getFlag(moduleName, "locked") || false;
 			// Get the handlebars output
-			const myHtml = await renderTemplate(`${path}/tokenAttacherUI.html`, {["token-image"]: token.data.img, ["token-name"]: token.data.name});
+			const myHtml = await renderTemplate(`${templatePath}/tokenAttacherUI.html`, {["token-image"]: token.data.img, ["token-name"]: token.data.name});
 
 			document.getElementById("hud").insertAdjacentHTML('afterend', myHtml);
 
@@ -1054,15 +1055,15 @@
 			await token.setFlag(moduleName, `attached`, newattached);
 		}
 
-		static getActorsWithPrototype(){
-			const folders = [];
+		static async getActorsWithPrototype(){
+			const folders = {};
 			const allActors = [...game.actors].filter(actor =>{
 				const attached = getProperty(actor, `data.token.flags.${moduleName}.prototypeAttached`) || {};
 				if(Object.keys(attached).length > 0) return true;
 				return false;
 			});
 			const allMappedActors = allActors.map(actor =>{
-				return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder, token: actor.data.token};
+				return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder || null, token: actor.data.token};
 			});
 
 			let addParentFolder = (folders, folder) =>{
@@ -1073,19 +1074,35 @@
 				}
 			};
 
-			allActors.forEach(actor => {
-				const folder = game.folders.get(actor.data.folder) || null;
+			allMappedActors.forEach(actor => {
+				const folder = game.folders.get(actor.folder) || null;
 				if(folder){
 					folders[folder.data._id] = folder;
 					addParentFolder(folders, folder);
 				}
 			});
-			console.log(allActors);
-			console.log(allMappedActors);
-			console.log(folders);
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({folder: folders, actors: allMappedActors})});
+			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 			console.log(JSON.stringify({folder: folders, actors: allMappedActors}));
 		}
 
+		static async importFromJSONDialog(){
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Paste JSON below:", content:""});
+			Dialog.prompt({title:"Import Actors from JSON", 
+			content: html,
+			callback: html => {
+				const form = html.find("#ta-import-export-dialog");
+				const fd = new FormDataExtended(form[0]);
+				const data = fd.toObject();
+				console.log(data);
+				if ( !data.JSONContent ) {
+				  const err = new Error(game.i18n.localize("COMPENDIUM.ErrorRequireTitle"));
+				  return ui.notifications.warn(err.message);
+				}
+				TokenAttacher.importFromJSON(data.JSONContent);
+			}
+			});
+		}
 		static async importFromJSON(json){
 			const imported = JSON.parse(json);
 			const folders = imported.folder;
@@ -1094,36 +1111,34 @@
 			console.log(folders);
 			console.log(actors);
 
-			const importFolder = await Folder.create({name: "Token Attacher Import", type: "Actor", parent: null});
+			//const importFolder = await Folder.create({name: "Token Attacher Import", type: "Actor", parent: null});
+			//const parentMap = {null:{value:importFolder._id}};
 
-			const parentMap = {null:{value:importFolder._id}};
+			const parentMap = {null:{value:null}};
+			let allPromises = [];
 			for (const key in folders) {
 				if (folders.hasOwnProperty(key)) {
 					const folder = folders[key];
-					(async (folder)=>{
+					allPromises.push((async (folder)=>{
 						if(!parentMap.hasOwnProperty(folder.parent)) {
 							let resolver;
 							parentMap[folder.parent] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
 						}
-						const parent = parentMap[folder.parent].value;
-						const newFolder = await Folder.create({name: folder.name, type: "Actor", parent: await parent});
+						const parent = await parentMap[folder.parent].value;
+						const newFolder = await Folder.create({name: folder.name, type: "Actor", parent: parent});
 						if(!parentMap.hasOwnProperty(folder._id)) {
-							parentMap[folder._id] = new Promise((resolve) => (resolve(newFolder._id)));
+							parentMap[folder._id] = {value:new Promise((resolve) => (resolve(newFolder._id)))};
 						}
 						else {
 							parentMap[folder._id].signal(newFolder._id);
 						}
-					})(folder);
+					})(folder));
 				}
 			}
-			console.log(parentMap);
-			// const generateFolder = (remaining_folders) =>{
-			// 	const folders = clone(remaining_folders);
-			// 	for (let i = 0; i < folders.length; i++) {
-			// 		const element = folders[i];
-					
-			// 	}
-			// }
+			await Promise.all(allPromises);
+			actors.forEach(async actor => {
+				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token});
+			});
 		}
 	}
 

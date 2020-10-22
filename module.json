@@ -11,7 +11,15 @@
 	],
 	"styles": [
 		"./css/token-attacher.css"],
-	"packs": [],
+	"packs": [
+      {
+          "name": "token-attacher-macros",
+          "label": "Token Attacher Macros",
+          "path": "packs/token-attacher-macros.db",
+          "entity": "Macro",
+          "package": "token-attacher"
+      }
+			],
 	"languages": [
 		{
 			"lang": "en",
