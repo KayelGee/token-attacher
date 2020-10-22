@@ -139,7 +139,7 @@
 
 		static getTypeCallback(className){
 			if(TokenAttacher.typeMap.hasOwnProperty(className)) return this.typeMap[className].updateCallback;
-			return () => {console.log(`Token Attacher - Unknown object attached, if you need support add a callback to the typeMap though the ${moduleName}.getTypeMap hook.`)};
+			return () => {console.log(`Token Attacher - Unknown object attached`)};
 		}
 
 		static updatedLockedAttached(){
