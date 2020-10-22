@@ -41,6 +41,8 @@
 				detachElementFromToken: TokenAttacher.detachElementFromToken,
 				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
 				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
+				getAllAttachedElementsOfToken: TokenAttacher.getAllAttachedElementsOfToken,
+				getAllAttachedElementsByTypeOfToken: TokenAttacher.getAllAttachedElementsByTypeOfToken,
 				get typeMap() {return TokenAttacher.typeMap},
 			};
 
@@ -749,6 +751,14 @@
 
 		static detachAllElementsFromToken(target_token, suppressNotification=false){
 			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
+		}
+
+		static getAllAttachedElementsOfToken(target_token, suppressNotification=false){
+			return target_token.getFlag(moduleName, "attached") || {};
+		}
+
+		static getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false){
+			return target_token.getFlag(moduleName, `attached.${type}`) || {};
 		}
 
 		static getObjectsFromIds(type, idArray, tokenxy, token_center){

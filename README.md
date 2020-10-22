@@ -17,6 +17,23 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.detachElementFromToken(element, target_token, suppressNotification=false)
  - tokenAttacher.detachElementsFromToken(element_array, target_token, suppressNotification=false)
  - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
+ - tokenAttacher.getAllAttachedElementsOfToken(target_token, suppressNotification=false)
+ - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
+
+Macro Examples:
+```
+(async () => {
+const some_element = canvas.tiles.children[0].children[0];
+const some_token = canvas.tokens.children[0].children[0];
+await tokenAttacher.attachElementToToken(some_element, some_token, true);
+
+const all_attached = await tokenAttacher.getAllAttachedElementsOfToken(some_token);
+const all_attached_tiles = await tokenAttacher.getAllAttachedElementsByTypeOfToken(some_token, "Tile");
+console.log(all_attached);
+console.log(all_attached_tiles);
+console.log(canvas.tiles.get(all_attached_tiles[0]));
+})();
+```
 
 ## Known Issues
  - Moving multiple tokens at the same time doesn't work. Don't do it.
