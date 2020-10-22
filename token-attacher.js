@@ -43,6 +43,8 @@
 				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
 				getAllAttachedElementsOfToken: TokenAttacher.getAllAttachedElementsOfToken,
 				getAllAttachedElementsByTypeOfToken: TokenAttacher.getAllAttachedElementsByTypeOfToken,
+				getActorsWithPrototype: TokenAttacher.getActorsWithPrototype,
+				importFromJSON: TokenAttacher.importFromJSON,
 				get typeMap() {return TokenAttacher.typeMap},
 			};
 
@@ -1050,6 +1052,78 @@
 			
 			await token.unsetFlag(moduleName, `attached`);
 			await token.setFlag(moduleName, `attached`, newattached);
+		}
+
+		static getActorsWithPrototype(){
+			const folders = [];
+			const allActors = [...game.actors].filter(actor =>{
+				const attached = getProperty(actor, `data.token.flags.${moduleName}.prototypeAttached`) || {};
+				if(Object.keys(attached).length > 0) return true;
+				return false;
+			});
+			const allMappedActors = allActors.map(actor =>{
+				return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder, token: actor.data.token};
+			});
+
+			let addParentFolder = (folders, folder) =>{
+				const parent = game.folders.get(folder.data.parent) || null;
+				if(parent){
+					folders[parent.data._id] = parent;
+					addParentFolder(folders, parent);
+				}
+			};
+
+			allActors.forEach(actor => {
+				const folder = game.folders.get(actor.data.folder) || null;
+				if(folder){
+					folders[folder.data._id] = folder;
+					addParentFolder(folders, folder);
+				}
+			});
+			console.log(allActors);
+			console.log(allMappedActors);
+			console.log(folders);
+			console.log(JSON.stringify({folder: folders, actors: allMappedActors}));
+		}
+
+		static async importFromJSON(json){
+			const imported = JSON.parse(json);
+			const folders = imported.folder;
+			const actors = imported.actors;
+			 
+			console.log(folders);
+			console.log(actors);
+
+			const importFolder = await Folder.create({name: "Token Attacher Import", type: "Actor", parent: null});
+
+			const parentMap = {null:{value:importFolder._id}};
+			for (const key in folders) {
+				if (folders.hasOwnProperty(key)) {
+					const folder = folders[key];
+					(async (folder)=>{
+						if(!parentMap.hasOwnProperty(folder.parent)) {
+							let resolver;
+							parentMap[folder.parent] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
+						}
+						const parent = parentMap[folder.parent].value;
+						const newFolder = await Folder.create({name: folder.name, type: "Actor", parent: await parent});
+						if(!parentMap.hasOwnProperty(folder._id)) {
+							parentMap[folder._id] = new Promise((resolve) => (resolve(newFolder._id)));
+						}
+						else {
+							parentMap[folder._id].signal(newFolder._id);
+						}
+					})(folder);
+				}
+			}
+			console.log(parentMap);
+			// const generateFolder = (remaining_folders) =>{
+			// 	const folders = clone(remaining_folders);
+			// 	for (let i = 0; i < folders.length; i++) {
+			// 		const element = folders[i];
+					
+			// 	}
+			// }
 		}
 	}
 
