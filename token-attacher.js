@@ -7,7 +7,7 @@
 				"MeasuredTemplate":{updateCallback: TokenAttacher._updateRectangleEntities},
 				"Tile":{updateCallback: TokenAttacher._updateRectangleEntities},
 				"Drawing":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"AmbientLight":{updateCallback: TokenAttacher._updatePointEntities},
+				"AmbientLight":{updateCallback: TokenAttacher._updateRectangleEntities},
 				"AmbientSound":{updateCallback: TokenAttacher._updatePointEntities},
 				"Note":{updateCallback: TokenAttacher._updatePointEntities},
 				"Wall":{updateCallback: TokenAttacher._updateWalls},
