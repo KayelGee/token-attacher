@@ -69,6 +69,7 @@
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
+			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 		
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
@@ -948,7 +949,7 @@
 		}
 
 		static async copyTokens(layer, tokens){
-			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
+			const copyPrototypeMap = game.user.getFlag(moduleName, "copyPrototypeMap") || {};
 			const prototypeMap= {};
 			tokens.forEach(token => {
 				if(		token.data.flags.hasOwnProperty(moduleName)
@@ -962,7 +963,7 @@
 		}
 
 		static pasteTokens(copy, toCreate){
-			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
+			const copyPrototypeMap = game.user.getFlag(moduleName, "copyPrototypeMap") || {};
 			for (let i = 0; i < toCreate.length; i++) {
 				if(		toCreate[i].flags.hasOwnProperty(moduleName)
 					&& 	toCreate[i].flags[moduleName].hasOwnProperty("attached")){
@@ -974,13 +975,33 @@
 			}
 		}
 
+		static async deleteToken(entity, token_data, userId){
+			const attached=getProperty(token_data, `flags.${moduleName}.attached`) || {};
+			if(Object.keys(attached).length == 0) return true;
+
+			TokenAttacher.detectGM();
+
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					let layer = eval(key).layer ?? eval(key).collection;
+					await layer.deleteMany(attached[key]);
+				}
+			}
+		}
+
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
 			const token = canvas.tokens.get(entity._id);
-			const prototypeAttached = await token.getFlag(moduleName, "prototypeAttached") || {};
-			const attached = await token.getFlag(moduleName, "attached") || {};
+			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
+			const attached = token.getFlag(moduleName, "attached") || {};
+
+			if(getProperty(options, "isUndo") === true){
+				if(Object.keys(attached).length > 0){
+					await TokenAttacher.regenerateAttachedFromHistory(token, attached);
+				}
+				return;
+			}
 
 			if(Object.keys(prototypeAttached).length > 0) await TokenAttacher.regenerateAttachedFromPrototype(token, prototypeAttached);
-			//else if(Object.keys(attached).length > 0) await TokenAttacher.regenerateAttachedFromAttachedObjects(token, attached);
 			return;
 		}
 
@@ -1003,15 +1024,32 @@
 				}
 			}
 			if(pasted.length <= 0) return;
-			TokenAttacher.attachElementsToToken(pasted, token, true);
 			await token.unsetFlag(moduleName, "prototypeAttached");
+			TokenAttacher.attachElementsToToken(pasted, token, true);
 			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
-		
-		static async regenerateAttachedFromAttachedObjects(token, attached){
-			const copyPrototypeMap = game.user.getFlag(moduleName, "prototypeMap") || {};
-			await token.unsetFlag(moduleName, "attached");
-			return TokenAttacher.regenerateAttachedFromPrototype(token, copyPrototypeMap[token.layer.constructor.placeableClass.name][token.id]);
+
+		static async regenerateAttachedFromHistory(token, attached){
+			TokenAttacher.detectGM();
+			const newattached= {};
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key) && attached[key].length > 0) {
+					let layer = eval(key).layer ?? eval(key).collection;
+					
+					const undone = await layer.undoHistory();
+					if(Array.isArray(undone)){
+						newattached[key] = undone.map((obj)=>{
+							return obj.data._id;
+						});
+					}
+					else{
+						newattached[key] = [undone.data._id];
+					}
+				}
+			}
+			
+			await token.unsetFlag(moduleName, `attached`);
+			await token.setFlag(moduleName, `attached`, newattached);
 		}
 	}
 
