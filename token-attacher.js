@@ -433,10 +433,10 @@
 		 */
 		static isFirstActiveGM(){
 			const firstGm = game.users.find((u) => u.isGM && u.active);
-			if (firstGm && game.user !== firstGm) {
-				return false;
+			if (firstGm && game.user === firstGm) {
+				return true;
 			}
-			return true;
+			return false;
 		}
 
 		/**
