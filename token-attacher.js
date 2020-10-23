@@ -1232,7 +1232,7 @@
 		
 		static CheckIfAttached(parent, doc, update, options, userId){
 			let offset = doc.getFlag(moduleName, "offset") || {};
-			if(Object.key(offset).length === 0) return true;
+			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
 			return false;
 		}
