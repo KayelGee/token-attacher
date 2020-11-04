@@ -16,6 +16,11 @@
 		{
 			"lang": "en",
 			"path": "languages/en.json"
+		},
+		{
+			"lang": "ko",
+			"name": "Korean",
+			"path": "languages/ko.json"
 		}
 	],
 	"socket": true,
