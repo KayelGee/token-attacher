@@ -77,7 +77,6 @@
 		
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
-			Hooks.once(`${moduleName}.getTypeMap`, (map) => {map.test = 5;console.log("hooked", map);});
 
 			//Monkeypatch PlaceablesLayer.copyObjects to hook into it
 			var oldCopyObjects= PlaceablesLayer.prototype.copyObjects;
@@ -1083,7 +1082,6 @@
 			});
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({folder: folders, actors: allMappedActors})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
-			console.log(JSON.stringify({folder: folders, actors: allMappedActors}));
 		}
 
 		static async importFromJSONDialog(){
@@ -1094,7 +1092,6 @@
 				const form = html.find("#ta-import-export-dialog");
 				const fd = new FormDataExtended(form[0]);
 				const data = fd.toObject();
-				console.log(data);
 				if ( !data.JSONContent ) {
 				  const err = new Error(game.i18n.localize("COMPENDIUM.ErrorRequireTitle"));
 				  return ui.notifications.warn(err.message);
@@ -1108,9 +1105,6 @@
 			const folders = imported.folder;
 			const actors = imported.actors;
 			 
-			console.log(folders);
-			console.log(actors);
-
 			//const importFolder = await Folder.create({name: "Token Attacher Import", type: "Actor", parent: null});
 			//const parentMap = {null:{value:importFolder._id}};
 
