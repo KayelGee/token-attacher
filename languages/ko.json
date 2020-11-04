@@ -1,0 +1,21 @@
+{
+	"TOKENATTACHER.error.NothingSelected": "개체가 선택되지 않았습니다!",
+	"TOKENATTACHER.error.NoTokensSelected": "토큰이 선택되지 않았습니다!!",
+	"TOKENATTACHER.error.NoActiveGMFound": "활성화된 GM을 찾을 수 없습니다! 연결된 개체가 올바르게 업데이트 되지 않았습니다. 토큰을 이전 위치로 옮기고 GM에게 문의하세요.",	
+	"TOKENATTACHER.info.ObjectsAttached": "선택된 개체가 토큰에게 부착되었습니다.",
+	"TOKENATTACHER.info.ObjectsDetached": "선택된 개체가 토큰에게 분리되었습니다.",
+	"TOKENATTACHER.info.SelectionSaved": "나중에 연결할 수 있도록 선택된 개체가 저장되었습니다.",
+	"TOKENATTACHER.info.DataModelMergedTo": "데이터 마이그레이션이 완료되었습니다. 문제가 생길 경우 데이터가 손실되었는지 걱정하지 말고 디스코드에서 제작자에게 문의하십시오. 새 데이터 모델 버전:",
+	"TOKENATTACHER.button.AttachToToken": "토큰에 선택 항목 부착",
+	"TOKENATTACHER.button.DetachFromToken": "토큰에서 모든 선택 항목 분리",
+	"TOKENATTACHER.button.SaveSelection": "부착할 선택 항목 저장",
+	"TOKENATTACHER.button.StartTokenAttach": "부착 UI 열기",
+	"TOKENATTACHER.button.link": "선택 요소 부착",
+	"TOKENATTACHER.button.unlink": "선택 요소 분리",
+	"TOKENATTACHER.button.unlink-all": "모든 요소 분리",
+	"TOKENATTACHER.button.lock": "부착된 요소 잠금",
+	"TOKENATTACHER.button.highlight": "부착된 요소 강조 표시",
+	"TOKENATTACHER.button.copy": "부착된 요소 복사",
+	"TOKENATTACHER.button.paste": "부착된 요소 붙여넣기",
+	"TOKENATTACHER.button.close": "부착 UI 닫기"	
+}
