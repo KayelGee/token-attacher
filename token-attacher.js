@@ -923,6 +923,7 @@
 		}
 
 		static async updateAttachedPrototype(entity, data, options, userId){
+			if(!game.user.isGM) return;
 			if(data.hasOwnProperty("token")){
 				if(data.token.hasOwnProperty("flags")){
 					if(data.token.flags.hasOwnProperty(moduleName)){
@@ -995,10 +996,12 @@
 		}
 
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
+			if(!TokenAttacher.isFirstActiveGM()) return;
+			
 			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
 			const attached = token.getFlag(moduleName, "attached") || {};
-
+			
 			if(getProperty(options, "isUndo") === true){
 				if(Object.keys(attached).length > 0){
 					await TokenAttacher.regenerateAttachedFromHistory(token, attached);
