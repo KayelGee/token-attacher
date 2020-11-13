@@ -863,7 +863,10 @@
 
 			// Get the left-most object in the set
 			objects.sort((a, b) => a.data.x - b.data.x);
-			let {x, y} = objects[0].data;
+			let {x} = objects[0].data;
+			// Get the top-most object in the set
+			objects.sort((a, b) => a.data.y - b.data.y);
+			let {y} = objects[0].data;
 
 			// Iterate over objects
 			const toCreate = [];
