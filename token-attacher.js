@@ -17,6 +17,25 @@
 			return map;
 		}
 
+		static initMacroAPI(){
+			window.tokenAttacher = {
+				...window.tokenAttacher, 
+				attachElementToToken: TokenAttacher.attachElementToToken,
+				attachElementsToToken: TokenAttacher.attachElementsToToken,
+				detachElementFromToken: TokenAttacher.detachElementFromToken,
+				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
+				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
+				getAllAttachedElementsOfToken: TokenAttacher.getAllAttachedElementsOfToken,
+				getAllAttachedElementsByTypeOfToken: TokenAttacher.getAllAttachedElementsByTypeOfToken,
+				getActorsWithPrototype: TokenAttacher.getActorsWithPrototype,
+				getActorsWithPrototypeInCompendiums: TokenAttacher.getActorsWithPrototypeInCompendiums,
+				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
+				importFromJSON: TokenAttacher.importFromJSON,
+				get typeMap() {return TokenAttacher.typeMap},
+			};
+			Hooks.callAll(`${moduleName}.macroAPILoaded`);
+		}
+
 		static initialize(){
 			if(TokenAttacher.isFirstActiveGM()){
 				canvas.scene.unsetFlag(moduleName,"selected");
@@ -35,28 +54,18 @@
 				Hooks.off("updateWall", TokenAttacher.performSightUpdates)
 			}
 			
-			window.tokenAttacher = {
-				...window.tokenAttacher, 
-				attachElementToToken: TokenAttacher.attachElementToToken,
-				attachElementsToToken: TokenAttacher.attachElementsToToken,
-				detachElementFromToken: TokenAttacher.detachElementFromToken,
-				detachElementsFromToken: TokenAttacher.detachElementsFromToken,
-				detachAllElementsFromToken: TokenAttacher.detachAllElementsFromToken,
-				getAllAttachedElementsOfToken: TokenAttacher.getAllAttachedElementsOfToken,
-				getAllAttachedElementsByTypeOfToken: TokenAttacher.getAllAttachedElementsByTypeOfToken,
-				getActorsWithPrototype: TokenAttacher.getActorsWithPrototype,
-				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
-				importFromJSON: TokenAttacher.importFromJSON,
-				get typeMap() {return TokenAttacher.typeMap},
-			};
 
 			TokenAttacher.updatedLockedAttached();
 
 		}
 
 		static registerHooks(){
-			Hooks.on('ready', () => {
+			Hooks.on('init', () => {
 				TokenAttacher.registerSettings();
+			});
+
+			Hooks.on('ready', () => {
+				TokenAttacher.initMacroAPI();
 				if(TokenAttacher.isFirstActiveGM()){
 					TokenAttacher.startMigration();
 				}
