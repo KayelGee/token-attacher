@@ -1095,6 +1095,26 @@
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
 
+		static async getActorsWithPrototypeInCompendiums(){
+			const folders = {};
+			const allCompendiums = [...game.packs].filter(pack =>{
+				if(pack.metadata.entity !== "Actor") return false;
+				return true;
+			});
+			
+			for (let i = 0; i < allCompendiums.length; i++) {
+				const pack = allCompendiums[i];
+				const packIndex = await pack.getIndex();
+				console.log(pack);
+				console.log(packIndex);
+				for (let j = 0; j < packIndex.length; j++) {
+					const index = packIndex[j];
+					const entity = await pack.getEntity(index._id);
+					console.log(entity);
+				}
+			}
+		}
+
 		static async importFromJSONDialog(){
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Paste JSON below:", content:""});
 			Dialog.prompt({title:"Import Actors from JSON", 
