@@ -200,6 +200,11 @@
 		}
 
 		static async UpdateAttachedOfToken(parent, doc, update, options, userId){
+			if(!(	update.hasOwnProperty("x")
+				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("rotation"))){
+				return true;
+			}
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = duplicate(token.center);
@@ -210,21 +215,16 @@
 			let deltaX = 0;
 			let deltaY = 0;
 			let deltaRot = 0;
-			let needUpdate= false;
 			if(update.hasOwnProperty("x")){
 				deltaX = update.x - token.data.x;
-				needUpdate=true;
 			}
 			if(update.hasOwnProperty("y")){
 				deltaY = update.y - token.data.y;
-				needUpdate=true;
 			}
 			if(update.hasOwnProperty("rotation")){
 				deltaRot = update.rotation - token.data.rotation;
-				needUpdate=true;
 			}
 			
-			if(!needUpdate) return true;
 			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
@@ -240,18 +240,14 @@
 		}
 
 		static async AfterUpdateAttachedOfToken(parent, doc, update, options, userId){
+			if(!(	update.hasOwnProperty("x")
+				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("rotation"))){
+				return;
+			}
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
-			
-			let needUpdate= false;
-			if(		update.hasOwnProperty("x")
-				||	update.hasOwnProperty("y")
-				||	update.hasOwnProperty("rotation")){
-				needUpdate= true;
-			}
-
-			if(!needUpdate) return;
 
 			if(TokenAttacher.isFirstActiveGM()){
 				await TokenAttacher.saveTokenPositon(token);

@@ -1,3 +1,4 @@
 *.zip
 *.code-workspace
 .vs/
+*.bat
