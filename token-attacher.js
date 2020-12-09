@@ -84,6 +84,21 @@
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 		
+			Hooks.on("getCompendiumDirectoryEntryContext", async (html, options) => {
+				options.push( 
+					{
+					  name : "(TA)Export to JSON",
+					  condition: game.user.isGM,
+					  icon: '<i class="fas fa-file-export"></i>',
+					  callback: target => {
+						let pack = game.packs.get(target.data("pack"));
+						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.ExportAllowsOnlyActor"));
+						TokenAttacher.exportCompendiumToJSON(pack);
+					  }
+					  
+					})
+			});
+
 			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
 			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
 
@@ -1065,6 +1080,10 @@
 			await token.setFlag(moduleName, `attached`, newattached);
 		}
 
+		static mapActorForExport(actor){
+			return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder || null, token: actor.data.token};
+		}
+
 		static async getActorsWithPrototype(){
 			const folders = {};
 			const allActors = [...game.actors].filter(actor =>{
@@ -1072,9 +1091,7 @@
 				if(Object.keys(attached).length > 0) return true;
 				return false;
 			});
-			const allMappedActors = allActors.map(actor =>{
-				return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder || null, token: actor.data.token};
-			});
+			const allMappedActors = allActors.map(TokenAttacher.mapActorForExport);
 
 			let addParentFolder = (folders, folder) =>{
 				const parent = game.folders.get(folder.data.parent) || null;
@@ -1115,6 +1132,22 @@
 			}
 		}
 
+		static async exportCompendiumToJSON(pack){
+			const packIndex = await pack.getIndex();
+			console.log(pack);
+			console.log(packIndex);
+			let actors = [];
+			for (let j = 0; j < packIndex.length; j++) {
+				const index = packIndex[j];
+				const entity = await pack.getEntity(index._id);
+				actors.push(TokenAttacher.mapActorForExport(entity));
+				console.log(entity);
+			}
+			Compendium.create({label:"Blub", entity:"Actor", package:moduleName, absPath: 'C:/Users/KayelGee/AppData/Local/FoundryVTT/Data/modules/token-attacher/packs/token-attacher-macros.db'});
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors})});
+			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
+		}
+
 		static async importFromJSONDialog(){
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Paste JSON below:", content:""});
 			Dialog.prompt({title:"Import Actors from JSON", 
@@ -1133,6 +1166,10 @@
 		}
 		static async importFromJSON(json){
 			const imported = JSON.parse(json);
+			if(imported.folder)	await TokenAttacher.importFromJSONWithFolders(imported);
+			if(imported.compendium)	await TokenAttacher.importFromJSONWithCompendium(imported);
+		}
+		static async importFromJSONWithFolders(imported){
 			const folders = imported.folder;
 			const actors = imported.actors;
 			 
@@ -1161,6 +1198,18 @@
 				}
 			}
 			await Promise.all(allPromises);
+			actors.forEach(async actor => {
+				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token});
+			});
+		}
+
+		static async importFromJSONWithCompendium(imported){
+			const compendium = imported.compendium;
+			const actors = imported.actors;
+			 
+			const parentMap = {null:{value:null}};
+			let worldCompendium = await Compendium.create({label:compendium.label, entity:"Actor", package:"token-attacher"});
+			
 			actors.forEach(async actor => {
 				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token});
 			});
