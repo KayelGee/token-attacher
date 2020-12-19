@@ -1143,7 +1143,6 @@
 				actors.push(TokenAttacher.mapActorForExport(entity));
 				console.log(entity);
 			}
-			Compendium.create({label:"Blub", entity:"Actor", package:moduleName, absPath: 'C:/Users/KayelGee/AppData/Local/FoundryVTT/Data/modules/token-attacher/packs/token-attacher-macros.db'});
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
@@ -1164,12 +1163,12 @@
 			}
 			});
 		}
-		static async importFromJSON(json){
+		static async importFromJSON(json, options={}){
 			const imported = JSON.parse(json);
-			if(imported.folder)	await TokenAttacher.importFromJSONWithFolders(imported);
-			if(imported.compendium)	await TokenAttacher.importFromJSONWithCompendium(imported);
+			if(imported.folder)	await TokenAttacher.importFromJSONWithFolders(imported, options);
+			if(imported.compendium)	await TokenAttacher.importFromJSONWithCompendium(imported, options);
 		}
-		static async importFromJSONWithFolders(imported){
+		static async importFromJSONWithFolders(imported, options={}){
 			const folders = imported.folder;
 			const actors = imported.actors;
 			 
@@ -1203,15 +1202,19 @@
 			});
 		}
 
-		static async importFromJSONWithCompendium(imported){
+		static async importFromJSONWithCompendium(imported, options={}){
 			const compendium = imported.compendium;
 			const actors = imported.actors;
+			let name = compendium.name;
+			let label = compendium.label;
+			if(options.hasOwnProperty("module")) name = options.module + "." + name;
+			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
 			 
 			const parentMap = {null:{value:null}};
-			let worldCompendium = await Compendium.create({label:compendium.label, entity:"Actor", package:"token-attacher"});
+			let worldCompendium = await Compendium.create({label:label, name: name, entity:"Actor"});
 			
 			actors.forEach(async actor => {
-				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token});
+				await worldCompendium.createEntity({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token});
 			});
 		}
 	}
