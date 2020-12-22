@@ -76,6 +76,9 @@ Make a prefab by adding a token with attached elements to the prototype Token of
 
 ![](gifs/prefab.gif)
 
+Export compendiums with prefabs. Copy the resulting json into a .json file. To see how to auto import compendiums(so that this works between systems) in your module see my example module: https://github.com/KayelGee/token-attacher-compendium-example
+
+![](gifs/compendium_export.gif)
 ## Contact
 
 If you wish to contact me for any reason, reach me out on Discord using my tag: `KayelGee#5241`

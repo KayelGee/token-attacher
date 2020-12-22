@@ -2,6 +2,8 @@
 	"TOKENATTACHER.error.NothingSelected": "개체가 선택되지 않았습니다!",
 	"TOKENATTACHER.error.NoTokensSelected": "토큰이 선택되지 않았습니다!!",
 	"TOKENATTACHER.error.NoActiveGMFound": "활성화된 GM을 찾을 수 없습니다! 연결된 개체가 올바르게 업데이트 되지 않았습니다. 토큰을 이전 위치로 옮기고 GM에게 문의하세요.",	
+	"TOKENATTACHER.error.ExportAllowsOnlyActor": "액터 개요 만 Token Attacher를 통해 내보낼 수 있습니다!",	
+	"TOKENATTACHER.error.NoValidJSONProvided": "유효한 JSON이 제공되지 않았습니다!",	
 	"TOKENATTACHER.info.ObjectsAttached": "선택된 개체가 토큰에게 부착되었습니다.",
 	"TOKENATTACHER.info.ObjectsDetached": "선택된 개체가 토큰에게 분리되었습니다.",
 	"TOKENATTACHER.info.SelectionSaved": "나중에 연결할 수 있도록 선택된 개체가 저장되었습니다.",

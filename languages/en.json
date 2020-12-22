@@ -2,6 +2,8 @@
 	"TOKENATTACHER.error.NothingSelected": "No objects are selected!",
 	"TOKENATTACHER.error.NoTokensSelected": "No tokens are selected!",
 	"TOKENATTACHER.error.NoActiveGMFound": "No active GM found! Attached objects were not correctly updated. Please move your token to the previous location and contact your GM.",	
+	"TOKENATTACHER.error.ExportAllowsOnlyActor": "Only Actor compendiums are allowed to export via Token Attacher!",	
+	"TOKENATTACHER.error.NoValidJSONProvided": "No valid JSON was provided!",	
 	"TOKENATTACHER.info.ObjectsAttached": "Selected objects attached to token.",
 	"TOKENATTACHER.info.ObjectsDetached": "Selected objects detached from token.",
 	"TOKENATTACHER.info.SelectionSaved": "Selected objects saved for future attaching.",

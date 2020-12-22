@@ -1156,7 +1156,7 @@
 				const fd = new FormDataExtended(form[0]);
 				const data = fd.toObject();
 				if ( !data.JSONContent ) {
-				  const err = new Error(game.i18n.localize("COMPENDIUM.ErrorRequireTitle"));
+				  const err = new Error(game.i18n.localize("TOKENATTACHER.error.NoValidJSONProvided"));
 				  return ui.notifications.warn(err.message);
 				}
 				TokenAttacher.importFromJSON(data.JSONContent);
