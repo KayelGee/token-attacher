@@ -1023,6 +1023,7 @@
 			const attached = token.getFlag(moduleName, "attached") || {};
 			
 			if(getProperty(options, "isUndo") === true){
+				if(getProperty(options, "mlt_bypass") === true) return;
 				if(Object.keys(attached).length > 0){
 					await TokenAttacher.regenerateAttachedFromHistory(token, attached);
 				}
