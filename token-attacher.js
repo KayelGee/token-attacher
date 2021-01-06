@@ -18,6 +18,7 @@
 		}
 
 		static initMacroAPI(){
+			if(window.tokenAttacher.attachElementToToken) return;
 			window.tokenAttacher = {
 				...window.tokenAttacher, 
 				attachElementToToken: TokenAttacher.attachElementToToken,
@@ -54,6 +55,7 @@
 				Hooks.off("updateWall", TokenAttacher.performSightUpdates)
 			}
 			
+			TokenAttacher.initMacroAPI();
 
 			TokenAttacher.updatedLockedAttached();
 
@@ -622,7 +624,7 @@
 					  });
 				}
 			}
-			console.log("WallToTokenLinker | Tools added.");
+			console.log("Token Attacher | Tools added.");
 		}
 
 		static attachElementToToken(element, target_token, suppressNotification=false){
