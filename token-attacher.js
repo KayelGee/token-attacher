@@ -275,7 +275,8 @@
 			let updates = rect_entities.map(w => {
 				const rect_entity = layer.get(w) || {};
 				if(Object.keys(rect_entity).length == 0) return;
-				return TokenAttacher.moveRotateRectangle(rect_entity, tokenCenter, tokenX, tokenY, tokenRot);
+				const offset = rect_entity.getFlag(moduleName, "offset");
+				return TokenAttacher.moveRotateRectangle(rect_entity, offset, tokenCenter, tokenX, tokenY, tokenRot);
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
@@ -309,8 +310,7 @@
 		 * Moves a rectangle by delta values and rotates around an anchor by a delta
 		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
-		static moveRotateRectangle(rect, anchorCenter, anchorX, anchorY, anchorRot){
-			const offset = rect.getFlag(moduleName, "offset");
+		static moveRotateRectangle(rect, offset, anchorCenter, anchorX, anchorY, anchorRot){
 			let x =anchorCenter.x + offset.x;
 			let	y =anchorCenter.y + offset.y; 
 			let rotation = 0;
