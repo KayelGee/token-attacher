@@ -425,7 +425,7 @@
 
 			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 			
-			attached=elements.data;
+			attached=attached.concat(elements.data);
 			
 			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
 
