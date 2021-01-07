@@ -282,19 +282,20 @@
 			return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
 		}
 
-		static _updatePointEntities(type, point_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+		static _updatePointEntities(type, point_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
 			const layer = eval(type).layer;
 
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = point_entities.map(w => {
-					const point_entity = layer.get(w) || {};
-					let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, tokenCenter, deltaX, deltaY, deltaRot);
-					return {_id: point_entity.data._id, x: p[0], y: p[1]};
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
-			}
+			let updates = point_entities.map(w => {
+				const point_entity = layer.get(w) || {};
+				if(Object.keys(point_entity).length == 0) return;				
+				const offset = point_entity.getFlag(moduleName, "offset");
+				let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, offset, tokenCenter, tokenX, tokenY, tokenRot);
+				return {_id: point_entity.data._id, x: p[0], y: p[1]};
+			});
+			updates = updates.filter(n => n);
+			if(Object.keys(updates).length == 0)  return; 
+			return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
+			
 		}
 
 		static computeRotatedPosition(x,y,x2,y2,rotRad){
@@ -340,18 +341,18 @@
 		}
 
 		/**
-		 * Moves a rectangle by delta values and rotates around an anchor by a delta
-		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation
+		 * Moves a point by offset values and rotates around an anchor
+		 * A point is defined by x,y,rotation
 		 */
-		static moveRotatePoint(point, anchor, deltaX, deltaY, deltaRot){			
-			point.x += deltaX;
-			point.y += deltaY;
-			point.rotation+=deltaRot;
-			if(deltaRot !=0){
+		static moveRotatePoint(point, offset, anchorCenter, anchorX, anchorY, anchorRot){			
+			point.x = anchorCenter.x + offset.x;
+			point.y = anchorCenter.y + offset.y; 
+			point.rotation=anchorRot + offset.offRot;
+			if(point.rotation != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians(deltaRot);
+				const deltaRotRad = toRadians(point.rotation - offset.rot);
 				// rotate vector around angle
-				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchor.x, anchor.y, point.x, point.y, deltaRotRad);
+				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, point.x, point.y, deltaRotRad);
 				
 			}	
 			return [point.x, point.y, point.rotation];
@@ -695,6 +696,13 @@
 			return target_token.getFlag(moduleName, `attached.${type}`) || {};
 		}
 
+		/*
+			Calculates the offset of and element relative to a position(center) and rotation
+			x/y 		= offset of x/y of element to the passed center
+			centerX/Y 	= offset of center x/y of element to the passed center
+			rot			= initial rotation of the element
+			offRot		= offset rotation of element to the passed rotation 
+		*/
 		static getElementOffset(type, element, xy, center, rotation){
 			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER, rot:Number.MAX_SAFE_INTEGER};
 			offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
