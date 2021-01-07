@@ -70,13 +70,14 @@
 				game.socket.on(`module.${moduleName}`, (data) => TokenAttacher.listen(data));
 			});
 		
-			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
-			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.AfterUpdateAttachedOfToken(parent, doc, update, options, userId));
+			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 
+			//Attached elements are not allowed to be moved by anything other then Token Attacher
+			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 			Hooks.on("preUpdateMeasuredTemplate", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
 			Hooks.on("preUpdateTile", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
 			Hooks.on("preUpdateDrawing", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
@@ -198,7 +199,7 @@
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
 				||	update.hasOwnProperty("rotation"))){
-				return true;
+				return;
 			}
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
@@ -206,27 +207,14 @@
 			if(Object.keys(attached).length == 0) return true;
 
 			TokenAttacher.detectGM();
-
-			let deltaX = 0;
-			let deltaY = 0;
-			let deltaRot = 0;
-			if(update.hasOwnProperty("x")){
-				deltaX = update.x - token.data.x;
-			}
-			if(update.hasOwnProperty("y")){
-				deltaY = update.y - token.data.y;
-			}
-			if(update.hasOwnProperty("rotation")){
-				deltaRot = update.rotation - token.data.rotation;
-			}
 			
-			const deltas = [tokenCenter, deltaX, deltaY, deltaRot, token.data, update];
+			const posdata = [tokenCenter, token.data.x, token.data.y,  token.data.rotation, token.data, update];
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					await TokenAttacher.updateAttached(key, [key, attached[key]].concat(deltas));
+					await TokenAttacher.updateAttached(key, [key, attached[key]].concat(posdata));
 				}
 			}
-			return true;
+			return;
 		}
 
 		static updateAttached(type, data){
@@ -277,23 +265,21 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates);
+				return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
 			}
 		}
 
-		static _updateRectangleEntities(type, rect_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+		static _updateRectangleEntities(type, rect_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
 			const layer = eval(type).layer;
 
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
-				let updates = rect_entities.map(w => {
-					const rect_entity = layer.get(w) || {};
-					if(Object.keys(rect_entity).length == 0) return;
-					return TokenAttacher.moveRotateRectangle(rect_entity, tokenCenter, deltaX, deltaY, deltaRot);
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates);
-			}
+			let updates = rect_entities.map(w => {
+				const rect_entity = layer.get(w) || {};
+				if(Object.keys(rect_entity).length == 0) return;
+				return TokenAttacher.moveRotateRectangle(rect_entity, tokenCenter, tokenX, tokenY, tokenRot);
+			});
+			updates = updates.filter(n => n);
+			if(Object.keys(updates).length == 0)  return; 
+			return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
 		}
 
 		static _updatePointEntities(type, point_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
@@ -307,7 +293,7 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates);
+				return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
 			}
 		}
 
@@ -322,15 +308,10 @@
 		 * Moves a rectangle by delta values and rotates around an anchor by a delta
 		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
-		static moveRotateRectangle(rect, anchor, deltaX, deltaY, deltaRot){			
-			let rectCenter = duplicate(rect.center);
-			rectCenter.x += deltaX;
-			rectCenter.y += deltaY;
-
-			let x = rect.data.x;
-			let y = rect.data.y;
-			x +=deltaX;
-			y +=deltaY;
+		static moveRotateRectangle(rect, anchorCenter, anchorX, anchorY, anchorRot){
+			const offset = rect.getFlag(moduleName, "offset");
+			let x =anchorCenter.x + offset.x;
+			let	y =anchorCenter.y + offset.y; 
 			let rotation = 0;
 			if(rect.data.hasOwnProperty("rotation")){
 			 	rotation = rect.data.rotation;
@@ -338,23 +319,24 @@
 			else if(rect.data.hasOwnProperty("direction")){
 				rotation = rect.data.direction;
 			}
-
-			if(deltaRot !=0){
+			let newRot = anchorRot + offset.offRot;
+			if(newRot != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians(deltaRot);
+				const deltaRotRad = toRadians(newRot - offset.rot);
 				// rotate vector around angle
-				[rectCenter.x,rectCenter.y] = TokenAttacher.computeRotatedPosition(anchor.x, anchor.y, rectCenter.x, rectCenter.y, deltaRotRad);
-				rotation+=deltaRot;
-				
+				let rectCenter = {};
+				rectCenter.x = anchorCenter.x + offset.centerX;
+				rectCenter.y = anchorCenter.y + offset.centerY;
+				[rectCenter.x,rectCenter.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, rectCenter.x, rectCenter.y, deltaRotRad);
+				x = rectCenter.x - offset.centerX;
+				y = rectCenter.y - offset.centerY;
+				rotation = newRot;
 			}
-			let rectDeltaX = rectCenter.x-(rect.center.x+deltaX);
-			let rectDeltaY = rectCenter.y-(rect.center.y+deltaY);
-			x += rectDeltaX;
-			y += rectDeltaY;
+			
 		   if(rect.data.hasOwnProperty("direction")){
-				return {_id: rect.data._id, x: x, y: y, direction: rotation};
+				return {_id: rect.data._id, x: x, y: y, direction: newRot};
 		   }
-			return {_id: rect.data._id, x: x, y: y, rotation: rotation};
+			return {_id: rect.data._id, x: x, y: y, rotation: newRot};
 		}
 
 		/**
@@ -425,20 +407,20 @@
 
 			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 			
-			attached=attached.concat(elements.data);
-			
+			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
 			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
 
 			await TokenAttacher.saveTokenPositon(token);
 			const xy = {x:token.data.x, y:token.data.y};
 			const center = {x:token.center.x, y:token.center.y};
+			const rotation = token.data.rotation;
 
 			//Todo: GM only
 			const col = eval(elements.type).layer ?? eval(elements.type).collection;
 			for (let i = 0; i < attached.length; i++) {
-				const element = col.get(canvas.attached[i]);
+				const element = col.get(attached[i]);
 				await element.setFlag(moduleName, `parent`, token.data._id); 
-				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center)); 
+				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation)); 
 			}
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
@@ -494,7 +476,7 @@
 		/**
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
-		static _DetachFromToken(token, elements, suppressNotification=false){
+		static async _DetachFromToken(token, elements, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements || !elements.hasOwnProperty("type")){
 				token.unsetFlag(moduleName, "attached");
@@ -713,17 +695,27 @@
 			return target_token.getFlag(moduleName, `attached.${type}`) || {};
 		}
 
-		static getElementOffset(type, element, xy, center){
-			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
+		static getElementOffset(type, element, xy, center, rotation){
+			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER, rot:Number.MAX_SAFE_INTEGER};
 			offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
 			offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+			offset.centerX = element.center.x;
+			offset.centerY = element.center.y;
+			offset.rot = element.data.rotation || element.data.direction || rotation;
+			offset.offRot = element.data.rotation || element.data.direction || rotation;
 			if(type == "Wall"){
-				offset.x -= xy.x;
-				offset.y -= xy.y;
+				offset.x -= center.x;
+				offset.y -= center.y;
+				offset.centerX -= center.x;
+				offset.centerY -= center.y;
+				offset.offRot -= rotation;
 			}
 			else{
 				offset.x -= center.x; 
 				offset.y -= center.y;
+				offset.centerX -= center.x;
+				offset.centerY -= center.y;
+				offset.offRot -= rotation;
 			}
 			return offset;
 		}
@@ -1152,7 +1144,12 @@
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
 		static isAllowedToMove(parent, doc, update, options, userId){
-			let offset = doc.getFlag(moduleName, "offset") || {};
+			if(!(	update.hasOwnProperty("x")
+				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("rotation"))){
+				return true;
+			}
+			let offset = getProperty(getProperty(getProperty(doc, 'flags'), 'token-attacher'), 'offset') || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
 			if(document.getElementById("tokenAttacher")) return true;
