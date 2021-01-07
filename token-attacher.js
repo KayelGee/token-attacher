@@ -313,25 +313,17 @@
 		static moveRotateRectangle(rect, offset, anchorCenter, anchorX, anchorY, anchorRot){
 			let x =anchorCenter.x + offset.x;
 			let	y =anchorCenter.y + offset.y; 
-			let rotation = 0;
-			if(rect.data.hasOwnProperty("rotation")){
-			 	rotation = rect.data.rotation;
-			}
-			else if(rect.data.hasOwnProperty("direction")){
-				rotation = rect.data.direction;
-			}
-			let newRot = anchorRot + offset.offRot;
+			let newRot = (anchorRot + offset.offRot) % 360;
 			if(newRot != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians(newRot - offset.rot);
+				const deltaRotRad = toRadians((newRot - offset.rot) % 360);
 				// rotate vector around angle
 				let rectCenter = {};
 				rectCenter.x = anchorCenter.x + offset.centerX;
 				rectCenter.y = anchorCenter.y + offset.centerY;
 				[rectCenter.x,rectCenter.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, rectCenter.x, rectCenter.y, deltaRotRad);
-				x = rectCenter.x - offset.centerX;
-				y = rectCenter.y - offset.centerY;
-				rotation = newRot;
+				x = rectCenter.x - (offset.centerX - offset.x);
+				y = rectCenter.y - (offset.centerY - offset.y);
 			}
 			
 		   if(rect.data.hasOwnProperty("direction")){
@@ -347,10 +339,10 @@
 		static moveRotatePoint(point, offset, anchorCenter, anchorX, anchorY, anchorRot){			
 			point.x = anchorCenter.x + offset.x;
 			point.y = anchorCenter.y + offset.y; 
-			point.rotation=anchorRot + offset.offRot;
+			point.rotation=(anchorRot + offset.offRot) % 360;
 			if(point.rotation != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians(point.rotation - offset.rot);
+				const deltaRotRad = toRadians((point.rotation - offset.rot) % 360);
 				// rotate vector around angle
 				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, point.x, point.y, deltaRotRad);
 				
@@ -717,13 +709,17 @@
 				offset.centerX -= center.x;
 				offset.centerY -= center.y;
 				offset.offRot -= rotation;
+				offset.rot %= 360;
+				offset.offRot %= 360;
 			}
 			else{
 				offset.x -= center.x; 
 				offset.y -= center.y;
 				offset.centerX -= center.x;
 				offset.centerY -= center.y;
-				offset.offRot -= rotation;
+				offset.offRot -= rotation % 360;
+				offset.rot %= 360;
+				offset.offRot %= 360;
 			}
 			return offset;
 		}
