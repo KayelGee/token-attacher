@@ -127,17 +127,17 @@
 
 		static async startMigration(){
 
-			const dataModelVersion = 2;
+			const dataModelVersion = 3;
 			let currentDataModelVersion = game.settings.get(moduleName, "data-model-version");
 
-			if(currentDataModelVersion < 2){
-				await TokenAttacher.migrateToDataModel_2();
+			if(currentDataModelVersion < 3){
+				await TokenAttacher.migrateToDataModel_3();
 				currentDataModelVersion = 2;
 			}
 			game.settings.set(moduleName, "data-model-version", currentDataModelVersion);
 		}
 
-		static async migrateToDataModel_2(){
+		static async migrateToDataModel_3(){
 			let lookupType = (element) =>{
 				switch(element){
 					case "templates": return 'MeasuredTemplate';
@@ -150,33 +150,6 @@
 				}
 				return 'unknown';
 			};
-			for (const scene of Scene.collection) {
-				let deleteData = [];
-				let updateData = [];
-				let backupData = [];
-				for (const token of scene.data.tokens) {
-					const key = `${moduleName}.attached`;
-					const attached=getProperty(token.flags, key)|| {};
-					if(Object.keys(attached).length > 0){
-						let migratedAttached = {};
-						for (const key in attached) {
-							if (attached.hasOwnProperty(key)) {
-								migratedAttached[lookupType(key)] = attached[key];
-							}
-						}						
-						backupData.push({_id: token._id, [`flags.${moduleName}.migrationBackup.1`]:  attached});
-						deleteData.push({_id: token._id, [`flags.${moduleName}.-=attached`]:  null});
-						updateData.push({_id: token._id, [`flags.${moduleName}.attached`]:  migratedAttached});
-					}
-				}
-
-				if(updateData.length > 0){ 
-					await scene.updateEmbeddedEntity("Token", backupData);
-					await scene.updateEmbeddedEntity("Token", deleteData);
-					await scene.updateEmbeddedEntity("Token", updateData);
-					ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.DataModelMergedTo") + " 2");
-				}					
-			}
 		}
 
 		static getTypeCallback(className){
