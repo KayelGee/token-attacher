@@ -77,13 +77,13 @@
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 
-			Hooks.on("preUpdateMeasuredTemplate", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateTile", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateDrawing", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateAmbientLight", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateAmbientSound", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateNote", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateWall", (parent, doc, update, options, userId) => TokenAttacher.CheckIfAttached(parent, doc, update, options, userId));
+			Hooks.on("preUpdateMeasuredTemplate", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateTile", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateDrawing", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateAmbientLight", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateAmbientSound", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateNote", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
+			Hooks.on("preUpdateWall", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 		
 			Hooks.on("getCompendiumDirectoryEntryContext", async (html, options) => {
 				options.push( 
@@ -1171,10 +1171,12 @@
 			return await worldCompendium.createEntity(creates);
 		}
 		
-		static CheckIfAttached(parent, doc, update, options, userId){
+		//Attached elements are only allowed to be moved by token attacher functions.
+		static isAllowedToMove(parent, doc, update, options, userId){
 			let offset = doc.getFlag(moduleName, "offset") || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
+			if(document.getElementById("tokenAttacher")) return true;
 			return false;
 		}
 	}
