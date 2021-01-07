@@ -430,6 +430,17 @@
 			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
 
 			await TokenAttacher.saveTokenPositon(token);
+			const xy = {x:token.data.x, y:token.data.y};
+			const center = {x:token.center.x, y:token.center.y};
+
+			//Todo: GM only
+			const col = eval(elements.type).layer ?? eval(elements.type).collection;
+			for (let i = 0; i < attached.length; i++) {
+				const element = col.get(canvas.attached[i]);
+				await element.setFlag(moduleName, `parent`, token.data._id); 
+				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center)); 
+			}
+
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
 		}
@@ -499,6 +510,14 @@
 				token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
 					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
 				});
+				
+				//Todo: GM only
+				const col = eval(elements.type).layer ?? eval(elements.type).collection;
+				for (let i = 0; i < elements.length; i++) {
+					const element = col.get(canvas.elements[i]);
+					await element.unsetFlag(moduleName, `parent`); 
+					await element.unsetFlag(moduleName, `offset`); 
+				}
 			}
 		}
 		
@@ -692,6 +711,21 @@
 
 		static getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false){
 			return target_token.getFlag(moduleName, `attached.${type}`) || {};
+		}
+
+		static getElementOffset(type, element, xy, center){
+			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
+			offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
+			offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
+			if(type == "Wall"){
+				offset.x -= xy.x;
+				offset.y -= xy.y;
+			}
+			else{
+				offset.x -= center.x; 
+				offset.y -= center.y;
+			}
+			return offset;
 		}
 
 		static getObjectsFromIds(type, idArray, tokenxy, token_center){
