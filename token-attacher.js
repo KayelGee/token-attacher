@@ -254,9 +254,12 @@
 					const line_entity = layer.get(w) || {};
 					if(Object.keys(line_entity).length == 0) return;
 
-					let c = duplicate(line_entity.data.c);
-					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
-					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, tokenCenter,deltaX, deltaY, deltaRot);
+					let c = duplicate(line_entity.data.c);				
+					const offset = line_entity.getFlag(moduleName, "offset");
+					[offset.x, offset.y] = [offset.c[0], offset.c[1]];
+					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
+					[offset.x, offset.y] = [offset.c[2], offset.c[3]];
+					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
 
 					//let p0 = layer._getWallEndpointCoordinates({x: c[0], y: c[1]}, {snap});
 					//let p1 = layer._getWallEndpointCoordinates({x: c[2], y: c[3]}, {snap});
@@ -703,24 +706,20 @@
 			offset.centerY = element.center.y;
 			offset.rot = element.data.rotation || element.data.direction || rotation;
 			offset.offRot = element.data.rotation || element.data.direction || rotation;
-			if(type == "Wall"){
-				offset.x -= center.x;
-				offset.y -= center.y;
-				offset.centerX -= center.x;
-				offset.centerY -= center.y;
-				offset.offRot -= rotation;
-				offset.rot %= 360;
-				offset.offRot %= 360;
+			if(element.data.hasOwnProperty('c')){
+				offset.c = [];
+				offset.c[0] = element.data.c[0] - center.x;
+				offset.c[2] = element.data.c[2] - center.x;
+				offset.c[1] = element.data.c[1] - center.y;
+				offset.c[3] = element.data.c[3] - center.y;
 			}
-			else{
-				offset.x -= center.x; 
-				offset.y -= center.y;
-				offset.centerX -= center.x;
-				offset.centerY -= center.y;
-				offset.offRot -= rotation % 360;
-				offset.rot %= 360;
-				offset.offRot %= 360;
-			}
+			offset.x -= center.x; 
+			offset.y -= center.y;
+			offset.centerX -= center.x;
+			offset.centerY -= center.y;
+			offset.offRot -= rotation % 360;
+			offset.rot %= 360;
+			offset.offRot %= 360;
 			return offset;
 		}
 
