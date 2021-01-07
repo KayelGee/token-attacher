@@ -417,7 +417,7 @@
 		}
 
 		/**
-		 * Attach previously saved selection to the currently selected token
+		 * Attach elements to token
 		 */
 		static async _AttachToToken(token, elements, suppressNotification=false){
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
@@ -432,18 +432,6 @@
 			await TokenAttacher.saveTokenPositon(token);
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
-		}
-
-		static _AttachToTokenViaUI(){
-			if(!canvas.tokens.controlled.length > 0) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
-			const target_token = canvas.tokens.controlled[0];
-			const selected = window.tokenAttacher.selected;
-			for (const key in selected) {
-				if (selected.hasOwnProperty(key)) {
-					TokenAttacher._AttachToToken( target_token, {type:key, data:selected[key]});
-				}
-			}
-			window.tokenAttacher.selected = {};	
 		}
 
 		/**
@@ -514,22 +502,6 @@
 			}
 		}
 		
-		/**
-		 * Save the selected objects so the selection can be reused later 
-		 */
-		static _SaveSelection(layer){
-			if(layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
-
-			let selected = {}
-			for (const element of layer.controlled) {
-				const type = element.constructor.name;
-				if(!selected.hasOwnProperty(type)) selected[type] = [];
-				selected[type].push(element.data._id);
-			}		
-			window.tokenAttacher.selected= selected;
-			ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.SelectionSaved"));
-		}
-
 		/**
 		 * Hook into the toolbar and add buttons 
 		 */
