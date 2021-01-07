@@ -44,16 +44,7 @@
 			}
 
 			window.tokenAttacher = {};
-			window.tokenAttacher.isPreSightUpdateVersion= isNewerVersion('0.7.0', game.data.version);
 			window.tokenAttacher.selected = {};
-			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			if(window.tokenAttacher.isPreSightUpdateVersion){
-				window.tokenAttacher.updateSight={};
-				window.tokenAttacher.updateSight.walls=[];
-			}
-			else{
-				Hooks.off("updateWall", TokenAttacher.performSightUpdates)
-			}
 			
 			TokenAttacher.initMacroAPI();
 
@@ -108,9 +99,6 @@
 					  
 					})
 			});
-
-			//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-			Hooks.on("updateWall", TokenAttacher.performSightUpdates);
 
 			//Monkeypatch PlaceablesLayer.copyObjects to hook into it
 			var oldCopyObjects= PlaceablesLayer.prototype.copyObjects;
@@ -292,51 +280,8 @@
 		static async saveTokenPositon(token){
 			return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}});
 		}
-
-		/**
-		 * Workaround until 0.7.x fixes wall sight behaviour
-		 */
-		static performSightUpdates(entity, data, options, userId){
-			if(window.tokenAttacher.updateSight.hasOwnProperty("walls")) {
-				if(window.tokenAttacher.updateSight.walls.length > 0){
-					const index = window.tokenAttacher.updateSight.walls.indexOf(data._id);
-					if(index != -1){
-						window.tokenAttacher.updateSight.walls.splice(index, 1);
-						if(window.tokenAttacher.updateSight.walls.length == 0){
-							TokenAttacher.updateSight();
-						}
-					}
-				}
-				return;
-			}
-		}
-		/**
-		 * Workaround until 0.7.x fixes wall sight behaviour
-		 */
-		static async updateSight(){
-			console.log("Token Attacher| Force Sight update");
-			await canvas.sight.initialize(); // This needs to happen first to rebuild FOV/LOS polygons
-			canvas.lighting.initialize();
-			canvas.sounds.initialize();
-		}
-		/**
-		 * Workaround until 0.7.x fixes wall sight behaviour
-		 */
-		static pushSightUpdate(attached){
-			for (const key in attached) {
-				if (attached.hasOwnProperty(key)) {
-					window.tokenAttacher.updateSight[key]= Array.from(new Set((window.tokenAttacher.updateSight[key] || []).concat(attached[key])));
-					
-				}
-			}			
-		}
 		
 		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
-				//Sightupdate workaround until 0.7.x fixes wall sight behaviour
-				if(window.tokenAttacher.isPreSightUpdateVersion){
-					TokenAttacher.pushSightUpdate(...[{walls:walls}]);
-					game.socket.emit(`module.${moduleName}`, {event: "updateSight", eventdata: [{walls:walls}]});
-				}
 				return TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
 		}
 
@@ -491,10 +436,6 @@
 			}
 			else {
 				switch (data.event) {
-					case "updateSight":
-						console.log("Token Attacher| Event updateSight");
-						TokenAttacher.pushSightUpdate(...data.eventdata);
-						break;
 					default:
 						console.log("Token Attacher| wtf did I just read?");
 						break;
