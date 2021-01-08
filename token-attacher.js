@@ -77,14 +77,11 @@
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 
 			//Attached elements are not allowed to be moved by anything other then Token Attacher
-			Hooks.on("preUpdateToken", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
-			Hooks.on("preUpdateMeasuredTemplate", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateTile", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateDrawing", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateAmbientLight", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateAmbientSound", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateNote", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));			
-			Hooks.on("preUpdateWall", (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
+			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
+				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
+				Hooks.on(`preDelete${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
+				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled));
+			}
 		
 			Hooks.on("getCompendiumDirectoryEntryContext", async (html, options) => {
 				options.push( 
@@ -413,7 +410,7 @@
 			for (let i = 0; i < attached.length; i++) {
 				const element = col.get(attached[i]);
 				await element.setFlag(moduleName, `parent`, token.data._id); 
-				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation)); 
+				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation, TokenAttacher.getElementSize(token))); 
 			}
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
@@ -694,8 +691,9 @@
 			centerX/Y 	= offset of center x/y of element to the passed center
 			rot			= initial rotation of the element
 			offRot		= offset rotation of element to the passed rotation 
+			size		= width/height/distance/dim/bright/radius of element and widthBase/heightBase of parent
 		*/
-		static getElementOffset(type, element, xy, center, rotation){
+		static getElementOffset(type, element, xy, center, rotation, size){
 			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER, rot:Number.MAX_SAFE_INTEGER};
 			offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
 			offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
@@ -717,7 +715,33 @@
 			offset.offRot -= rotation % 360;
 			offset.rot %= 360;
 			offset.offRot %= 360;
+
+			offset.size = {};
+			if(element.data.hasOwnProperty('width')){
+				offset.size.width  	= element.data.width;
+				offset.size.height	= element.data.height;
+			}
+			if(element.data.hasOwnProperty('distance')){
+				offset.size.distance= element.data.distance;
+			}
+			if(element.data.hasOwnProperty('dim')){
+				offset.size.dim= element.data.dim;
+				offset.size.bright= element.data.bright;
+			}
+			if(element.data.hasOwnProperty('radius')){
+				offset.size.radius= element.data.radius;
+			}
+			offset.size.widthBase = size.width;
+			offset.size.heightBase = size.height;
+
 			return offset;
+		}
+
+		static getElementSize(element){
+			let size = {};
+			size.width 	= element.data.width 	|| element.data.distance || element.data.dim || element.data.radius;
+			size.height = element.data.height 	|| element.data.distance || element.data.dim || element.data.radius;
+			return size;
 		}
 
 		static getObjectsFromIds(type, idArray, tokenxy, token_center){
@@ -1152,8 +1176,22 @@
 			let offset = getProperty(getProperty(getProperty(doc, 'flags'), 'token-attacher'), 'offset') || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
-			if(document.getElementById("tokenAttacher")) return true;
+			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), 'token-attacher'), 'parent') || "";
+			if(document.getElementById("tokenAttacher")) return TokenAttacher.isCurrentAttachUITarget(objParent);
 			return false;
+		}
+
+		//Attached elements are only allowed to be selected while token attacher ui is open.
+		static isAllowedToControl(object, isControlled){
+			let offset = object.getFlag(moduleName, 'offset') || {};
+			if(Object.keys(offset).length === 0) return;
+			let objParent = object.getFlag(moduleName, 'parent') || {};
+			if(document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
+			return object.release();
+		}
+
+		static isCurrentAttachUITarget(id){
+			return canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token")).data._id === id;
 		}
 	}
 
