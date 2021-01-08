@@ -76,12 +76,18 @@
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 
-			//Attached elements are not allowed to be moved by anything other then Token Attacher
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
+				//Attached elements are not allowed to be moved by anything other then Token Attacher
 				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 				Hooks.on(`preDelete${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled));
+				
+				//Deleting attached elements should detach them
+				Hooks.on(`delete${type}`, (parent, doc, options, userId) => TokenAttacher.DetachAfterDelete(type, parent, doc, options, userId));
+				//Recreating an element from Undo History will leave them detached, so reattach them
+				Hooks.on(`create${type}`, (parent, entity, options, userId) => TokenAttacher.ReattachAfterUndo(type, parent, entity, options, userId));
 			}
+			
 		
 			Hooks.on("getCompendiumDirectoryEntryContext", async (html, options) => {
 				options.push( 
@@ -262,7 +268,7 @@
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
+				return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 			}
 		}
 
@@ -277,7 +283,7 @@
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
-			return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
+			return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 		}
 
 		static _updatePointEntities(type, point_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
@@ -292,7 +298,7 @@
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
-			return canvas.scene.updateEmbeddedEntity(type, updates, {'token-attacher':true});
+			return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 			
 		}
 
@@ -393,6 +399,9 @@
 					case "detachElementsFromToken":
 						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._detachElementsFromToken(...data.eventdata);
 						break;
+					case "ReattachAfterUndo":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._ReattachAfterUndo(...data.eventdata);
+						break;
 					default:
 						console.log("Token Attacher| wtf did I just read?");
 						break;
@@ -478,7 +487,7 @@
 		/**
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
-		static async _DetachFromToken(token, elements, suppressNotification=false){
+		static async _DetachFromToken(token, elements, suppressNotification=false, options={}){
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements || !elements.hasOwnProperty("type")){
@@ -497,10 +506,12 @@
 				});
 				
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
-				for (let i = 0; i < elements.length; i++) {
-					const element = col.get(canvas.elements[i]);
-					await element.unsetFlag(moduleName, `parent`); 
-					await element.unsetFlag(moduleName, `offset`); 
+				for (let i = 0; i < elements.data.length; i++) {
+					const element = col.get(elements.data[i]);
+					if(element){
+						await element.unsetFlag(moduleName, `parent`); 
+						await element.unsetFlag(moduleName, `offset`); 
+					}
 				}
 			}
 		}
@@ -987,7 +998,7 @@
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					let layer = eval(key).layer ?? eval(key).collection;
-					await layer.deleteMany(attached[key]);
+					await layer.deleteMany(attached[key], {[moduleName]:true});
 				}
 			}
 		}
@@ -1204,10 +1215,10 @@
 				||	update.hasOwnProperty("rotation"))){
 				return true;
 			}
-			let offset = getProperty(getProperty(getProperty(doc, 'flags'), 'token-attacher'), 'offset') || {};
+			let offset = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'offset') || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
-			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), 'token-attacher'), 'parent') || "";
+			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'parent') || "";
 			if(document.getElementById("tokenAttacher")) return TokenAttacher.isCurrentAttachUITarget(objParent);
 			return false;
 		}
@@ -1223,6 +1234,44 @@
 
 		static isCurrentAttachUITarget(id){
 			return canvas.tokens.get(canvas.scene.getFlag(moduleName, "attach_token")).data._id === id;
+		}
+
+		//Detach Elements when they get deleted
+		static DetachAfterDelete(type, parent, doc, options, userId){
+			if(getProperty(options, moduleName)) return;
+			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'parent') || "";
+			if(objParent !== ""){
+				if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(objParent, {type:type, data:[doc._id]}, true);
+				else game.socket.emit(`module.${moduleName}`, {event: `DetachFromToken`, eventdata: [objParent, {type:type, data:[doc._id]}, true]});
+			}
+		}
+
+		//Reattach elements that are recreated via Undo
+		static ReattachAfterUndo(type, parent, entity, options, userId){
+			let objParent = getProperty(getProperty(getProperty(entity, 'flags'), moduleName), 'parent') || "";
+			if(!objParent) return;
+			if(getProperty(options, "isUndo") === true){
+				if(getProperty(options, "mlt_bypass") === true) return;
+
+				if(TokenAttacher.isFirstActiveGM()) TokenAttacher._ReattachAfterUndo(type, parent, entity, options, userId);
+				else game.socket.emit(`module.${moduleName}`, {event: `ReattachAfterUndo`, eventdata: [type, parent, entity, options, userId]});
+			}
+			return;
+		}
+
+		//Reattach elements that are recreated via Undo or remove the attachment completly if the base doesn't exist anymore
+		static async _ReattachAfterUndo(type, parent, entity, options, userId){
+			let objParent = getProperty(getProperty(getProperty(entity, 'flags'), moduleName), 'parent') || "";
+			const parent_token = canvas.tokens.get(objParent);
+			if(parent_token){
+				TokenAttacher._AttachToToken(parent_token, {type:type, data:[entity._id]}, true);
+			}
+			else{
+				let layer = eval(type).layer ?? eval(type).collection;
+				const element = layer.get(entity._id);
+				await element.unsetFlag(moduleName, `parent`); 
+				await element.unsetFlag(moduleName, `offset`); 
+			}
 		}
 	}
 
