@@ -261,9 +261,6 @@
 					[offset.x, offset.y] = [offset.c[2], offset.c[3]];
 					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
 
-					//let p0 = layer._getWallEndpointCoordinates({x: c[0], y: c[1]}, {snap});
-					//let p1 = layer._getWallEndpointCoordinates({x: c[2], y: c[3]}, {snap});
-
 					return {_id: line_entity.data._id, c: c}
 				});
 				updates = updates.filter(n => n);
@@ -310,7 +307,7 @@
 		}
 
 		/**
-		 * Moves a rectangle by delta values and rotates around an anchor by a delta
+		 * Moves a rectangle by offset values and rotates around an anchor
 		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
 		static moveRotateRectangle(rect, offset, anchorCenter, anchorX, anchorY, anchorRot){
