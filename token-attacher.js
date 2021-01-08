@@ -381,6 +381,18 @@
 			}
 			else {
 				switch (data.event) {
+					case "AttachToToken":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._AttachToToken(...data.eventdata);
+						break;
+					case "DetachFromToken":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._DetachFromToken(...data.eventdata);
+						break;
+					case "attachElementsToToken":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._attachElementsToToken(...data.eventdata);
+						break;
+					case "detachElementsFromToken":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._detachElementsFromToken(...data.eventdata);
+						break;
 					default:
 						console.log("Token Attacher| wtf did I just read?");
 						break;
@@ -392,6 +404,7 @@
 		 * Attach elements to token
 		 */
 		static async _AttachToToken(token, elements, suppressNotification=false){
+			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements.hasOwnProperty("type")) return;
 
@@ -405,7 +418,6 @@
 			const center = {x:token.center.x, y:token.center.y};
 			const rotation = token.data.rotation;
 
-			//Todo: GM only
 			const col = eval(elements.type).layer ?? eval(elements.type).collection;
 			for (let i = 0; i < attached.length; i++) {
 				const element = col.get(attached[i]);
@@ -467,6 +479,7 @@
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static async _DetachFromToken(token, elements, suppressNotification=false){
+			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements || !elements.hasOwnProperty("type")){
 				token.unsetFlag(moduleName, "attached");
@@ -483,7 +496,6 @@
 					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
 				});
 				
-				//Todo: GM only
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
 				for (let i = 0; i < elements.length; i++) {
 					const element = col.get(canvas.elements[i]);
@@ -515,16 +527,25 @@
 		static attachElementToToken(element, target_token, suppressNotification=false){
 			const type = element.constructor.name;
 			const selected = [element.data._id];
-			TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
+			
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `AttachToToken`, eventdata: [target_token.data._id, {type:type, data:selected}, suppressNotification]});
+			
 		}
 
-		static async attachElementsToToken(element_array, target_token, suppressNotification=false){
+		static attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
 				const type = element.constructor.name;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._attachElementsToToken(selected, target_token, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `attachElementsToToken`, eventdata: [selected, target_token.data._id, suppressNotification]});
+		}
+
+		static async _attachElementsToToken(selected, target_token, suppressNotification=false){
+			if(typeof target_token === 'string' || target_token instanceof String) target_token = canvas.tokens.get(target_token);
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
 					await TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
@@ -656,7 +677,9 @@
 		static detachElementFromToken(element, target_token, suppressNotification=false){
 			const type = element.constructor.name;
 			const selected = [element.data._id];
-			TokenAttacher._DetachFromToken(target_token, {type:type, data:selected}, suppressNotification);
+			
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(target_token, {type:type, data:selected}, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `DetachFromToken`, eventdata: [target_token.data._id, {type:type, data:selected}, suppressNotification]});
 		}
 
 		static detachElementsFromToken(element_array, target_token, suppressNotification=false){
@@ -666,15 +689,23 @@
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
+		
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._detachElementsFromToken(selected, target_token, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `detachElementsFromToken`, eventdata: [selected, target_token.data._id, suppressNotification]});
+		}
+
+		static async _detachElementsFromToken(selected, target_token, suppressNotification=false){
+			if(typeof target_token === 'string' || target_token instanceof String) target_token = canvas.tokens.get(target_token);
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
-					TokenAttacher._DetachFromToken(target_token, {type:key, data:selected[key]}, suppressNotification);
+					await TokenAttacher._DetachFromToken(target_token, {type:key, data:selected[key]}, suppressNotification);
 				}
 			}
 		}
 
-		static detachAllElementsFromToken(target_token, suppressNotification=false){
-			TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
+		static detachAllElementsFromToken(target_token, suppressNotification=false){			
+			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(target_token, {}, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `DetachFromToken`, eventdata: [target_token.data._id, {}, suppressNotification]});
 		}
 
 		static getAllAttachedElementsOfToken(target_token, suppressNotification=false){
