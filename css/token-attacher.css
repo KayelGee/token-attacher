@@ -69,6 +69,12 @@
 	border-bottom: 1px solid #ff6400;
 	box-shadow: 0 0 10px #ff6400;
 }
+#tokenAttacher .control-tool.active{
+	color: #FFF;
+	border: 1px solid red;
+	border-bottom: 1px solid #ff6400;
+	box-shadow: 0 0 10px #ff6400;
+}
 #tokenAttacher li i{
 	height: 24px;
 	width: 24px;

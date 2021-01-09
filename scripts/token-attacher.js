@@ -1,3 +1,5 @@
+'use strict';
+import {libWrapper} from './shim.js';
 (async () => {
 	const moduleName = "token-attacher";
 	const templatePath = `/modules/${moduleName}/templates`;
@@ -116,6 +118,15 @@
 				if(TokenAttacher.isFirstActiveGM()){
 					TokenAttacher.startMigration();
 				}
+
+				libWrapper.register(moduleName, 'canvas.mouseInteractionManager.callbacks.dragLeftDrop', function (wrapped, ...args) {
+					console.log('canvas.mouseInteractionManager.callbacks.dragLeftDrop hook', ...args)
+					let result = wrapped(...args);
+					if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
+						$(document.getElementById("tokenAttacher")).find(".control-tool.select")[0].classList.toggle("active");		
+					}
+					return result;
+				}, 'WRAPPER');
 			});
 		
 			Hooks.on('getSceneControlButtons', (controls) => TokenAttacher._getControlButtons(controls));
@@ -636,16 +647,10 @@
 			let link_tool=document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
 			let unlink_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
 			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
-			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
+			let select_tool=document.getElementById("tokenAttacher").getElementsByClassName("select")[0];
 			let highlight_tool=document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
 			let copy_tool=document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
 			let paste_tool=document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
-
-			if(locked_status){
-				let icons = lock_tool.getElementsByTagName("i");
-				icons[0].classList.toggle("hidden", true);
-				icons[1].classList.toggle("hidden", false);
-			}
 
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
@@ -669,8 +674,11 @@
 			$(unlinkAll_tool).click(()=>{
 				TokenAttacher._DetachFromToken(token);
 			});
-			$(lock_tool).click(()=>{
-				TokenAttacher.lockAttached(token, lock_tool);
+			$(select_tool).click(()=>{
+				select_tool.classList.toggle("active");				
+				if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
+					ui.notifications.info(game.i18n.localize(`TOKENATTACHER.info.DragSelectElements`));
+				}
 			});
 			$(highlight_tool).click(()=>{
 				TokenAttacher.highlightAttached(token, highlight_tool);

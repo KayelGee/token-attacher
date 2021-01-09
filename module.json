@@ -6,8 +6,8 @@
 	"minimumCoreVersion": "0.7.0",
 	"compatibleCoreVersion": "0.7.9",
 	"author": "KayelGee - KayelGee#5241",
-	"scripts": [
-		"token-attacher.js"
+	"esmodules": [
+		"scripts/token-attacher.js"
 	],
 	"styles": [
 		"./css/token-attacher.css"],
