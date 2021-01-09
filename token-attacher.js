@@ -154,6 +154,8 @@
 				}
 				return 'unknown';
 			};
+
+			//Todo: Migrate elements on scene to offset
 		}
 
 		static getTypeCallback(className){
@@ -208,7 +210,7 @@
 			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = duplicate(token.center);
 			if(Object.keys(attached).length == 0) return true;
-
+			TokenAttacher.saveTokenPositon(token);
 			TokenAttacher.detectGM();
 			
 			const posdata = [tokenCenter, token.data.x, token.data.y,  token.data.rotation, token.data, update];
@@ -225,24 +227,8 @@
 			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
 		}
 
-		static async AfterUpdateAttachedOfToken(parent, doc, update, options, userId){
-			if(!(	update.hasOwnProperty("x")
-				||	update.hasOwnProperty("y")
-				||	update.hasOwnProperty("rotation"))){
-				return;
-			}
-			const token = canvas.tokens.get(update._id);
-			const attached=token.getFlag(moduleName, "attached") || {};
-			if(Object.keys(attached).length == 0) return;
-
-			if(TokenAttacher.isFirstActiveGM()){
-				await TokenAttacher.saveTokenPositon(token);
-				TokenAttacher._CheckAttachedOfToken(token);
-			}
-		}
-
 		static async saveTokenPositon(token){
-			return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}});
+			return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation});
 		}
 		
 		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
@@ -448,40 +434,26 @@
 		}
 
 		/**
-		 * Check previously attached of the token and remove deleted items
+		 * Update Offset of all Attached elements
 		 */
-		static _CheckAttachedOfToken(token){
-			let attached=token.getFlag(moduleName, "attached") || {};
-			let reducedAttached = duplicate(attached);
-			for (const key in attached) {
-				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					reducedAttached = TokenAttacher._removeAttachedRemnants(reducedAttached, key);
+		static async _updateAttachedOffsets(token){
+			const updateFunc = async (token) =>{
+				let attached=token.getFlag(moduleName, "attached") || {};
+				for (const key in attached) {
+					if (attached.hasOwnProperty(key) && key !== "unknown") {
+						if(key !== 'Token')	reducedAttached = await TokenAttacher._AttachToToken(token, {type:key, data:attached[key]}, true);
+						else await TokenAttacher._updateAttachedOffsets(attached[key]);
+					}
 				}
 			}
-			
-			if(Object.keys(reducedAttached).length == 0){
-				token.unsetFlag(moduleName, "attached");
-				return;
+			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
+			if(Array.isArray(token)){
+				for (let i = 0; i < token.length; i++) {
+					const element = canvas.tokens.get(token[i]);
+					await updateFunc(element);
+				}
 			}
-			token.setFlag(moduleName, "attached", reducedAttached);
-		}
-
-		static _removeAttachedRemnants(attached, type){
-			const col = eval(type).layer ?? eval(type).collection;
-			
-			let objects=attached[type].map(w => {
-				const obj = col.get(w) || {};
-				if(Object.keys(obj).length == 0) return;
-				return w;
-			});
-			objects = objects.filter(n => n);
-			attached[type]=objects;
-			if(Object.keys(attached[type]).length == 0) {
-				delete attached[type];
-				attached[`-=${type}`] = null;
-			}
-			
-			return attached;
+			else await updateFunc(token);
 		}
 
 		/**
@@ -680,9 +652,9 @@
 		}
 
 		static async closeTokenAttacherUI(){
+			TokenAttacher._updateAttachedOffsets(canvas.scene.getFlag(moduleName, "attach_token"));
 			document.getElementById("tokenAttacher").remove();
-			canvas.scene.unsetFlag(moduleName, "attach_token");
-		
+			canvas.scene.unsetFlag(moduleName, "attach_token");		
 		}
 
 		static detachElementFromToken(element, target_token, suppressNotification=false){
@@ -1019,6 +991,9 @@
 			}
 
 			if(Object.keys(prototypeAttached).length > 0) await TokenAttacher.regenerateAttachedFromPrototype(token, prototypeAttached);
+			//Migration code
+			if(!getProperty(getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]].objs[0].data.flags, moduleName), 'parent')) await TokenAttacher._updateAttachedOffsets(token);
+			//Migration code end
 			return;
 		}
 
@@ -1097,7 +1072,7 @@
 					addParentFolder(folders, folder);
 				}
 			});
-			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({folder: folders, actors: allMappedActors})});
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({folder: folders, actors: allMappedActors, ['data-model']: game.settings.get(moduleName, "data-model-version")})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
 
@@ -1132,7 +1107,7 @@
 				actors.push(TokenAttacher.mapActorForExport(entity));
 				console.log(entity);
 			}
-			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors})});
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors, ['data-model']: game.settings.get(moduleName, "data-model-version")})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
 
@@ -1205,6 +1180,9 @@
 			actors.forEach(async actor => {
 				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token});
 			});
+			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
+			// 		//Maybe add some compendium migration code if necessary	
+			// }
 			return await worldCompendium.createEntity(creates);
 		}
 		
