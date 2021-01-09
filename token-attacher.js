@@ -18,7 +18,7 @@
 		}
 
 		static initMacroAPI(){
-			if(window.tokenAttacher.attachElementToToken) return;
+			if(getProperty(getProperty(window,'tokenAttacher'),'attachElementToToken')) return;
 			window.tokenAttacher = {
 				...window.tokenAttacher, 
 				attachElementToToken: TokenAttacher.attachElementToToken,
