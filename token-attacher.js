@@ -1,6 +1,7 @@
 (async () => {
 	const moduleName = "token-attacher";
 	const templatePath = `/modules/${moduleName}/templates`;
+	const dataModelVersion = 3;
 	//CONFIG.debug.hooks = true
 	class TokenAttacher {
 		static get typeMap(){
@@ -130,32 +131,55 @@
 		}
 
 		static async startMigration(){
-
-			const dataModelVersion = 3;
 			let currentDataModelVersion = game.settings.get(moduleName, "data-model-version");
-
+			//Migration to Model 2 is last supported on 3.2.3
 			if(currentDataModelVersion < 3){
+				game.settings.set(moduleName, "data-model-version", dataModelVersion + 99999);
 				await TokenAttacher.migrateToDataModel_3();
-				currentDataModelVersion = 2;
 			}
-			game.settings.set(moduleName, "data-model-version", currentDataModelVersion);
 		}
 
 		static async migrateToDataModel_3(){
-			let lookupType = (element) =>{
-				switch(element){
-					case "templates": return 'MeasuredTemplate';
-					case "drawings": return 'Drawing';
-					case "notes": return 'Note';
-					case "sounds": return 'AmbientSound';
-					case "lighting": return 'AmbientLight';
-					case "walls": return 'Wall';
-					case "tiles": return 'Tile';
-				}
-				return 'unknown';
-			};
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigrationInProgress", {version: dataModelVersion}));
+			let scene_id_array = [];
+			for (const scene of Scene.collection) {
+				scene_id_array.push(scene.data._id);	
+			}
+			
+			if(game.scenes.get(scene_id_array[0]) !== game.scenes.active){
+				Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(scene_id_array));
+				await game.scenes.get(scene_id_array[0]).activate();
+			}
+			else{
+				TokenAttacher.migrateSceneHook(scene_id_array);
+			}
+		}
 
-			//Todo: Migrate elements on scene to offset
+		static async migrateSceneHook(remaining_scenes){
+			if(remaining_scenes.length > 0){
+				if(game.scenes.get(remaining_scenes[0]) !== game.scenes.active){
+					Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
+					return;
+				}
+				else {
+					for (const token of canvas.tokens.placeables) {
+						const attached=token.getFlag(moduleName, 'attached') || {};
+						if(Object.keys(attached).length > 0){
+							await TokenAttacher._attachElementsToToken(attached, token, true);					
+						}
+					}
+					
+					ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}));
+					remaining_scenes.shift();
+					if(remaining_scenes.length > 0){
+						Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
+						await game.scenes.get(remaining_scenes[0]).activate();
+						return;	
+					}
+				}
+			}
+			game.settings.set(moduleName, "data-model-version", dataModelVersion);
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));	
 		}
 
 		static getTypeCallback(className){
@@ -405,7 +429,10 @@
 
 			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 			
+			const col = eval(elements.type).layer ?? eval(elements.type).collection;
 			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
+			//Filter non existing
+			attached = attached.filter((item) => col.get(item));
 			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
 
 			await TokenAttacher.saveTokenPositon(token);
@@ -413,7 +440,6 @@
 			const center = {x:token.center.x, y:token.center.y};
 			const rotation = token.data.rotation;
 
-			const col = eval(elements.type).layer ?? eval(elements.type).collection;
 			for (let i = 0; i < attached.length; i++) {
 				const element = col.get(attached[i]);
 				await element.setFlag(moduleName, `parent`, token.data._id); 
