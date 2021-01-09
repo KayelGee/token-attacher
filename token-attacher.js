@@ -3,6 +3,59 @@
 	const templatePath = `/modules/${moduleName}/templates`;
 	const dataModelVersion = 3;
 	//CONFIG.debug.hooks = true
+
+	class TASettings extends FormApplication {
+		static init() {
+		game.settings.registerMenu(moduleName, 'menu', {
+			name: '',
+			label: 'Token Attacher GM Menu',
+			type: TASettings,
+			restricted: true
+		  });
+		}
+	
+		static get defaultOptions() {
+			return {
+				...super.defaultOptions,
+				template: `${templatePath}/tokenAttacherSettings.html`,
+				height: "auto",
+				title: "Token Attacher GM Menu",
+				width: 600,
+				classes: ["token-attacher-gm-menu","settings"],
+				tabs: [ 
+					{
+						navSelector: '.tabs',
+						contentSelector: 'form',
+						initial: 'info'
+					} 
+				],
+				submitOnClose: false
+			}
+		}
+	
+	
+		constructor(object = {}, options) {
+			super(object, options);
+		}
+	
+		_getHeaderButtons() {
+			return super._getHeaderButtons();
+		}
+	
+	
+		getData() {
+			return  super.getData();
+		}
+	
+		activateListeners(html) {
+			let force_scene_migration=html.find(".scene-migration");
+
+			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
+			//super.activateListeners(html);
+		}
+	
+	}
+
 	class TokenAttacher {
 		static get typeMap(){
 			let map = {
@@ -128,6 +181,8 @@
 				scope: "world",
 				config: false
 			});
+
+			TASettings.init();
 		}
 
 		static async startMigration(){
@@ -153,6 +208,10 @@
 			else{
 				TokenAttacher.migrateSceneHook(scene_id_array);
 			}
+		}
+
+		static async _migrateScene(){
+			TokenAttacher.migrateSceneHook([game.scenes.active._id]);
 		}
 
 		static async migrateSceneHook(remaining_scenes){
