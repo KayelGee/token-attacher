@@ -1019,13 +1019,13 @@
 
 		static async updateAttachedCreatedToken(parent, entity, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
+			if(getProperty(options, "isUndo") === true && getProperty(options, "mlt_bypass") === true) return;
 			
 			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
 			const attached = token.getFlag(moduleName, "attached") || {};
 			
 			if(getProperty(options, "isUndo") === true){
-				if(getProperty(options, "mlt_bypass") === true) return;
 				if(Object.keys(attached).length > 0){
 					await TokenAttacher.regenerateAttachedFromHistory(token, attached);
 				}
