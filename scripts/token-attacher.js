@@ -120,11 +120,9 @@ import {libWrapper} from './shim.js';
 				}
 
 				libWrapper.register(moduleName, 'canvas.mouseInteractionManager.callbacks.dragLeftDrop', function (wrapped, ...args) {
-					console.log('canvas.mouseInteractionManager.callbacks.dragLeftDrop hook', ...args)
 					let result = wrapped(...args);
-					if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
-						$(document.getElementById("tokenAttacher")).find(".control-tool.select")[0].classList.toggle("active");		
-					}
+
+					TokenAttacher._RectangleSelection(...args);
 					return result;
 				}, 'WRAPPER');
 			});
@@ -1343,6 +1341,36 @@ import {libWrapper} from './shim.js';
 				await element.unsetFlag(moduleName, `parent`); 
 				await element.unsetFlag(moduleName, `offset`); 
 			}
+		}
+
+		//Rectangle Selection hook to select and attach every element on every layer inside the rectangle 
+		static async _RectangleSelection(event){
+			const tool = game.activeTool;
+			if(tool !== "select") return;
+			if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length <= 0 ) return;
+			$(document.getElementById("tokenAttacher")).find(".control-tool.select")[0].classList.toggle("active");	
+			
+			const {coords, originalEvent} = event.data;
+			const {x, y, width, height, releaseOptions={}, controlOptions={}}=coords;
+			let selected = {};	
+			const baseId= canvas.scene.getFlag(moduleName, "attach_token");		
+			const token = canvas.tokens.get(baseId);
+			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
+				const layer = canvas.getLayerByEmbeddedName(type);
+				//if (layer.options.controllableObjects) {
+					// Identify controllable objects
+					const controllable = layer.placeables.filter(obj => obj.visible && (obj.control instanceof Function));
+					const newSet = controllable.filter(obj => {
+						let c = obj.center;
+						return Number.between(c.x, x, x+width) && Number.between(c.y, y, y+height);
+					});		
+					selected[type] = newSet.map(a => a.data._id);
+					selected[type] = selected[type].filter(a => a !== baseId);
+					if(selected[type].length <= 0) delete selected[type];		
+				//}
+			}
+			if(selected.length === 0) return;
+			TokenAttacher._attachElementsToToken(selected, token, false);
 		}
 	}
 
