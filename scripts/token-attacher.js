@@ -339,7 +339,7 @@ import {libWrapper} from './shim.js';
 					if(Object.keys(line_entity).length == 0) return;
 
 					let c = duplicate(line_entity.data.c);				
-					const offset = line_entity.getFlag(moduleName, "offset");
+					const offset = line_entity.getFlag(moduleName, 'offset');
 					[offset.x, offset.y] = [offset.c[0], offset.c[1]];
 					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
 					[offset.x, offset.y] = [offset.c[2], offset.c[3]];
@@ -359,7 +359,7 @@ import {libWrapper} from './shim.js';
 			let updates = rect_entities.map(w => {
 				const rect_entity = layer.get(w) || {};
 				if(Object.keys(rect_entity).length == 0) return;
-				const offset = rect_entity.getFlag(moduleName, "offset");
+				const offset = rect_entity.getFlag(moduleName, 'offset');
 				return TokenAttacher.moveRotateRectangle(rect_entity, offset, tokenCenter, tokenX, tokenY, tokenRot);
 			});
 			updates = updates.filter(n => n);
@@ -373,7 +373,7 @@ import {libWrapper} from './shim.js';
 			let updates = point_entities.map(w => {
 				const point_entity = layer.get(w) || {};
 				if(Object.keys(point_entity).length == 0) return;				
-				const offset = point_entity.getFlag(moduleName, "offset");
+				const offset = point_entity.getFlag(moduleName, 'offset');
 				let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, offset, tokenCenter, tokenX, tokenY, tokenRot);
 				return {_id: point_entity.data._id, x: p[0], y: p[1]};
 			});
@@ -518,11 +518,15 @@ import {libWrapper} from './shim.js';
 			const center = {x:token.center.x, y:token.center.y};
 			const rotation = token.data.rotation;
 
+			const tokensize = TokenAttacher.getElementSize(token);
+			let updates = [];
 			for (let i = 0; i < attached.length; i++) {
 				const element = col.get(attached[i]);
-				await element.setFlag(moduleName, `parent`, token.data._id); 
-				await element.setFlag(moduleName, `offset`, TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation, TokenAttacher.getElementSize(token))); 
+				updates.push({_id:attached[i], 
+					[`flags.${moduleName}.parent`]: token.data._id, 
+					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation, tokensize)});
 			}
+			await canvas.scene.updateEmbeddedEntity(elements.type, updates);
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
@@ -572,15 +576,12 @@ import {libWrapper} from './shim.js';
 				if(Object.keys(attached).length > 0){
 					for (const key in attached) {
 						if (attached.hasOwnProperty(key)) {
-							const col =	canvas.getLayerByEmbeddedName(key);
 							const arr = attached[key];
+							let deletes = [];
 							for (let i = 0; i < arr.length; i++) {
-								const element = col.get(arr[i]);
-								if(element){
-									await element.unsetFlag(moduleName, `parent`); 
-									await element.unsetFlag(moduleName, `offset`); 
-								}
-							}							
+								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null});
+							}	
+							if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(key, deletes, {[moduleName]:true});						
 						}
 					}
 				}
@@ -601,13 +602,11 @@ import {libWrapper} from './shim.js';
 				});
 				
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
+				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
-					const element = col.get(elements.data[i]);
-					if(element){
-						await element.unsetFlag(moduleName, `parent`); 
-						await element.unsetFlag(moduleName, `offset`); 
-					}
+					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null});
 				}
+				if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(elements.type, deletes, {[moduleName]:true});	
 			}
 		}
 		
@@ -1375,8 +1374,9 @@ import {libWrapper} from './shim.js';
 			else{
 				let layer = eval(type).layer ?? eval(type).collection;
 				const element = layer.get(entity._id);
-				await element.unsetFlag(moduleName, `parent`); 
-				await element.unsetFlag(moduleName, `offset`); 
+				
+				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null};
+				await element.update(deletes);
 			}
 		}
 
