@@ -1195,7 +1195,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(pasted.length <= 0) return;
 			await token.unsetFlag(moduleName, "prototypeAttached");
-			TokenAttacher.attachElementsToToken(pasted, token, true);
+			await TokenAttacher.attachElementsToToken(pasted, token, true);
 			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 
@@ -1314,9 +1314,6 @@ import {libWrapper} from './shim.js';
 			const folders = imported.folder;
 			const actors = imported.actors;
 			 
-			//const importFolder = await Folder.create({name: "Token Attacher Import", type: "Actor", parent: null});
-			//const parentMap = {null:{value:importFolder._id}};
-
 			const parentMap = {null:{value:null}};
 			let allPromises = [];
 			for (const key in folders) {
