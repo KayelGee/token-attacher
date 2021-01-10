@@ -307,8 +307,6 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(attached).length == 0) return true;
 			if(getProperty(options, moduleName)) return true;
 
-			await TokenAttacher.saveTokenPositon(token, false);
-
 			TokenAttacher.detectGM();
 			let x = update.x ?? token.data.x;
 			let y = update.y ?? token.data.y;
@@ -337,8 +335,11 @@ import {libWrapper} from './shim.js';
 				if (attached.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
 					updates[key] = await TokenAttacher.getUpdatesForAttached(key, [key, attached[key]].concat(posdata));
+					if(!updates[key]) delete updates[key];
 				}
 			}
+			if(!updates.hasOwnProperty(type)) updates[type] = [];
+			updates[type].push(await TokenAttacher.saveTokenPositon(base, true));
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
@@ -356,7 +357,19 @@ import {libWrapper} from './shim.js';
 							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, elem_id, elem_posdata, false);
 							for (const key in subUpdates) {
 								if (subUpdates.hasOwnProperty(key)) {
-									updates[key] = updates[key].concat(subUpdates[key]);									
+									updates[key] = updates[key].concat(subUpdates[key]);	
+									let base_updates = updates[key].filter(item => item._id === elem_id);
+									if(base_updates.length > 0){
+										let non_base_updates = updates[key].filter(item => item._id !== elem_id);
+										let merge_update = base_updates[0];
+										for (let j = 0; j < base_updates.length; j++) {
+											merge_update = mergeObject(merge_update, base_updates[j]);
+											
+										}
+										non_base_updates.push(merge_update);
+										updates[key] = non_base_updates;
+									}
+								
 								}
 							}
 						}
@@ -561,13 +574,13 @@ import {libWrapper} from './shim.js';
 			if(!elements.hasOwnProperty("type")) return;
 			
 			let updates = {};
-			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
+			let attached=duplicate(token.getFlag(moduleName, `attached.${elements.type}`) || []);
 			
 			const col = eval(elements.type).layer ?? eval(elements.type).collection;
 			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
 			attached = attached.filter((item) => col.get(item));
-			let all_attached=token.getFlag(moduleName, `attached`) || {};
+			let all_attached=duplicate(token.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
 			if(dup !== false){
@@ -595,8 +608,10 @@ import {libWrapper} from './shim.js';
 			if(return_data){
 				return updates;
 			}
-			await canvas.scene.updateEmbeddedEntity(token.constructor.name, token_update);
-			await canvas.scene.updateEmbeddedEntity(elements.type, updates);
+			if(token.constructor.name !== elements.type) {
+				await canvas.scene.updateEmbeddedEntity(token.constructor.name, token_update);
+			}
+			await canvas.scene.updateEmbeddedEntity(elements.type, updates[elements.type]);
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
