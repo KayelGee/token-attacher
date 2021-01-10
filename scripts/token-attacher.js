@@ -136,7 +136,7 @@ import {libWrapper} from './shim.js';
 				}, 'WRAPPER');
 			});
 
-			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken(parent, doc, update, options, userId));
+			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken("Token", parent, doc, update, options, userId));
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken(parent, entity, options, userId));
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
@@ -295,7 +295,7 @@ import {libWrapper} from './shim.js';
 			}
 		}
 
-		static async UpdateAttachedOfToken(parent, doc, update, options, userId){
+		static async UpdateAttachedOfToken(type, parent, doc, update, options, userId){
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
 				||	update.hasOwnProperty("rotation"))){
@@ -305,21 +305,66 @@ import {libWrapper} from './shim.js';
 			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = duplicate(token.center);
 			if(Object.keys(attached).length == 0) return true;
+			if(getProperty(options, moduleName)) return true;
 			TokenAttacher.saveTokenPositon(token);
 			TokenAttacher.detectGM();
-			
-			const posdata = [tokenCenter, token.data.x, token.data.y,  token.data.rotation, token.data, update];
+
+			const posdata = [duplicate(token.center), token.data.x, token.data.y,  token.data.rotation ?? token.data.direction, token.data, update];
+
+			const data = [type, update._id, posdata];
+			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...data);
+			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: data});
+		}
+
+		static async _UpdateAttachedOfBase(type, id, posdata, first=true){
+			const layer = canvas.getLayerByEmbeddedName(type);
+			const base = layer.get(id);
+			const attached=base.getFlag(moduleName, "attached") || {};
+
+
+			let updates = {};
+
+			//Get updates for attached elements
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					await TokenAttacher.updateAttached(key, [key, attached[key]].concat(posdata));
+					if(!updates.hasOwnProperty(key)) updates[key] = [];
+					updates[key] = await TokenAttacher.getUpdatesForAttached(key, [key, attached[key]].concat(posdata));
 				}
+			}
+
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					const layer = canvas.getLayerByEmbeddedName(key);
+					for (let i = 0; i < attached[key].length; i++) {
+						const elem_id = attached[key][i];
+						const element = layer.get(elem_id );
+						const elem_attached=element.getFlag(moduleName, "attached") || {};
+						const elem_update = updates[key].find(item => item._id === elem_id )
+						let elem_newcenter = duplicate(element.center);
+						elem_newcenter.x = elem_newcenter.x - element.data.x + elem_update.x;
+						elem_newcenter.y = elem_newcenter.y - element.data.y + elem_update.y;
+						const elem_posdata = [elem_newcenter, elem_update.x, elem_update.y,  elem_update.rotation ?? elem_update.direction, element.data, elem_update];
+						if(Object.keys(elem_attached).length > 0){
+							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, elem_id, elem_posdata, false);
+							for (const key in subUpdates) {
+								if (subUpdates.hasOwnProperty(key)) {
+									updates[key] = updates[key].concat(subUpdates[key]);									
+								}
+							}
+						}
+					}
+				}
+			}
+			if(!first) return updates;
+			//Fire all updates by type
+			for (const key in updates) {
+				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});
 			}
 			return;
 		}
 
-		static updateAttached(type, data){
-			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher.getTypeCallback(type)(...data);
-			else game.socket.emit(`module.${moduleName}`, {event: `attachedUpdate${type}`, eventdata: data});
+		static getUpdatesForAttached(type, data){
+			return TokenAttacher.getTypeCallback(type)(...data);
 		}
 
 		static async saveTokenPositon(token){
@@ -349,7 +394,8 @@ import {libWrapper} from './shim.js';
 				});
 				updates = updates.filter(n => n);
 				if(Object.keys(updates).length == 0)  return; 
-				return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
+				return updates;
+				//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 			}
 		}
 
@@ -364,7 +410,8 @@ import {libWrapper} from './shim.js';
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
-			return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
+			return updates;
+			//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 		}
 
 		static _updatePointEntities(type, point_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
@@ -379,7 +426,8 @@ import {libWrapper} from './shim.js';
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
-			return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
+			return updates;
+			//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 			
 		}
 
@@ -482,6 +530,9 @@ import {libWrapper} from './shim.js';
 						break;
 					case "ReattachAfterUndo":
 						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._ReattachAfterUndo(...data.eventdata);
+						break;
+					case "UpdateAttachedOfBase":
+						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
 						break;
 					default:
 						console.log("Token Attacher| wtf did I just read?");
