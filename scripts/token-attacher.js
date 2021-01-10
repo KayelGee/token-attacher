@@ -306,10 +306,18 @@ import {libWrapper} from './shim.js';
 			const tokenCenter = duplicate(token.center);
 			if(Object.keys(attached).length == 0) return true;
 			if(getProperty(options, moduleName)) return true;
-			TokenAttacher.saveTokenPositon(token);
-			TokenAttacher.detectGM();
 
-			const posdata = [duplicate(token.center), token.data.x, token.data.y,  token.data.rotation ?? token.data.direction, token.data, update];
+			await TokenAttacher.saveTokenPositon(token, false);
+
+			TokenAttacher.detectGM();
+			let x = update.x ?? token.data.x;
+			let y = update.y ?? token.data.y;
+			let rotation = update.rotation ?? token.data.rotation ?? update.direction ?? token.data.direction;
+			let base_newcenter = duplicate(token.center);
+			base_newcenter.x = base_newcenter.x - token.data.x + x;
+			base_newcenter.y = base_newcenter.y - token.data.y + y;
+
+			const posdata = [duplicate(base_newcenter), x, y,  rotation, token.data, update];
 
 			const data = [type, update._id, posdata];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...data);
@@ -367,8 +375,11 @@ import {libWrapper} from './shim.js';
 			return TokenAttacher.getTypeCallback(type)(...data);
 		}
 
-		static async saveTokenPositon(token){
-			return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation});
+		static async saveTokenPositon(token, return_data=false){
+			if(!return_data) return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation});
+
+			return {_id:token.data._id, 
+				[`flags.${moduleName}.pos`]: {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation}};
 		}
 		
 		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
@@ -544,11 +555,12 @@ import {libWrapper} from './shim.js';
 		/**
 		 * Attach elements to token
 		 */
-		static async _AttachToToken(token, elements, suppressNotification=false){
+		static async _AttachToToken(token, elements, suppressNotification=false, return_data=false){
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements.hasOwnProperty("type")) return;
-
+			
+			let updates = {};
 			let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
 			
 			const col = eval(elements.type).layer ?? eval(elements.type).collection;
@@ -562,21 +574,28 @@ import {libWrapper} from './shim.js';
 				console.log("Token Attacher | Element already in Attached Chain: ", dup);
 				return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ElementAlreadyAttachedInChain"));
 			}
-			await token.setFlag(moduleName, `attached.${elements.type}`, attached);
 
-			await TokenAttacher.saveTokenPositon(token);
+			let token_update = await TokenAttacher.saveTokenPositon(token, true);
+			token_update[`flags.${moduleName}.attached.${elements.type}`] = attached;
+			updates[token.constructor.name] = [token_update];
+
 			const xy = {x:token.data.x, y:token.data.y};
 			const center = {x:token.center.x, y:token.center.y};
 			const rotation = token.data.rotation;
 
 			const tokensize = TokenAttacher.getElementSize(token);
-			let updates = [];
+			if(!updates.hasOwnProperty(elements.type)) updates[elements.type] = [];
+
 			for (let i = 0; i < attached.length; i++) {
 				const element = col.get(attached[i]);
-				updates.push({_id:attached[i], 
+				updates[elements.type].push({_id:attached[i], 
 					[`flags.${moduleName}.parent`]: token.data._id, 
 					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation, tokensize)});
 			}
+			if(return_data){
+				return updates;
+			}
+			await canvas.scene.updateEmbeddedEntity(token.constructor.name, token_update);
 			await canvas.scene.updateEmbeddedEntity(elements.type, updates);
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
@@ -680,31 +699,58 @@ import {libWrapper} from './shim.js';
 			console.log("Token Attacher | Tools added.");
 		}
 
-		static attachElementToToken(element, target_token, suppressNotification=false){
+		static async attachElementToToken(element, target_token, suppressNotification=false){
 			const type = element.constructor.name;
 			const selected = [element.data._id];
 			
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `AttachToToken`, eventdata: [target_token.data._id, {type:type, data:selected}, suppressNotification]});
 			
 		}
 
-		static attachElementsToToken(element_array, target_token, suppressNotification=false){
+		static async attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
 				const type = element.constructor.name;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._attachElementsToToken(selected, target_token, suppressNotification);
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._attachElementsToToken(selected, target_token, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `attachElementsToToken`, eventdata: [selected, target_token.data._id, suppressNotification]});
 		}
 
 		static async _attachElementsToToken(selected, target_token, suppressNotification=false){
 			if(typeof target_token === 'string' || target_token instanceof String) target_token = canvas.tokens.get(target_token);
+			let updates = {};
+			const type = target_token.constructor.name;
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
-					await TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification);
+					let newUpdates =await TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification, true);
+					if(Object.keys(updates).length <= 0) updates = newUpdates;
+					else{
+						for (const key in newUpdates) {
+							if (newUpdates.hasOwnProperty(key)) {
+								if(!updates.hasOwnProperty(key)) updates[key] = [];
+								updates[key] = updates[key].concat(newUpdates[key]);
+							}
+						}
+					}
+				}
+			}
+			if(updates.hasOwnProperty(type)){
+				let target_token_updates = updates[type].filter(item => item._id === target_token.data._id);
+				let other_updates = updates[type].filter(item => item._id !== target_token.data._id);
+				let base_updates = target_token_updates[0];
+				for (let i = 0; i < target_token_updates.length; i++) {
+					base_updates = mergeObject(base_updates, target_token_updates[i]);					
+				}
+				other_updates.push(base_updates);
+				updates[type] = other_updates;
+			}
+
+			for (const key in updates) {
+				if (updates.hasOwnProperty(key)) {
+					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});	
 				}
 			}
 		}
