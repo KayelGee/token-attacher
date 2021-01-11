@@ -1215,10 +1215,11 @@
 			 
 			const parentMap = {null:{value:null}};
 			let worldCompendium = await Compendium.create({label:label, name: name, entity:"Actor"});
-			
+			let creates = [];
 			actors.forEach(async actor => {
-				await worldCompendium.createEntity({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token});
+				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token});
 			});
+			return await worldCompendium.createEntity(creates);
 		}
 	}
 
