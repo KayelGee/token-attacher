@@ -702,7 +702,7 @@ import {libWrapper} from './shim.js';
 			if(updates.hasOwnProperty(type)){
 				let target_token_updates = updates[type].filter(item => item._id === target_token.data._id);
 				let other_updates = updates[type].filter(item => item._id !== target_token.data._id);
-				let base_updates = target_token_updates[0];
+				let base_updates = {};
 				for (let i = 0; i < target_token_updates.length; i++) {
 					base_updates = mergeObject(base_updates, target_token_updates[i]);					
 				}
@@ -1341,7 +1341,7 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			//Fire updates
-			for (const key in updates) {
+			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
 					await canvas.scene.updateEmbeddedEntity(key, updates[key]);
 				}
