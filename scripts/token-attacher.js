@@ -290,7 +290,7 @@ import {libWrapper} from './shim.js';
 
 			TokenAttacher.detectGM();
 
-			const data = [type, mergeObject(token.data, update)];
+			const data = [type, mergeObject(duplicate(token.data), update)];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...data);
 			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: data});
 		}
@@ -311,7 +311,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attachedEntities) {
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
-					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => entity.data), type, baseData);
+					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity.data)), type, baseData);
 					if(!updates[key]) delete updates[key];
 				}
 			}
@@ -328,7 +328,7 @@ import {libWrapper} from './shim.js';
 						const elem_attached=getProperty(element, `data.flags.${moduleName}.attached`) || {};
 						if(Object.keys(elem_attached).length > 0){
 							const elem_update = updates[key].find(item => item._id === elem_id );
-							const updatedElementData = mergeObject(element.data, elem_update);
+							const updatedElementData = mergeObject(duplicate(element.data), elem_update);
 							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, updatedElementData, true);
 							for (const key in subUpdates) {
 								if (subUpdates.hasOwnProperty(key)) {
@@ -363,6 +363,7 @@ import {libWrapper} from './shim.js';
 		static async saveBasePositon(type, base, return_data=false, overrideData){
 			let pos;
 			let data = base.data ?? base;
+			data = duplicate(data);
 			const center = TokenAttacher.getCenter(type, data);
 			if(overrideData) data = mergeObject(data, overrideData);
 
