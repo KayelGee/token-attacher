@@ -339,7 +339,8 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			if(!updates.hasOwnProperty(type)) updates[type] = [];
-			updates[type].push(await TokenAttacher.saveTokenPositon(base, true));
+			let tokenpos = await TokenAttacher.saveTokenPositon(base, true, posdata);
+			updates[type].push(tokenpos);
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
@@ -388,11 +389,19 @@ import {libWrapper} from './shim.js';
 			return TokenAttacher.getTypeCallback(type)(...data);
 		}
 
-		static async saveTokenPositon(token, return_data=false){
-			if(!return_data) return token.setFlag(moduleName, "pos", {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation});
+		static async saveTokenPositon(token, return_data=false, overridePos){
+			let pos;
+			if(Array.isArray(overridePos)){
+				const [center, x, y,  rotation] = overridePos;
+				pos = {xy: {x:x, y:y}, center: {x:center.x, y:center.y}, rotation:rotation};
+			}
+			else{
+				pos = {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation};
+			}
+			if(!return_data) return token.setFlag(moduleName, "pos", pos);
 
 			return {_id:token.data._id, 
-				[`flags.${moduleName}.pos`]: {xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation}};
+				[`flags.${moduleName}.pos`]: pos};
 		}
 		
 		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
