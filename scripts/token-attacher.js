@@ -935,41 +935,22 @@ import {libWrapper} from './shim.js';
 			return size;
 		}
 
-		static getObjectsFromIds(type, idArray, tokenxy, token_center){
+		static getObjectsFromIds(type, idArray){
 			let layer = eval(type).layer ?? eval(type).collection;
 			let copyArray = [];
-			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER};
 			for (const elementid of idArray) {
 				const element = layer.get(elementid);
 				const elem_attached = element.getFlag(moduleName, "attached") || {};
-				let dup_data = {data:duplicate(element.data)};
-				delete dup_data.data._id;
+				let dup_data = duplicate(element.data);
+				delete dup_data._id;
 				if(Object.keys(elem_attached).length > 0){
 					const prototypeAttached = TokenAttacher.generatePrototypeAttached(element.data, elem_attached);
-					delete dup_data.data.flags[moduleName].attached;
-					dup_data.data.flags[moduleName].prototypeAttached = prototypeAttached;
+					delete dup_data.flags[moduleName].attached;
+					dup_data.flags[moduleName].prototypeAttached = prototypeAttached;
 				}
 				copyArray.push(dup_data);
-				if(offset.x == Number.MAX_SAFE_INTEGER){
-					offset.x = dup_data.data.x || (dup_data.data.c[0] < dup_data.data.c[2] ? dup_data.data.c[0] : dup_data.data.c[2]);
-					offset.y = dup_data.data.y || (dup_data.data.c[1] < dup_data.data.c[3] ? dup_data.data.c[1] : dup_data.data.c[3]);
-				}
-				else{
-					let x = dup_data.data.x || (dup_data.data.c[0] < dup_data.data.c[2] ? dup_data.data.c[0] : dup_data.data.c[2]);
-					let y = dup_data.data.y || (dup_data.data.c[1] < dup_data.data.c[3] ? dup_data.data.c[1] : dup_data.data.c[3]);
-					if(x < offset.x) offset.x = x;
-					if(y < offset.y) offset.y = y;
-				}
 			}
-			if(type == "Wall"){
-				offset.x -= tokenxy.x;
-				offset.y -= tokenxy.y;
-			}
-			else{
-				offset.x -= token_center.x; 
-				offset.y -= token_center.y;
-			}
-			return {objs: copyArray, offset: offset};
+			return copyArray;
 		}
 
 		static async copyAttached(token){
@@ -979,9 +960,7 @@ import {libWrapper} from './shim.js';
 		
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], {x:token.data.x, y:token.data.y}, token.center);
-
-					copyObjects[key]=offsetObjs;
+					copyObjects[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
 				}
 			}
 			await game.user.unsetFlag(moduleName, "copy");			
@@ -990,29 +969,19 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async pasteAttached(token){
-			const copyObjects = game.user.getFlag(moduleName, "copy") || {};
+			const copyObjects = duplicate(game.user.getFlag(moduleName, "copy")) || {};
 			if(Object.keys(copyObjects).length == 0) return;
-		
-			let pasted = [];
+			TokenAttacher.saveBasePositon(token.constructor.name, token);
+			//Set parent in copyObjects
 			for (const key in copyObjects) {
 				if (copyObjects.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
-
-					let pos = {x:token.data.x + copyObjects[key].offset.x , y:token.data.y+ copyObjects[key].offset.y};
-					const created = await TokenAttacher.old_pasteObjects(layer, copyObjects[key].objs, pos);
-					if(Array.isArray(created)){
-						pasted = pasted.concat(created.map((obj)=>{
-							return layer.get(obj._id);
-						}));
+					for (let i = 0; i < copyObjects[key].length; i++) {
+						copyObjects[key][i].flags[moduleName].parent = token.data._id;
 					}
-					else{
-						pasted.push(layer.get(created._id));
-					}
-				}
+				}				
 			}
-			if(pasted.length <= 0) return;
-			TokenAttacher.attachElementsToToken(pasted, token, true);
-			ui.notifications.info(`Pasted elements and attached to token.`);
+
+			TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, copyObjects);
 		}
 
 		static async pasteObjects(layer, objects, pos, {hidden = false} = {}, return_data=false){
@@ -1021,8 +990,8 @@ import {libWrapper} from './shim.js';
 
 			// Iterate over objects
 			const toCreate = [];
-			for ( let c of objects) {
-				let data = duplicate(c.data);
+			for ( let dat of objects) {
+				let data = duplicate(dat);
 				delete data._id;
 				if(cls.name == "Wall"){
 					data.c = data.c.map((c, i) => {
@@ -1047,79 +1016,8 @@ import {libWrapper} from './shim.js';
 			return created;
 		}
 
-		static async old_pasteObjects(layer, objects, pos, {hidden = false} = {}){
-			if ( !objects.length ) return [];
-			const cls = layer.constructor.placeableClass;
-
-			if(cls.name == "Wall") return await TokenAttacher.old_pasteWalls(layer, objects, pos);
-
-			// Adjust the pasted position for half a grid space
-			pos.x += canvas.dimensions.size / 2;
-			pos.y += canvas.dimensions.size / 2;
-
-			// Get the left-most object in the set
-			objects.sort((a, b) => a.data.x - b.data.x);
-			let {x} = objects[0].data;
-			// Get the top-most object in the set
-			objects.sort((a, b) => a.data.y - b.data.y);
-			let {y} = objects[0].data;
-
-			// Iterate over objects
-			const toCreate = [];
-			for ( let c of objects) {
-				let data = duplicate(c.data);
-				delete data._id;
-				toCreate.push(mergeObject(data, {
-					x: pos.x + (data.x - x),
-					y: pos.y + (data.y - y),
-					hidden: data.hidden || hidden
-				}));
-			}
-
-			// Create all objects
-			const created = await canvas.scene.createEmbeddedEntity(cls.name, toCreate);
-			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
-			return created;
-		}
-
-		static async old_pasteWalls(layer, objects, pos, options = {}){
-			//----------------------------------------------------------------------------
-			if ( !objects.length ) return;
-			const cls = layer.constructor.placeableClass;
-		
-			// Transform walls to reference their upper-left coordinates as {x,y}
-			const [xs, ys] = objects.reduce((arr, w) => {
-			  arr[0].push(Math.min(w.data.c[0], w.data.c[2]));
-			  arr[1].push(Math.min(w.data.c[1], w.data.c[3]));
-			  return arr;
-			}, [[], []]);
-		
-			// Get the top-left most coordinate
-			const topX = Math.min(...xs);
-			const topY = Math.min(...ys);
-		
-			// Get the magnitude of shift
-			const dx = Math.floor(topX - pos.x);
-			const dy = Math.floor(topY - pos.y);
-			const shift = [dx, dy, dx, dy];
-		
-			// Iterate over objects
-			const toCreate = [];
-			for ( let w of objects ) {
-			  let data = duplicate(w.data);
-			  data.c = data.c.map((c, i) => c - shift[i]);
-			  delete data._id;
-			  toCreate.push(data);
-			}
-		
-			// Create all objects
-			const created = await canvas.scene.createEmbeddedEntity("Wall", toCreate);
-			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
-			return created;
-		}
-
 		static async updateAttachedPrototype(entity, data, options, userId){
-			if(!game.user.isGM) return;
+			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(data.hasOwnProperty("token")){
 				if(data.token.hasOwnProperty("flags")){
 					if(data.token.flags.hasOwnProperty(moduleName)){
@@ -1140,10 +1038,7 @@ import {libWrapper} from './shim.js';
 			let prototypeAttached = {};
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					
-					const offsetObjs = TokenAttacher.getObjectsFromIds(key, attached[key], token_data.flags[moduleName].pos.xy, token_data.flags[moduleName].pos.center);
-					prototypeAttached[key] = {};
-					prototypeAttached[key] = offsetObjs;
+					prototypeAttached[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
 				}
 			}	
 			return prototypeAttached;
@@ -1207,40 +1102,14 @@ import {libWrapper} from './shim.js';
 			}
 
 			if(Object.keys(prototypeAttached).length > 0){ 
-				//await TokenAttacher.regenerateAttachedFromPrototype(token, prototypeAttached);
-				await TokenAttacher.regenerateAttachedFromPrototype_new(type, token, prototypeAttached);
+				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached);
 				//Migration code
-				if(!getProperty(getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]].objs[0].data.flags, moduleName), 'parent')) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
+				if(!getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]][0], `data.flags.${moduleName}.parent`)) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
 				//Migration code end
 			}
 			return;
 		}
-
-		static async regenerateAttachedFromPrototype(token, prototypeAttached){
-			let pasted = [];
-			for (const key in prototypeAttached) {
-				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
-
-					let pos = {x:token.data.x + prototypeAttached[key].offset.x , y:token.data.y+ prototypeAttached[key].offset.y};
-					const created = await TokenAttacher.old_pasteObjects(layer, prototypeAttached[key].objs, pos);
-					if(Array.isArray(created)){
-						pasted = pasted.concat(created.map((obj)=>{
-							return layer.get(obj._id);
-						}));
-					}
-					else{
-						pasted.push(layer.get(created._id));
-					}
-				}
-			}
-			if(pasted.length <= 0) return;
-			await token.unsetFlag(moduleName, "prototypeAttached");
-			await TokenAttacher.attachElementsToToken(pasted, token, true);
-			ui.notifications.info(`Pasted elements and attached to token.`);
-		}
-
-		static async regenerateAttachedFromPrototype_new(type, token, prototypeAttached, return_data = false){
+		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, return_data = false){
 			let pasted = {};
 			let toCreate = {};
 			for (const key in prototypeAttached) {
@@ -1249,19 +1118,19 @@ import {libWrapper} from './shim.js';
 
 					let pos = TokenAttacher.getCenter(type, token.data);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
-					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key].objs, pos, {}, true);
+					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, {}, true);
 					if(!toCreate[key]) delete toCreate[key];					
 				}
 			}
 
 			
 			for (const key in prototypeAttached) {
-				for (let i = 0; i < prototypeAttached[key].objs.length; i++) {
-					const element = prototypeAttached[key].objs[i];
-					const element_protoAttached = getProperty(element, `data.flags.${moduleName}.prototypeAttached`);
+				for (let i = 0; i < prototypeAttached[key].length; i++) {
+					const element = prototypeAttached[key][i];
+					const element_protoAttached = getProperty(element, `flags.${moduleName}.prototypeAttached`);
 					if(element_protoAttached){
-						const toCreateElement = toCreate[key].find(item => getProperty(item , `flags.${moduleName}.pos.base_id`) === getProperty(element , `data.flags.${moduleName}.pos.base_id`));
-						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype_new(key, {data:toCreateElement}, element_protoAttached, true);
+						const toCreateElement = toCreate[key].find(item => getProperty(item , `flags.${moduleName}.pos.base_id`) === getProperty(element , `flags.${moduleName}.pos.base_id`));
+						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype(key, {data:toCreateElement}, element_protoAttached, true);
 						for (const subKey in subCreated) {
 							if (subCreated.hasOwnProperty(subKey)) {
 								const element = subCreated[subKey];
@@ -1287,17 +1156,13 @@ import {libWrapper} from './shim.js';
 
 			console.log(pasted);
 			//Fix connections
-			await TokenAttacher.regenerateLinks(token.data, pasted);
+			await TokenAttacher.regenerateLinks(pasted);
 			await token.unsetFlag(moduleName, "prototypeAttached");
 			ui.notifications.info(`Pasted elements and attached to token.`);
 			return;
-			if(pasted.length <= 0) return;
-			await token.unsetFlag(moduleName, "prototypeAttached");
-			await TokenAttacher.attachElementsToToken(pasted, token, true);
-			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 
-		static async regenerateLinks(token, pasted){
+		static async regenerateLinks(pasted){
 			let updates = {};
 			const pushUpdate = (key, update) => {
 				if(!updates.hasOwnProperty(key)) updates[key] = [];
@@ -1312,10 +1177,10 @@ import {libWrapper} from './shim.js';
 						const base = arr[i];
 						const old_base_id = getProperty(base , `flags.${moduleName}.pos.base_id`);
 						if(old_base_id) {
-							let old_attached = getProperty(base , `flags.${moduleName}.prototypeAttached`);
+							let current_attached = getProperty(base , `flags.${moduleName}.attached`);
 							let new_attached = {}; 
-							for (const attKey in old_attached) {
-								if (old_attached.hasOwnProperty(attKey)) {
+							for (const attKey in pasted) {
+								if (pasted.hasOwnProperty(attKey)) {
 									new_attached[attKey] = pasted[attKey].filter(item => getProperty(item , `flags.${moduleName}.parent`) === old_base_id);;
 									for (let j = 0; j < new_attached[attKey].length; j++) {
 										const attached_element = new_attached[attKey][j];	
@@ -1324,6 +1189,9 @@ import {libWrapper} from './shim.js';
 										pushUpdate(attKey, update);
 									}
 									new_attached[attKey] = new_attached[attKey].map(item => item._id);
+									if(current_attached && current_attached.hasOwnProperty(attKey)){
+										new_attached[attKey] = [...new Set(new_attached[attKey].concat(current_attached[attKey]))];
+									}
 								}
 							}
 							let update = {
@@ -1540,6 +1408,7 @@ import {libWrapper} from './shim.js';
 
 		//Detach Elements when they get deleted
 		static DetachAfterDelete(type, parent, doc, options, userId){
+			if(!TokenAttacher.isFirstActiveGM()) return; 
 			if(getProperty(options, moduleName)) return;
 			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'parent') || "";
 			if(objParent !== ""){
@@ -1550,6 +1419,7 @@ import {libWrapper} from './shim.js';
 
 		//Reattach elements that are recreated via Undo
 		static ReattachAfterUndo(type, parent, entity, options, userId){
+			if(TokenAttacher.isFirstActiveGM()) return;
 			let objParent = getProperty(getProperty(getProperty(entity, 'flags'), moduleName), 'parent') || "";
 			if(!objParent) return;
 			if(getProperty(options, "isUndo") === true){
