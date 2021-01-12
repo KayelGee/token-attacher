@@ -408,10 +408,10 @@ import {libWrapper} from './shim.js';
 				return TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
 		}
 
-		static _updateLineEntities(type, line_entities, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
+		static _updateLineEntities(type, line_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
 			const layer = eval(type).layer;
 						
-			if(deltaX != 0 || deltaY != 0 || deltaRot != 0){
+			if(baseX != 0 || baseY != 0 || baseRot != 0){
 				let updates = line_entities.map(w => {
 					const line_entity = layer.get(w) || {};
 					if(Object.keys(line_entity).length == 0) return;
@@ -419,9 +419,9 @@ import {libWrapper} from './shim.js';
 					let c = duplicate(line_entity.data.c);				
 					const offset = line_entity.getFlag(moduleName, 'offset');
 					[offset.x, offset.y] = [offset.c[0], offset.c[1]];
-					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
+					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter,baseX, baseY, baseRot);
 					[offset.x, offset.y] = [offset.c[2], offset.c[3]];
-					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, tokenCenter,deltaX, deltaY, deltaRot);
+					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter,baseX, baseY, baseRot);
 
 					return {_id: line_entity.data._id, c: c}
 				});
@@ -432,14 +432,14 @@ import {libWrapper} from './shim.js';
 			}
 		}
 
-		static _updateRectangleEntities(type, rect_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
+		static _updateRectangleEntities(type, rect_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
 			const layer = eval(type).layer;
 
 			let updates = rect_entities.map(w => {
 				const rect_entity = layer.get(w) || {};
 				if(Object.keys(rect_entity).length == 0) return;
 				const offset = rect_entity.getFlag(moduleName, 'offset');
-				return TokenAttacher.moveRotateRectangle(rect_entity, offset, tokenCenter, tokenX, tokenY, tokenRot);
+				return TokenAttacher.moveRotateRectangle(rect_entity, offset, baseCenter, baseX, baseY, baseRot);
 			});
 			updates = updates.filter(n => n);
 			if(Object.keys(updates).length == 0)  return; 
@@ -447,14 +447,14 @@ import {libWrapper} from './shim.js';
 			//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
 		}
 
-		static _updatePointEntities(type, point_entities, tokenCenter, tokenX, tokenY, tokenRot, original_data, update_data){
+		static _updatePointEntities(type, point_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
 			const layer = eval(type).layer;
 
 			let updates = point_entities.map(w => {
 				const point_entity = layer.get(w) || {};
 				if(Object.keys(point_entity).length == 0) return;				
 				const offset = point_entity.getFlag(moduleName, 'offset');
-				let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, offset, tokenCenter, tokenX, tokenY, tokenRot);
+				let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, offset, baseCenter, baseX, baseY, baseRot);
 				return {_id: point_entity.data._id, x: p[0], y: p[1]};
 			});
 			updates = updates.filter(n => n);
@@ -1712,13 +1712,13 @@ import {libWrapper} from './shim.js';
 			return false;
 		}
 
-		static getCenter(elem, type){
+		static getCenter(elem, type, grid = {w: canvas.grid.w, h:canvas.grid.h}){
 			const [x,y] = [elem.data.x, elem.data.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
 			if ( "width" in elem.data && "height" in elem.data ) {
 				let [width, height] = [elem.data.width, elem.data.height];
-				if(type !== "Tile") [width, height] = [width * canvas.grid.w, height * canvas.grid.h]
+				if(type !== "Tile") [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (width / 2), y:y + (height / 2)};
 			}
 			//Walls
