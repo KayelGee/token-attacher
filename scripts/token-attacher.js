@@ -1088,8 +1088,8 @@ import {libWrapper} from './shim.js';
 				delete data._id;
 				if(cls.name == "Wall"){
 					data.c = data.c.map((c, i) => {
-						if(i%2) pos.x + data.flags[moduleName].offset.c[i];
-						else	pos.y + data.flags[moduleName].offset.c[i];
+						if(!(i%2)) return pos.x + data.flags[moduleName].offset.c[i];
+						else	return pos.y + data.flags[moduleName].offset.c[i];
 					});
 					toCreate.push(data);
 				}
@@ -1270,7 +1270,7 @@ import {libWrapper} from './shim.js';
 
 			if(Object.keys(prototypeAttached).length > 0){ 
 				//await TokenAttacher.regenerateAttachedFromPrototype(token, prototypeAttached);
-				await TokenAttacher.regenerateAttachedFromPrototype_new(token, prototypeAttached);
+				await TokenAttacher.regenerateAttachedFromPrototype_new(type, token, prototypeAttached);
 				//Migration code
 				if(!getProperty(getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]].objs[0].data.flags, moduleName), 'parent')) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
 				//Migration code end
@@ -1302,14 +1302,14 @@ import {libWrapper} from './shim.js';
 			ui.notifications.info(`Pasted elements and attached to token.`);
 		}
 
-		static async regenerateAttachedFromPrototype_new(token, prototypeAttached, return_data = false){
+		static async regenerateAttachedFromPrototype_new(type, token, prototypeAttached, return_data = false){
 			let pasted = {};
 			let toCreate = {};
 			for (const key in prototypeAttached) {
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = eval(key).layer ?? eval(key).collection;
 
-					let pos = {x:token.data.x , y:token.data.y};
+					let pos = TokenAttacher.getCenter(token, type);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
 					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key].objs, pos, {}, true);
 					if(!toCreate[key]) delete toCreate[key];					
@@ -1323,7 +1323,7 @@ import {libWrapper} from './shim.js';
 					const element_protoAttached = getProperty(element, `data.flags.${moduleName}.prototypeAttached`);
 					if(element_protoAttached){
 						const toCreateElement = toCreate[key].find(item => getProperty(item , `flags.${moduleName}.pos.base_id`) === getProperty(element , `data.flags.${moduleName}.pos.base_id`));
-						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype_new({data:toCreateElement}, element_protoAttached, true);
+						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype_new(key, {data:toCreateElement}, element_protoAttached, true);
 						for (const subKey in subCreated) {
 							if (subCreated.hasOwnProperty(subKey)) {
 								const element = subCreated[subKey];
@@ -1710,6 +1710,23 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			return false;
+		}
+
+		static getCenter(elem, type){
+			const [x,y] = [elem.data.x, elem.data.y];
+			let center = {x:x, y:y};
+			//Tokens, Tiles
+			if ( "width" in elem.data && "height" in elem.data ) {
+				let [width, height] = [elem.data.width, elem.data.height];
+				if(type !== "Tile") [width, height] = [width * canvas.grid.w, height * canvas.grid.h]
+				center={x:x + (width / 2), y:y + (height / 2)};
+			}
+			//Walls
+			if("c" in elem.data){
+				center = {x:(elem.data.c[0] + elem.data.c[2]) / 2, y: (elem.data.c[1] + elem.data.c[3]) / 2}
+			}
+			return center;
+			
 		}
 	}
 
