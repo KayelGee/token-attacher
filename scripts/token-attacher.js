@@ -59,21 +59,6 @@ import {libWrapper} from './shim.js';
 	}
 
 	class TokenAttacher {
-		static get typeMap(){
-			let map = {
-				"Token":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"MeasuredTemplate":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"Tile":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"Drawing":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"AmbientLight":{updateCallback: TokenAttacher._updateRectangleEntities},
-				"AmbientSound":{updateCallback: TokenAttacher._updatePointEntities},
-				"Note":{updateCallback: TokenAttacher._updatePointEntities},
-				"Wall":{updateCallback: TokenAttacher._updateWalls},
-			};
-			//Hooks.callAll(`${moduleName}.getTypeMap`, map);
-			return map;
-		}
-
 		static initMacroAPI(){
 			if(getProperty(getProperty(window,'tokenAttacher'),'attachElementToToken')) return;
 			window.tokenAttacher = {
@@ -89,7 +74,6 @@ import {libWrapper} from './shim.js';
 				getActorsWithPrototypeInCompendiums: TokenAttacher.getActorsWithPrototypeInCompendiums,
 				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
 				importFromJSON: TokenAttacher.importFromJSON,
-				get typeMap() {return TokenAttacher.typeMap},
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -253,11 +237,6 @@ import {libWrapper} from './shim.js';
 			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));	
 		}
 
-		static getTypeCallback(className){
-			if(TokenAttacher.typeMap.hasOwnProperty(className)) return this.typeMap[className].updateCallback;
-			return () => {console.log(`Token Attacher - Unknown object attached`)};
-		}
-
 		static updatedLockedAttached(){
 			const tokens = canvas.tokens.placeables;
 			for (const token of tokens) {
@@ -301,6 +280,8 @@ import {libWrapper} from './shim.js';
 				||	update.hasOwnProperty("rotation"))){
 				return;
 			}
+			if(!TokenAttacher.isFirstActiveGM()) return;
+
 			const token = canvas.tokens.get(update._id);
 			const attached=token.getFlag(moduleName, "attached") || {};
 			const tokenCenter = duplicate(token.center);
@@ -308,61 +289,54 @@ import {libWrapper} from './shim.js';
 			if(getProperty(options, moduleName)) return true;
 
 			TokenAttacher.detectGM();
-			let x = update.x ?? token.data.x;
-			let y = update.y ?? token.data.y;
-			let rotation = update.rotation ?? token.data.rotation ?? update.direction ?? token.data.direction;
-			let base_newcenter = duplicate(token.center);
-			base_newcenter.x = base_newcenter.x - token.data.x + x;
-			base_newcenter.y = base_newcenter.y - token.data.y + y;
 
-			const posdata = [duplicate(base_newcenter), x, y,  rotation, token.data, update];
-
-			const data = [type, update._id, posdata];
+			const data = [type, mergeObject(token.data, update)];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...data);
 			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: data});
 		}
 
-		static async _UpdateAttachedOfBase(type, id, posdata, first=true){
-			const layer = canvas.getLayerByEmbeddedName(type);
-			const base = layer.get(id);
-			const attached=base.getFlag(moduleName, "attached") || {};
-
+		static async _UpdateAttachedOfBase(type, baseData, return_data=false){
+			const attached=getProperty(baseData, `flags.${moduleName}.attached`) || {};
+			let attachedEntities = {};
+			
+			//Get Entities
+			for (const key in attached) {
+				const layer = canvas.getLayerByEmbeddedName(key);
+				attachedEntities[key] = attached[key].map(id => layer.get(id));
+			}
 
 			let updates = {};
 
 			//Get updates for attached elements
-			for (const key in attached) {
-				if (attached.hasOwnProperty(key)) {
+			for (const key in attachedEntities) {
+				if (attachedEntities.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
-					updates[key] = await TokenAttacher.getUpdatesForAttached(key, [key, attached[key]].concat(posdata));
+					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => entity.data), type, baseData);
 					if(!updates[key]) delete updates[key];
 				}
 			}
 			if(!updates.hasOwnProperty(type)) updates[type] = [];
-			let tokenpos = await TokenAttacher.saveTokenPositon(base, true, posdata);
-			updates[type].push(tokenpos);
+			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
+			updates[type].push(basePos);
 
-			for (const key in attached) {
-				if (attached.hasOwnProperty(key)) {
-					const layer = canvas.getLayerByEmbeddedName(key);
-					for (let i = 0; i < attached[key].length; i++) {
-						const elem_id = attached[key][i];
-						const element = layer.get(elem_id );
-						const elem_attached=element.getFlag(moduleName, "attached") || {};
-						const elem_update = updates[key].find(item => item._id === elem_id )
-						let elem_newcenter = duplicate(element.center);
-						elem_newcenter.x = elem_newcenter.x - element.data.x + elem_update.x;
-						elem_newcenter.y = elem_newcenter.y - element.data.y + elem_update.y;
-						const elem_posdata = [elem_newcenter, elem_update.x, elem_update.y,  elem_update.rotation ?? elem_update.direction, element.data, elem_update];
+			for (const key in attachedEntities) {
+				if (attachedEntities.hasOwnProperty(key)) {
+					for (let i = 0; i < attachedEntities[key].length; i++) {
+						const element = attachedEntities[key][i];
+						const elem_id = element.data._id;
+						
+						const elem_attached=getProperty(element, `data.flags.${moduleName}.attached`) || {};
 						if(Object.keys(elem_attached).length > 0){
-							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, elem_id, elem_posdata, false);
+							const elem_update = updates[key].find(item => item._id === elem_id );
+							const updatedElementData = mergeObject(element.data, elem_update);
+							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, updatedElementData, true);
 							for (const key in subUpdates) {
 								if (subUpdates.hasOwnProperty(key)) {
 									updates[key] = updates[key].concat(subUpdates[key]);	
 									let base_updates = updates[key].filter(item => item._id === elem_id);
 									if(base_updates.length > 0){
 										let non_base_updates = updates[key].filter(item => item._id !== elem_id);
-										let merge_update = base_updates[0];
+										let merge_update = {};
 										for (let j = 0; j < base_updates.length; j++) {
 											merge_update = mergeObject(merge_update, base_updates[j]);
 											
@@ -377,7 +351,7 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
-			if(!first) return updates;
+			if(return_data) return updates;
 			//Fire all updates by type
 			for (const key in updates) {
 				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});
@@ -385,83 +359,59 @@ import {libWrapper} from './shim.js';
 			return;
 		}
 
-		static getUpdatesForAttached(type, data){
-			return TokenAttacher.getTypeCallback(type)(...data);
-		}
-
-		static async saveTokenPositon(token, return_data=false, overridePos){
+		//base can be an PlacableObject but als plain data if return_data is true
+		static async saveBasePositon(type, base, return_data=false, overrideData){
 			let pos;
-			if(Array.isArray(overridePos)){
-				const [center, x, y,  rotation] = overridePos;
-				pos = {base_id: token.data._id, xy: {x:x, y:y}, center: {x:center.x, y:center.y}, rotation:rotation};
-			}
-			else{
-				pos = {base_id: token.data._id, xy: {x:token.data.x, y:token.data.y}, center: {x:token.center.x, y:token.center.y}, rotation:token.data.rotation};
-			}
-			if(!return_data) return token.setFlag(moduleName, "pos", pos);
+			let data = base.data ?? base;
+			const center = TokenAttacher.getCenter(type, data);
+			if(overrideData) data = mergeObject(data, overrideData);
 
-			return {_id:token.data._id, 
+			pos = {base_id: data._id, xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction};
+
+			if(!return_data) return base.setFlag(moduleName, "pos", pos);
+
+			return {_id:data._id, 
 				[`flags.${moduleName}.pos`]: pos};
 		}
-		
-		static _updateWalls(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data){
-				return TokenAttacher._updateLineEntities(type, walls, tokenCenter, deltaX, deltaY, deltaRot, original_data, update_data);
-		}
 
-		static _updateLineEntities(type, line_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
-			const layer = eval(type).layer;
-						
-			if(baseX != 0 || baseY != 0 || baseRot != 0){
-				let updates = line_entities.map(w => {
-					const line_entity = layer.get(w) || {};
-					if(Object.keys(line_entity).length == 0) return;
-
-					let c = duplicate(line_entity.data.c);				
-					const offset = line_entity.getFlag(moduleName, 'offset');
-					[offset.x, offset.y] = [offset.c[0], offset.c[1]];
-					[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter,baseX, baseY, baseRot);
-					[offset.x, offset.y] = [offset.c[2], offset.c[3]];
-					[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter,baseX, baseY, baseRot);
-
-					return {_id: line_entity.data._id, c: c}
-				});
-				updates = updates.filter(n => n);
-				if(Object.keys(updates).length == 0)  return; 
-				return updates;
-				//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
-			}
-		}
-
-		static _updateRectangleEntities(type, rect_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
-			const layer = eval(type).layer;
-
-			let updates = rect_entities.map(w => {
-				const rect_entity = layer.get(w) || {};
-				if(Object.keys(rect_entity).length == 0) return;
-				const offset = rect_entity.getFlag(moduleName, 'offset');
-				return TokenAttacher.moveRotateRectangle(rect_entity, offset, baseCenter, baseX, baseY, baseRot);
-			});
-			updates = updates.filter(n => n);
-			if(Object.keys(updates).length == 0)  return; 
-			return updates;
-			//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
-		}
-
-		static _updatePointEntities(type, point_entities, baseCenter, baseX, baseY, baseRot, original_data, update_data){
-			const layer = eval(type).layer;
-
-			let updates = point_entities.map(w => {
-				const point_entity = layer.get(w) || {};
-				if(Object.keys(point_entity).length == 0) return;				
-				const offset = point_entity.getFlag(moduleName, 'offset');
-				let p = TokenAttacher.moveRotatePoint({x:point_entity.data.x, y:point_entity.data.y, rotation:0}, offset, baseCenter, baseX, baseY, baseRot);
-				return {_id: point_entity.data._id, x: p[0], y: p[1]};
-			});
-			updates = updates.filter(n => n);
-			if(Object.keys(updates).length == 0)  return; 
-			return updates;
-			//return canvas.scene.updateEmbeddedEntity(type, updates, {[moduleName]:true});
+		static offsetPositionOfElements(type, data, baseType, baseData, grid){
+			let baseCenter = TokenAttacher.getCenter(baseType, baseData, grid);
+			let baseRotation = getProperty(baseData, "rotation") ?? getProperty(baseData, "direction");
 			
+			if(!Array.isArray(data)) data = [data];
+
+			let updates = data.map(w => {
+				return mergeObject(
+					{_id: w._id},
+					TokenAttacher.offsetPositionOfElement(type, w, baseCenter, baseRotation)
+					);
+			});
+			if(Object.keys(updates).length == 0)  return; 
+			return updates;		
+		}
+
+		static offsetPositionOfElement(type, data, baseCenter, baseRotation){
+			const offset = getProperty(data, `flags.${moduleName}.offset`);
+			//Line Entities
+			if('c' in data){
+				let c = duplicate(data.c);	
+				[offset.x, offset.y] = [offset.c[0], offset.c[1]];
+				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter, baseRotation);
+				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
+				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter, baseRotation);
+				return {c: c};
+			}
+			//Rectangle Entities
+			if('width' in data || 'distance' in data || 'dim' in data || 'radius' in data){
+				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseCenter, baseRotation);
+				if(data.hasOwnProperty("direction")){
+					return {x: x, y: y, direction: rotation};
+			   }
+				return {x: x, y: y, rotation: rotation};
+			}
+			//Point Entities
+			const [x,y] = TokenAttacher.moveRotatePoint({x:data.x, y:data.y, rotation:0}, offset, baseCenter, baseRotation);
+			return {x: x, y: y};
 		}
 
 		static computeRotatedPosition(x,y,x2,y2,rotRad){
@@ -475,7 +425,7 @@ import {libWrapper} from './shim.js';
 		 * Moves a rectangle by offset values and rotates around an anchor
 		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
-		static moveRotateRectangle(rect, offset, anchorCenter, anchorX, anchorY, anchorRot){
+		static moveRotateRectangle(rect, offset, anchorCenter, anchorRot){
 			let x =anchorCenter.x + offset.x;
 			let	y =anchorCenter.y + offset.y; 
 			let newRot = (anchorRot + offset.offRot) % 360;
@@ -490,18 +440,14 @@ import {libWrapper} from './shim.js';
 				x = rectCenter.x - (offset.centerX - offset.x);
 				y = rectCenter.y - (offset.centerY - offset.y);
 			}
-			
-		   if(rect.data.hasOwnProperty("direction")){
-				return {_id: rect.data._id, x: x, y: y, direction: newRot};
-		   }
-			return {_id: rect.data._id, x: x, y: y, rotation: newRot};
+			return [x, y, newRot];
 		}
 
 		/**
 		 * Moves a point by offset values and rotates around an anchor
 		 * A point is defined by x,y,rotation
 		 */
-		static moveRotatePoint(point, offset, anchorCenter, anchorX, anchorY, anchorRot){			
+		static moveRotatePoint(point, offset, anchorCenter, anchorRot){			
 			point.x = anchorCenter.x + offset.x;
 			point.y = anchorCenter.y + offset.y; 
 			point.rotation=(anchorRot + offset.offRot) % 360;
@@ -540,37 +486,28 @@ import {libWrapper} from './shim.js';
 		 * Listen to custom socket events, so players can move elements indirectly through the gm
 		 */
 		static listen(data){
-			//console.log("Token Attacher| some event");
-			if(data.event.indexOf("attachedUpdate") === 0){
-				if(TokenAttacher.isFirstActiveGM()){
-					const type = data.event.split("attachedUpdate")[1];
-					TokenAttacher.getTypeCallback(type)(...data.eventdata);
-				}
-			}
-			else {
-				switch (data.event) {
-					case "AttachToToken":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._AttachToToken(...data.eventdata);
-						break;
-					case "DetachFromToken":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._DetachFromToken(...data.eventdata);
-						break;
-					case "attachElementsToToken":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._attachElementsToToken(...data.eventdata);
-						break;
-					case "detachElementsFromToken":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._detachElementsFromToken(...data.eventdata);
-						break;
-					case "ReattachAfterUndo":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._ReattachAfterUndo(...data.eventdata);
-						break;
-					case "UpdateAttachedOfBase":
-						if(TokenAttacher.isFirstActiveGM())	TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
-						break;
-					default:
-						console.log("Token Attacher| wtf did I just read?");
-						break;
-				}
+			switch (data.event) {
+				case "AttachToToken":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._AttachToToken(...data.eventdata);
+					break;
+				case "DetachFromToken":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._DetachFromToken(...data.eventdata);
+					break;
+				case "attachElementsToToken":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._attachElementsToToken(...data.eventdata);
+					break;
+				case "detachElementsFromToken":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._detachElementsFromToken(...data.eventdata);
+					break;
+				case "ReattachAfterUndo":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._ReattachAfterUndo(...data.eventdata);
+					break;
+				case "UpdateAttachedOfBase":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
+					break;
+				default:
+					console.log("Token Attacher| wtf did I just read?");
+					break;
 			}
 		}
 
@@ -597,7 +534,7 @@ import {libWrapper} from './shim.js';
 				return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ElementAlreadyAttachedInChain"));
 			}
 
-			let token_update = await TokenAttacher.saveTokenPositon(token, true);
+			let token_update = await TokenAttacher.saveBasePositon(token.constructor.name, token, true);
 			token_update[`flags.${moduleName}.attached.${elements.type}`] = attached;
 			updates[token.constructor.name] = [token_update];
 
@@ -1309,7 +1246,7 @@ import {libWrapper} from './shim.js';
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = eval(key).layer ?? eval(key).collection;
 
-					let pos = TokenAttacher.getCenter(token, type);
+					let pos = TokenAttacher.getCenter(type, token.data);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
 					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key].objs, pos, {}, true);
 					if(!toCreate[key]) delete toCreate[key];					
@@ -1712,18 +1649,18 @@ import {libWrapper} from './shim.js';
 			return false;
 		}
 
-		static getCenter(elem, type, grid = {w: canvas.grid.w, h:canvas.grid.h}){
-			const [x,y] = [elem.data.x, elem.data.y];
+		static getCenter(type, data, grid = {w: canvas.grid.w, h:canvas.grid.h}){
+			const [x,y] = [data.x, data.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
-			if ( "width" in elem.data && "height" in elem.data ) {
-				let [width, height] = [elem.data.width, elem.data.height];
+			if ( "width" in data && "height" in data ) {
+				let [width, height] = [data.width, data.height];
 				if(type !== "Tile") [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (width / 2), y:y + (height / 2)};
 			}
 			//Walls
-			if("c" in elem.data){
-				center = {x:(elem.data.c[0] + elem.data.c[2]) / 2, y: (elem.data.c[1] + elem.data.c[3]) / 2}
+			if("c" in data){
+				center = {x:(data.c[0] + data.c[2]) / 2, y: (data.c[1] + data.c[3]) / 2}
 			}
 			return center;
 			
