@@ -1026,7 +1026,7 @@ import {libWrapper} from './shim.js';
 
 						let prototypeAttached = TokenAttacher.generatePrototypeAttached(data.token, attached);
 						let deletes = {_id:data._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
-						let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached}};
+						let updates = {_id:data._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached, grid:{size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h}}};
 						await entity.update(deletes);
 						await entity.update(updates);
 					}
@@ -1198,11 +1198,9 @@ import {libWrapper} from './shim.js';
 								_id: base._id, 
 								[`flags.${moduleName}.attached`]:new_attached, 
 								[`flags.${moduleName}.pos.base_id`]:base._id,
-								[`flags.${moduleName}.-=prototypeAttached`]: null
+								[`flags.${moduleName}.-=prototypeAttached`]: null,
+								[`flags.${moduleName}.-=grid`]: null
 							};
-							// if(arr[i] === token){
-							// 	update[`flags.${moduleName}.-=prototypeAttached`] = null;
-							// }
 							pushUpdate(key, update);
 						}				
 					}
