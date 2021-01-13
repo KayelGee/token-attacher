@@ -51,8 +51,10 @@ import {libWrapper} from './shim.js';
 	
 		activateListeners(html) {
 			let force_scene_migration=html.find(".scene-migration");
+			let force_actor_migration=html.find(".actor-migration");
 
 			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
+			force_actor_migration.click(()=>{TokenAttacher.migrateAllPrototypeActors();});
 			//super.activateListeners(html);
 		}
 	
@@ -237,6 +239,58 @@ import {libWrapper} from './shim.js';
 			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));	
 		}
 
+		static migrateAllPrototypeActors(){
+			const folders = {};
+			const allActors = [...game.actors].filter(actor =>{
+				const attached = getProperty(actor, `data.token.flags.${moduleName}.prototypeAttached`) || {};
+				if(Object.keys(attached).length > 0) return true;
+				return false;
+			});
+			const allMappedActors = allActors.map(async (actor) => {return await TokenAttacher.migrateActor(actor)});
+		}
+		
+		static async migrateActor(actor){
+			const tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `data.token`)), "Token");
+			await actor.update({token: tokenData});
+			return tokenData;
+		}
+		static async migrateElement(parent_data, parent_type, data, type, migrationid=1){
+			let updates = {};
+			//Migrate to offset
+			if(parent_data){
+				const offset = getProperty(data, `flags.${moduleName}.offset`);
+				if(!offset){
+					let parent_pos = duplicate(getProperty(parent_data, `flags.${moduleName}.pos`));
+					setProperty(data, `flags.${moduleName}.parent`, parent_pos.base_id);
+					setProperty(data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, data, parent_type, mergeObject(mergeObject(parent_pos, parent_data), parent_pos.xy), {}));
+				}
+			}
+			//Migrate Attached
+			const prototypeAttached = getProperty(data, `flags.${moduleName}.prototypeAttached`);
+			if(prototypeAttached){
+				if(prototypeAttached[Object.keys(prototypeAttached)[0]].hasOwnProperty("objs")){					
+					//Set Pos
+					let posData = getProperty(data, `flags.${moduleName}.pos`);
+					posData.base_id = migrationid++;
+					posData.rotation = data.rotation;
+					setProperty(data, `flags.${moduleName}.pos`, posData);
+					//Update attached
+					let migratedPrototypeAttached = {};
+					for (const key in prototypeAttached){
+						if (prototypeAttached.hasOwnProperty(key)) {
+							migratedPrototypeAttached[key]=prototypeAttached[key].objs.map(item => item.data);
+							for (let i = 0; i < migratedPrototypeAttached[key].length; i++) {
+								const element = migratedPrototypeAttached[key][i];
+								await TokenAttacher.migrateElement(data, type, element, key, migrationid);								
+							}
+						}
+					}
+					setProperty(data, `flags.${moduleName}.prototypeAttached`, migratedPrototypeAttached);
+				}
+			}
+			return data;
+		}
+
 		static updatedLockedAttached(){
 			const tokens = canvas.tokens.placeables;
 			for (const token of tokens) {
@@ -311,7 +365,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attachedEntities) {
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
-					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity.data)), type, baseData);
+					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity.data)), type, baseData, {});
 					if(!updates[key]) delete updates[key];
 				}
 			}
@@ -367,7 +421,7 @@ import {libWrapper} from './shim.js';
 			const center = TokenAttacher.getCenter(type, data);
 			if(overrideData) data = mergeObject(data, overrideData);
 
-			pos = {base_id: data._id, xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction};
+			pos = {base_id: getProperty(data, '_id'), xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction};
 
 			if(!return_data) return base.setFlag(moduleName, "pos", pos);
 
@@ -550,7 +604,7 @@ import {libWrapper} from './shim.js';
 				const element = col.get(attached[i]);
 				updates[elements.type].push({_id:attached[i], 
 					[`flags.${moduleName}.parent`]: token.data._id, 
-					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element, xy, center, rotation, tokensize)});
+					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element.data, token.constructor.name, token.data, {})});
 			}
 			if(return_data){
 				return updates;
@@ -884,20 +938,22 @@ import {libWrapper} from './shim.js';
 			offRot		= offset rotation of element to the passed rotation 
 			size		= width/height/distance/dim/bright/radius of element and widthBase/heightBase of parent
 		*/
-		static getElementOffset(type, element, xy, center, rotation, size){
+		static getElementOffset(type, data, base_type, base, grid){
+			const center = TokenAttacher.getCenter(base_type, base, grid);
+			const rotation =  base.rotation ?? base.direction;
 			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER, rot:Number.MAX_SAFE_INTEGER};
-			offset.x = element.data.x || (element.data.c[0] < element.data.c[2] ? element.data.c[0] : element.data.c[2]);
-			offset.y = element.data.y || (element.data.c[1] < element.data.c[3] ? element.data.c[1] : element.data.c[3]);
-			offset.centerX = element.center.x;
-			offset.centerY = element.center.y;
-			offset.rot = element.data.rotation || element.data.direction || rotation;
-			offset.offRot = element.data.rotation || element.data.direction || rotation;
-			if(element.data.hasOwnProperty('c')){
+			offset.x = data.x ?? (data.c[0] < data.c[2] ? data.c[0] : data.c[2]);
+			offset.y = data.y ?? (data.c[1] < data.c[3] ? data.c[1] : data.c[3]);
+			const offsetCenter = TokenAttacher.getCenter(type, data, grid);;
+			[offset.centerX, offset.centerY] = [offsetCenter.x, offsetCenter.y];
+			offset.rot = data.rotation ?? data.direction ?? rotation;
+			offset.offRot = data.rotation ?? data.direction ?? rotation;
+			if(data.hasOwnProperty('c')){
 				offset.c = [];
-				offset.c[0] = element.data.c[0] - center.x;
-				offset.c[2] = element.data.c[2] - center.x;
-				offset.c[1] = element.data.c[1] - center.y;
-				offset.c[3] = element.data.c[3] - center.y;
+				offset.c[0] = data.c[0] - center.x;
+				offset.c[2] = data.c[2] - center.x;
+				offset.c[1] = data.c[1] - center.y;
+				offset.c[3] = data.c[3] - center.y;
 			}
 			offset.x -= center.x; 
 			offset.y -= center.y;
@@ -908,30 +964,30 @@ import {libWrapper} from './shim.js';
 			offset.offRot %= 360;
 
 			offset.size = {};
-			if(element.data.hasOwnProperty('width')){
-				offset.size.width  	= element.data.width;
-				offset.size.height	= element.data.height;
+			if(data.hasOwnProperty('width')){
+				offset.size.width  	= data.width;
+				offset.size.height	= data.height;
 			}
-			if(element.data.hasOwnProperty('distance')){
-				offset.size.distance= element.data.distance;
+			if(data.hasOwnProperty('distance')){
+				offset.size.distance= data.distance;
 			}
-			if(element.data.hasOwnProperty('dim')){
-				offset.size.dim= element.data.dim;
-				offset.size.bright= element.data.bright;
+			if(data.hasOwnProperty('dim')){
+				offset.size.dim= data.dim;
+				offset.size.bright= data.bright;
 			}
-			if(element.data.hasOwnProperty('radius')){
-				offset.size.radius= element.data.radius;
+			if(data.hasOwnProperty('radius')){
+				offset.size.radius= data.radius;
 			}
-			offset.size.widthBase = size.width;
-			offset.size.heightBase = size.height;
+			offset.size.widthBase = base.width ?? base.radius ?? base.dim ?? base.distance;
+			offset.size.heightBase = base.height ?? base.radius ?? base.dim ?? base.distance;
 
 			return offset;
 		}
 
 		static getElementSize(element){
 			let size = {};
-			size.width 	= element.data.width 	|| element.data.distance || element.data.dim || element.data.radius;
-			size.height = element.data.height 	|| element.data.distance || element.data.dim || element.data.radius;
+			size.width 	= element.data.width 	?? element.data.distance ?? element.data.dim ?? element.data.radius;
+			size.height = element.data.height 	?? element.data.distance ?? element.data.dim ?? element.data.radius;
 			return size;
 		}
 
@@ -940,7 +996,7 @@ import {libWrapper} from './shim.js';
 			let copyArray = [];
 			for (const elementid of idArray) {
 				const element = layer.get(elementid);
-				const elem_attached = element.getFlag(moduleName, "attached") || {};
+				const elem_attached = element.getFlag(moduleName, "attached") ?? {};
 				let dup_data = duplicate(element.data);
 				delete dup_data._id;
 				if(Object.keys(elem_attached).length > 0){
@@ -1104,7 +1160,7 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(prototypeAttached).length > 0){ 
 				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached);
 				//Migration code
-				if(!getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]][0], `data.flags.${moduleName}.parent`)) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
+				if(!getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]][0], `flags.${moduleName}.parent`)) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
 				//Migration code end
 			}
 			return;
@@ -1518,7 +1574,8 @@ import {libWrapper} from './shim.js';
 			return false;
 		}
 
-		static getCenter(type, data, grid = {w: canvas.grid.w, h:canvas.grid.h}){
+		static getCenter(type, data, grid = {}){
+			grid = mergeObject({w: canvas.grid.w, h:canvas.grid.h}, grid);
 			const [x,y] = [data.x, data.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
