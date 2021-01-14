@@ -52,9 +52,11 @@ import {libWrapper} from './shim.js';
 		activateListeners(html) {
 			let force_scene_migration=html.find(".scene-migration");
 			let force_actor_migration=html.find(".actor-migration");
+			let force_compendium_migration=html.find(".compendium-migration");
 
 			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
 			force_actor_migration.click(()=>{TokenAttacher.migrateAllPrototypeActors();});
+			force_compendium_migration.click(()=>{TokenAttacher.migrateAllActorCompendiums();});
 			//super.activateListeners(html);
 		}
 	
@@ -247,13 +249,24 @@ import {libWrapper} from './shim.js';
 				return false;
 			});
 			const allMappedActors = allActors.map(async (actor) => {return await TokenAttacher.migrateActor(actor)});
+			
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedActors"));
 		}
 		
-		static async migrateActor(actor){
+		static async migrateActor(actor, return_data = false){
 			const tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `data.token`)), "Token");
-			await actor.update({token: tokenData});
+			if(!return_data) await actor.update({token: tokenData});
 			return tokenData;
 		}
+
+		static isPrototypeAttachedModel(prototypeAttached, model){
+			switch(model){
+				case 2:
+					return prototypeAttached[Object.keys(prototypeAttached)[0]].hasOwnProperty("objs");
+			}
+			return false;
+		}
+
 		static async migrateElement(parent_data, parent_type, data, type, migrationid=1){
 			let updates = {};
 			//Migrate to offset
@@ -268,7 +281,8 @@ import {libWrapper} from './shim.js';
 			//Migrate Attached
 			const prototypeAttached = getProperty(data, `flags.${moduleName}.prototypeAttached`);
 			if(prototypeAttached){
-				if(prototypeAttached[Object.keys(prototypeAttached)[0]].hasOwnProperty("objs")){					
+				
+				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)){					
 					//Set Pos
 					let posData = getProperty(data, `flags.${moduleName}.pos`);
 					posData.base_id = migrationid++;
@@ -289,6 +303,35 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			return data;
+		}
+
+		static async migrateAllActorCompendiums(){
+			const allCompendiums = [...game.packs].filter(pack =>{
+				if(pack.locked) return false;
+				if(pack.metadata.entity !== "Actor") return false;
+				return true;
+			});
+			
+			for (let i = 0; i < allCompendiums.length; i++) {
+				const pack = allCompendiums[i];
+				const packIndex = await pack.getIndex();
+				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratingCompendium", {compendium: pack.metadata.label}));
+				for (let j = 0; j < packIndex.length; j++) {
+					const index = packIndex[j];
+					const entity = await pack.getEntity(index._id);
+					const prototypeAttached = getProperty(entity, `data.token.flags.${moduleName}.prototypeAttached`);
+					console.log(index._id);
+					console.log(entity);
+					if(prototypeAttached){
+						if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)){
+							const update = await TokenAttacher.migrateActor(entity, true);
+							console.log(update);
+							await pack.updateEntity({_id: index._id, [`token`]: update});
+						}
+					}
+				}
+			}
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedCompendiums"));
 		}
 
 		static updatedLockedAttached(){
