@@ -374,7 +374,15 @@ import {libWrapper} from './shim.js';
 		static async UpdateAttachedOfToken(type, parent, doc, update, options, userId){
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
-				||	update.hasOwnProperty("rotation"))){
+				||	update.hasOwnProperty("rotation")
+				||	update.hasOwnProperty("direction")
+				||	update.hasOwnProperty("width")
+				||	update.hasOwnProperty("height")
+				||	update.hasOwnProperty("radius")
+				||	update.hasOwnProperty("dim")
+				||	update.hasOwnProperty("bright")
+				||	update.hasOwnProperty("distance")
+				)){
 				return;
 			}
 			if(!TokenAttacher.isFirstActiveGM()) return;
@@ -475,46 +483,63 @@ import {libWrapper} from './shim.js';
 		static offsetPositionOfElements(type, data, baseType, baseData, grid){
 			let baseCenter = TokenAttacher.getCenter(baseType, baseData, grid);
 			let baseRotation = getProperty(baseData, "rotation") ?? getProperty(baseData, "direction");
+			let baseSize = TokenAttacher.getSize(baseData);
 			
 			if(!Array.isArray(data)) data = [data];
 
 			let updates = data.map(w => {
 				return mergeObject(
 					{_id: w._id},
-					TokenAttacher.offsetPositionOfElement(type, w, baseCenter, baseRotation)
+					TokenAttacher.offsetPositionOfElement(type, w, baseCenter, baseRotation, baseSize)
 					);
 			});
 			if(Object.keys(updates).length == 0)  return; 
 			return updates;		
 		}
 
-		static offsetPositionOfElement(type, data, baseCenter, baseRotation){
+		static offsetPositionOfElement(type, data, baseCenter, baseRotation, baseSize){
 			const offset = getProperty(data, `flags.${moduleName}.offset`);
+			const size_multi = {w: baseSize[0] / offset.size.widthBase, h: baseSize[1] / offset.size.heightBase};
 			//Line Entities
 			if('c' in data){
 				let c = duplicate(data.c);	
 				[offset.x, offset.y] = [offset.c[0], offset.c[1]];
-				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter, baseRotation);
+				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter, baseRotation, size_multi);
 				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
-				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter, baseRotation);
+				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter, baseRotation, size_multi);
 				return {c: c};
 			}
 			//Rectangle Entities
 			if('width' in data || 'distance' in data || 'dim' in data || 'radius' in data){
-				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseCenter, baseRotation);
-				if(data.hasOwnProperty("direction")){
-					return {x: x, y: y, direction: rotation};
-			   }
-				return {x: x, y: y, rotation: rotation};
+				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseCenter, baseRotation, size_multi);
+				let update = {x: x, y: y}
+				if(data.hasOwnProperty("direction")) update.direction = rotation;
+				if(data.hasOwnProperty("rotation")) update.rotation = rotation;
+				
+				if(data.hasOwnProperty('width')){
+					update.width 	= offset.size.width  * size_multi.w;
+					update.height 	= offset.size.height * size_multi.h;
+				}
+				if(data.hasOwnProperty('distance')){
+					update.distance = offset.size.distance * size_multi.w;
+				}
+				if(data.hasOwnProperty('dim')){
+					update.dim 		= offset.size.dim    * size_multi.w;
+					update.bright 	= offset.size.bright * size_multi.w;
+				}
+				if(data.hasOwnProperty('radius')){
+					update.radius 	= offset.size.radius * size_multi.w;
+				}
+				return update;
 			}
 			//Point Entities
-			const [x,y] = TokenAttacher.moveRotatePoint({x:data.x, y:data.y, rotation:0}, offset, baseCenter, baseRotation);
+			const [x,y] = TokenAttacher.moveRotatePoint({x:data.x, y:data.y, rotation:0}, offset, baseCenter, baseRotation, size_multi);
 			return {x: x, y: y};
 		}
 
-		static computeRotatedPosition(x,y,x2,y2,rotRad){
-			const dx = x2 - x,
-			dy = y2 - y;
+		static computeRotatedPosition(x,y,x2,y2,rotRad, size_multi){
+			const dx = (x2 - x) * size_multi.w,
+			dy = (y2 - y) * size_multi.h;
 			return [x + Math.cos(rotRad)*dx - Math.sin(rotRad)*dy,
 				y + Math.sin(rotRad)*dx + Math.cos(rotRad)*dy];
 		}
@@ -523,21 +548,21 @@ import {libWrapper} from './shim.js';
 		 * Moves a rectangle by offset values and rotates around an anchor
 		 * A rectangle is defined by having a center, data._id, data.x, data.y and data.rotation or data.direction
 		 */
-		static moveRotateRectangle(rect, offset, anchorCenter, anchorRot){
+		static moveRotateRectangle(rect, offset, anchorCenter, anchorRot, size_multi){
 			let x =anchorCenter.x + offset.x;
 			let	y =anchorCenter.y + offset.y; 
 			let newRot = (anchorRot + offset.offRot) % 360;
-			if(newRot != offset.rot){
+			//if(newRot != offset.rot){
 				// get vector from center to template
 				const deltaRotRad = toRadians((newRot - offset.rot) % 360);
 				// rotate vector around angle
 				let rectCenter = {};
 				rectCenter.x = anchorCenter.x + offset.centerX;
 				rectCenter.y = anchorCenter.y + offset.centerY;
-				[rectCenter.x,rectCenter.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, rectCenter.x, rectCenter.y, deltaRotRad);
-				x = rectCenter.x - (offset.centerX - offset.x);
-				y = rectCenter.y - (offset.centerY - offset.y);
-			}
+				[rectCenter.x,rectCenter.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, rectCenter.x, rectCenter.y, deltaRotRad, size_multi);
+				x = rectCenter.x - (offset.centerX - offset.x) * size_multi.w;
+				y = rectCenter.y - (offset.centerY - offset.y) * size_multi.h;
+			//}
 			return [x, y, newRot];
 		}
 
@@ -545,17 +570,17 @@ import {libWrapper} from './shim.js';
 		 * Moves a point by offset values and rotates around an anchor
 		 * A point is defined by x,y,rotation
 		 */
-		static moveRotatePoint(point, offset, anchorCenter, anchorRot){			
+		static moveRotatePoint(point, offset, anchorCenter, anchorRot, size_multi){			
 			point.x = anchorCenter.x + offset.x;
 			point.y = anchorCenter.y + offset.y; 
 			point.rotation=(anchorRot + offset.offRot) % 360;
-			if(point.rotation != offset.rot){
+			//if(point.rotation != offset.rot){
 				// get vector from center to template
 				const deltaRotRad = toRadians((point.rotation - offset.rot) % 360);
 				// rotate vector around angle
-				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, point.x, point.y, deltaRotRad);
+				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, point.x, point.y, deltaRotRad, size_multi);
 				
-			}	
+			//}	
 			return [point.x, point.y, point.rotation];
 		}
 
@@ -1021,9 +1046,7 @@ import {libWrapper} from './shim.js';
 			if(data.hasOwnProperty('radius')){
 				offset.size.radius= data.radius;
 			}
-			offset.size.widthBase = base.width ?? base.radius ?? base.dim ?? base.distance;
-			offset.size.heightBase = base.height ?? base.radius ?? base.dim ?? base.distance;
-
+			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(base);
 			return offset;
 		}
 
@@ -1633,6 +1656,12 @@ import {libWrapper} from './shim.js';
 			}
 			return center;
 			
+		}
+
+		static getSize(data){
+			return [data.width ?? data.radius  ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright),
+			data.height ?? data.radius ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright)];
+
 		}
 	}
 
