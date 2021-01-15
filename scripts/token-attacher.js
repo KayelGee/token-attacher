@@ -254,7 +254,8 @@ import {libWrapper} from './shim.js';
 		}
 		
 		static async migrateActor(actor, return_data = false){
-			const tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `data.token`)), "Token");
+			let tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `data.token`)), "Token");
+			setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h});
 			if(!return_data) await actor.update({token: tokenData});
 			return tokenData;
 		}
@@ -276,6 +277,10 @@ import {libWrapper} from './shim.js';
 					let parent_pos = duplicate(getProperty(parent_data, `flags.${moduleName}.pos`));
 					setProperty(data, `flags.${moduleName}.parent`, parent_pos.base_id);
 					setProperty(data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, data, parent_type, mergeObject(mergeObject(parent_pos, parent_data), parent_pos.xy), {}));
+				}
+				else{
+					let migrated_offset = TokenAttacher.getElementOffset(type, data, parent_type, mergeObject(mergeObject(parent_pos, parent_data), parent_pos.xy), {})
+					setProperty(data, `flags.${moduleName}.offset`, mergeObject(migrated_offset, offset));
 				}
 			}
 			//Migrate Attached
@@ -1050,6 +1055,26 @@ import {libWrapper} from './shim.js';
 			return offset;
 		}
 
+		//Modify offset based on grid_multi
+		static updateOffsetWithGridMultiplicator(type, offset, grid_multi){
+			offset.x *= grid_multi.w;
+			offset.y *= grid_multi.h;
+			offset.centerX *= grid_multi.w;
+			offset.centerY *= grid_multi.h;
+			if(offset.hasOwnProperty('c')){
+				offset.c[0] *= grid_multi.w;
+				offset.c[2] *= grid_multi.w;
+				offset.c[1] *= grid_multi.h;
+				offset.c[3] *= grid_multi.h;
+			}
+
+			if(type === "Tile"){
+				offset.size.width  *= grid_multi.w;
+				offset.size.height *= grid_multi.h;
+			}
+			return offset;
+		}
+
 		static getElementSize(element){
 			let size = {};
 			size.width 	= element.data.width 	?? element.data.distance ?? element.data.dim ?? element.data.radius;
@@ -1103,10 +1128,10 @@ import {libWrapper} from './shim.js';
 				}				
 			}
 
-			TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, copyObjects);
+			TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, {}, copyObjects);
 		}
 
-		static async pasteObjects(layer, objects, pos, {hidden = false} = {}, return_data=false){
+		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
 			if ( !objects.length ) return [];
 			const cls = layer.constructor.placeableClass;
 
@@ -1115,20 +1140,47 @@ import {libWrapper} from './shim.js';
 			for ( let dat of objects) {
 				let data = duplicate(dat);
 				delete data._id;
-				if(cls.name == "Wall"){
+				data.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls.name, data.flags[moduleName].offset, grid_multi);
+				const offset = data.flags[moduleName].offset;
+				if(data.hasOwnProperty('c')){
 					data.c = data.c.map((c, i) => {
-						if(!(i%2)) return pos.x + data.flags[moduleName].offset.c[i];
-						else	return pos.y + data.flags[moduleName].offset.c[i];
+						if(!(i%2)) return pos.x + offset.c[i];
+						else	return pos.y + offset.c[i];
 					});
-					toCreate.push(data);
 				}
 				else{
-					toCreate.push(mergeObject(data, {
-						x: pos.x + data.flags[moduleName].offset.x,
-						y: pos.y + data.flags[moduleName].offset.y,
+					mergeObject(data, {
+						x: pos.x + offset.x,
+						y: pos.y + offset.y,
 						hidden: data.hidden || hidden
-					}));
+					});
 				}
+
+				
+				if(data.hasOwnProperty('width')){
+					mergeObject(data, {
+						width : offset.size.width,
+						height: offset.size.height
+					});
+				}
+				if(data.hasOwnProperty('distance')){
+					mergeObject(data, {
+						distance : offset.size.distance
+					});
+				}
+				if(data.hasOwnProperty('dim')){
+					mergeObject(data, {
+						dim : offset.size.dim,
+						bright: offset.size.bright
+					});
+				}
+				if(data.hasOwnProperty('radius')){
+					mergeObject(data, {
+						radius : offset.size.radius
+					});
+				}
+
+				toCreate.push(data);
 			}
 
 			if(return_data) return toCreate;
@@ -1223,15 +1275,19 @@ import {libWrapper} from './shim.js';
 				return;
 			}
 
-			if(Object.keys(prototypeAttached).length > 0){ 
-				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached);
-				//Migration code
-				if(!getProperty(prototypeAttached[Object.keys(prototypeAttached)[0]][0], `flags.${moduleName}.parent`)) await TokenAttacher._updateAttachedOffsets({type:token.constructor.name ,element:token});
-				//Migration code end
+			if(Object.keys(prototypeAttached).length > 0){
+				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ActorDataModelNeedsMigration"));
+				
+				let grid_multi = token.getFlag(moduleName, "grid");
+				grid_multi.size = canvas.grid.size / grid_multi.size;
+				grid_multi.w = canvas.grid.w / grid_multi.w;
+				grid_multi.h = canvas.grid.h / grid_multi.h ;
+				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi);
 			}
 			return;
 		}
-		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, return_data = false){
+		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, return_data = false){
+			grid_multi = mergeObject({size:1, w: 1, h:1}, grid_multi);
 			let pasted = {};
 			let toCreate = {};
 			for (const key in prototypeAttached) {
@@ -1240,7 +1296,7 @@ import {libWrapper} from './shim.js';
 
 					let pos = TokenAttacher.getCenter(type, token.data);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
-					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, {}, true);
+					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, grid_multi, {}, true);
 					if(!toCreate[key]) delete toCreate[key];					
 				}
 			}
@@ -1252,7 +1308,7 @@ import {libWrapper} from './shim.js';
 					const element_protoAttached = getProperty(element, `flags.${moduleName}.prototypeAttached`);
 					if(element_protoAttached){
 						const toCreateElement = toCreate[key].find(item => getProperty(item , `flags.${moduleName}.pos.base_id`) === getProperty(element , `flags.${moduleName}.pos.base_id`));
-						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype(key, {data:toCreateElement}, element_protoAttached, true);
+						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype(key, {data:toCreateElement}, element_protoAttached, grid_multi, true);
 						for (const subKey in subCreated) {
 							if (subCreated.hasOwnProperty(subKey)) {
 								const element = subCreated[subKey];
