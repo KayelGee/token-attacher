@@ -1101,15 +1101,16 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async copyAttached(token){
-			let copyObjects = {};
+			let copyObjects = {map: {}};
 			const attached=token.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
 		
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					copyObjects[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
+					copyObjects.map[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
 				}
 			}
+			copyObjects.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
 			await game.user.unsetFlag(moduleName, "copy");			
 			await game.user.setFlag(moduleName, "copy", copyObjects);	
 			ui.notifications.info(`Copied attached elements.`);	
@@ -1118,17 +1119,20 @@ import {libWrapper} from './shim.js';
 		static async pasteAttached(token){
 			const copyObjects = duplicate(game.user.getFlag(moduleName, "copy")) || {};
 			if(Object.keys(copyObjects).length == 0) return;
-			TokenAttacher.saveBasePositon(token.constructor.name, token);
+			await TokenAttacher.saveBasePositon(token.constructor.name, token);
 			//Set parent in copyObjects
-			for (const key in copyObjects) {
-				if (copyObjects.hasOwnProperty(key) && key !== "unknown") {
-					for (let i = 0; i < copyObjects[key].length; i++) {
-						copyObjects[key][i].flags[moduleName].parent = token.data._id;
+			for (const key in copyObjects.map) {
+				if (copyObjects.map.hasOwnProperty(key) && key !== "unknown") {
+					for (let i = 0; i < copyObjects.map[key].length; i++) {
+						copyObjects.map[key][i].flags[moduleName].parent = token.data._id;
 					}
 				}				
 			}
-
-			TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, {}, copyObjects);
+			let grid_multi = copyObjects.grid;
+				grid_multi.size = canvas.grid.size / grid_multi.size;
+				grid_multi.w = canvas.grid.w / grid_multi.w;
+				grid_multi.h = canvas.grid.h / grid_multi.h ;
+			await TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, copyObjects.map, grid_multi);
 		}
 
 		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
@@ -1219,7 +1223,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async copyTokens(layer, tokens){
-			const copyPrototypeMap = game.user.getFlag(moduleName, "copyPrototypeMap") || {};
+			const copyPrototypeMap = {map: {}};
 			const prototypeMap= {};
 			tokens.forEach(token => {
 				if(		token.data.flags.hasOwnProperty(moduleName)
@@ -1227,7 +1231,8 @@ import {libWrapper} from './shim.js';
 					prototypeMap[token.id] = TokenAttacher.generatePrototypeAttached(token.data, token.data.flags[moduleName].attached);
 				}
 			});
-			copyPrototypeMap[layer.constructor.placeableClass.name] = prototypeMap;
+			copyPrototypeMap.map[layer.constructor.placeableClass.name] = prototypeMap;
+			copyPrototypeMap.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
 			await game.user.unsetFlag(moduleName, "copyPrototypeMap");
 			await game.user.setFlag(moduleName, "copyPrototypeMap", copyPrototypeMap);
 		}
@@ -1239,8 +1244,10 @@ import {libWrapper} from './shim.js';
 					&& 	toCreate[i].flags[moduleName].hasOwnProperty("attached")){
 					delete toCreate[i].flags[moduleName].attached;
 					const clsname = copy[i].layer.constructor.placeableClass.name;
-					if(copyPrototypeMap.hasOwnProperty(clsname))
-						toCreate[i].flags[moduleName].prototypeAttached = copyPrototypeMap[clsname][copy[i].data._id];				
+					if(copyPrototypeMap.map.hasOwnProperty(clsname)){
+						toCreate[i].flags[moduleName].prototypeAttached = copyPrototypeMap.map[clsname][copy[i].data._id];	
+						toCreate[i].flags[moduleName].grid = copyPrototypeMap.grid;	
+					}			
 				}
 			}
 		}
