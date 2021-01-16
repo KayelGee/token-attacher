@@ -78,6 +78,7 @@ import {libWrapper} from './shim.js';
 				getActorsWithPrototypeInCompendiums: TokenAttacher.getActorsWithPrototypeInCompendiums,
 				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
 				importFromJSON: TokenAttacher.importFromJSON,
+				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -633,6 +634,9 @@ import {libWrapper} from './shim.js';
 				case "UpdateAttachedOfBase":
 					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
 					break;
+				case "setElementsLockStatus":
+					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._setElementsLockStatus(...data.eventdata);
+					break;
 				default:
 					console.log("Token Attacher| wtf did I just read?");
 					break;
@@ -738,7 +742,7 @@ import {libWrapper} from './shim.js';
 							const arr = attached[key];
 							let deletes = [];
 							for (let i = 0; i < arr.length; i++) {
-								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null});
+								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 							}	
 							if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(key, deletes, {[moduleName]:true});						
 						}
@@ -763,7 +767,7 @@ import {libWrapper} from './shim.js';
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
 				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
-					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null});
+					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 				}
 				if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(elements.type, deletes, {[moduleName]:true});	
 			}
@@ -862,6 +866,8 @@ import {libWrapper} from './shim.js';
 			let highlight_tool=document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
 			let copy_tool=document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
 			let paste_tool=document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
+			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
+			let unlock_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlock")[0];
 
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
@@ -900,6 +906,56 @@ import {libWrapper} from './shim.js';
 			$(paste_tool).click(()=>{
 				TokenAttacher.pasteAttached(token);
 			});
+			
+			$(lock_tool).click(()=>{
+				const current_layer = canvas.activeLayer;
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				TokenAttacher.setElementsLockStatus(current_layer.controlled, true);
+			});
+			$(unlock_tool).click(()=>{
+				const current_layer = canvas.activeLayer;
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				TokenAttacher.setElementsLockStatus(current_layer.controlled, false);
+			});
+		}
+
+		static async setElementsLockStatus(elements, isLocked, suppressNotification = false){
+			let selected = {}
+			if(!Array.isArray(elements)) elements=[elements];
+			for (const element of elements) {
+				const type = element.constructor.name;
+				if(!selected.hasOwnProperty(type)) selected[type] = [];
+				selected[type].push(element.data._id);
+			}
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._setElementsLockStatus(selected, isLocked, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `setElementsLockStatus`, eventdata: [selected, isLocked,  suppressNotification]});
+
+		}
+
+		static async _setElementsLockStatus(elements, isLocked, suppressNotification){
+			let updates = {};
+			for (const key in elements) {
+				if (elements.hasOwnProperty(key)) {
+					for (let i = 0; i < elements[key].length; i++) {
+						const element = canvas.getLayerByEmbeddedName(key).get(elements[key][i]);
+						if(getProperty(element, `data.flags.${moduleName}.parent`)){
+							if(!updates.hasOwnProperty(key)) updates[key] = [];
+							if(!isLocked) updates[key].push({_id:element.data._id, [`flags.${moduleName}.unlocked`]:true});
+							else updates[key].push({_id:element.data._id, [`flags.${moduleName}.-=unlocked`]:null});
+						}
+					}
+				}
+			}
+			//Fire Updates
+			for (const key in updates) {
+				if (updates.hasOwnProperty(key)) {
+					if(updates[key].length > 0) await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});	
+				}
+			}
+			if(!suppressNotification) {
+				if(!isLocked) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsUnlocked"));
+				else ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsLocked"));
+			}
 		}
 
 		static lockAttached(token, button){
@@ -1582,6 +1638,8 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(offset).length === 0) return;
 			let objParent = object.getFlag(moduleName, 'parent') || {};
 			if(document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
+			let unlocked = object.getFlag(moduleName, 'unlocked');
+			if(unlocked) return;
 			return object.release();
 		}
 
@@ -1625,7 +1683,7 @@ import {libWrapper} from './shim.js';
 				let layer = eval(type).layer ?? eval(type).collection;
 				const element = layer.get(entity._id);
 				
-				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null};
+				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null};
 				await element.update(deletes);
 			}
 		}
