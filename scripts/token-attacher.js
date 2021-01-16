@@ -151,7 +151,7 @@ import {libWrapper} from './shim.js';
 					  icon: '<i class="fas fa-file-export"></i>',
 					  callback: target => {
 						let pack = game.packs.get(target.data("pack"));
-						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.ExportAllowsOnlyActor"));
+						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ExportAllowsOnlyActor"));
 						TokenAttacher.exportCompendiumToJSON(pack);
 					  }
 					  
@@ -606,7 +606,7 @@ import {libWrapper} from './shim.js';
 		static detectGM(){
 			const firstGm = game.users.find((u) => u.isGM && u.active);
 			if(!firstGm){
-				return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoActiveGMFound"));
+				return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoActiveGMFound"));
 			}
 		}
 		
@@ -644,7 +644,7 @@ import {libWrapper} from './shim.js';
 		 */
 		static async _AttachToToken(token, elements, suppressNotification=false, return_data=false){
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
-			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements.hasOwnProperty("type")) return;
 			
 			let updates = {};
@@ -687,7 +687,7 @@ import {libWrapper} from './shim.js';
 			}
 			await canvas.scene.updateEmbeddedEntity(elements.type, updates[elements.type]);
 
-			if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsAttached"));
+			if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsAttached"));
 			return; 
 		}
 
@@ -695,7 +695,7 @@ import {libWrapper} from './shim.js';
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static async _StartTokenAttach(token){
-			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
 			TokenAttacher.showTokenAttacherUI(token);
 		}
 
@@ -728,7 +728,7 @@ import {libWrapper} from './shim.js';
 		 */
 		static async _DetachFromToken(token, elements, suppressNotification=false, options={}){
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
-			if(!token) return ui.notifications.error(game.i18n.localize("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
 			if(!elements || !elements.hasOwnProperty("type")){
 				//Detach all
 				let attached=token.getFlag(moduleName, `attached`);
@@ -746,7 +746,7 @@ import {libWrapper} from './shim.js';
 				}
 
 				token.unsetFlag(moduleName, "attached");
-				if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
+				if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsDetached"));
 				return;
 			}
 			else{
@@ -757,7 +757,7 @@ import {libWrapper} from './shim.js';
 				attached= attached.filter((item) => !elements.data.includes(item));
 				
 				token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
-					if(!suppressNotification) ui.notifications.info(game.i18n.localize("TOKENATTACHER.info.ObjectsDetached"));
+					if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsDetached"));
 				});
 				
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
@@ -777,7 +777,7 @@ import {libWrapper} from './shim.js';
 				if(controls[i].name === "token"){
 					controls[i].tools.push({
 						name: "TAStartTokenAttach",
-						title: game.i18n.localize("TOKENATTACHER.button.StartTokenAttach"),
+						title: game.i18n.format("TOKENATTACHER.button.StartTokenAttach"),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
@@ -866,7 +866,7 @@ import {libWrapper} from './shim.js';
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
 				if(current_layer.controlled.length == 1)
 					TokenAttacher.attachElementToToken(current_layer.controlled[0], token);
 				else{
@@ -875,7 +875,7 @@ import {libWrapper} from './shim.js';
 			});
 			$(unlink_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.localize(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
 				if(current_layer.controlled.length == 1)
 					TokenAttacher.detachElementFromToken(current_layer.controlled[0], token);
 				else{
@@ -888,7 +888,7 @@ import {libWrapper} from './shim.js';
 			$(select_tool).click(()=>{
 				select_tool.classList.toggle("active");				
 				if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
-					ui.notifications.info(game.i18n.localize(`TOKENATTACHER.info.DragSelectElements`));
+					ui.notifications.info(game.i18n.format(`TOKENATTACHER.info.DragSelectElements`));
 				}
 			});
 			$(highlight_tool).click(()=>{
@@ -1498,7 +1498,7 @@ import {libWrapper} from './shim.js';
 				const fd = new FormDataExtended(form[0]);
 				const data = fd.toObject();
 				if ( !data.JSONContent ) {
-				  const err = new Error(game.i18n.localize("TOKENATTACHER.error.NoValidJSONProvided"));
+				  const err = new Error(game.i18n.format("TOKENATTACHER.error.NoValidJSONProvided"));
 				  return ui.notifications.warn(err.message);
 				}
 				TokenAttacher.importFromJSON(data.JSONContent);
@@ -1663,6 +1663,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(selected.length === 0) return;
 			TokenAttacher._attachElementsToToken(selected, token, false);
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsAttached"));
 		}
 
 		static areDuplicatesInAttachChain(base, attached){
