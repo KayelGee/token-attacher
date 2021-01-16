@@ -7,9 +7,32 @@
 **[Systems]**: *any*  
 **[Languages]**: *English*  
 
-Attach anything(except other tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. 
+Attach anything(even other tokens and their attached elements aswell) to tokens, so that they move when the token moves and rotate/move when the token rotates.
+Resizing the base token will also resize all attached elements.
+Attached elements can no longer be selected via the rectangle selection tool of each layer, unless the attach ui of the base token is open. 
+Attached elements can still be interacted with via double left or right click.
+Attached elements can no longer move independently of the base token.
 
 To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
+You can also attach those by using the new all layer select tool in combination with a select tool on a layer like the token layer.
+
+Infos for updating from Token Attacher 3.2.x to 4.0:
+ - Backup your world!
+ - All Scenes in your world get auto migrated, so that tokens on them will work right away(but it might take some time as every Scene will be loaded)
+ - To migrate the Actor Directory:
+ 	- open a Scene, set the grid size to what you used to create your tokens
+ 	- Go to Game Settings/Configure Settings/Module Settings/Token Attacher GM Menu and press "Migrate Sidebar Actors"
+ 	- This can take a while depending on the amount of actors in your world
+ 	- After it's done it should put out a message and your actors are good to go
+ 	- Only actors with attached elements in their prototype token will be touched
+ - To migrate a Compendium
+ 	- Unlock the compendium(Only unlocked compendiums will be migrated)
+ 	- Optionally Lock all other Actor compendiums to speed up the process
+ 	- open a Scene, set the grid size to what you used to create your tokens in your compendium
+ 	- Go to Game Settings/Configure Settings/Module Settings/Token Attacher GM Menu and press "Migrate all Actor Compendiums that have attached Elements"
+ 	- This can take a while depending on the amount of actors in your compendiums
+ 	- After it's done it should put out a message and your compendiums are good to go
+ 	- Only actors with attached elements in their prototype token will be touched
 
 A public interface for usage in macros can be accessed via tokenAttacher, following functions can be called:
  - tokenAttacher.attachElementToToken(element, target_token, suppresNotification=false)
@@ -20,6 +43,8 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.getAllAttachedElementsOfToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
 
+## Macros
+There are some example macros bundled in a macro compendium.
 Macro Examples:
 ```
 (async () => {
@@ -36,10 +61,7 @@ console.log(canvas.tiles.get(all_attached_tiles[0]));
 ```
 
 ## Known Issues
- - Moving multiple tokens at the same time doesn't work. Don't do it.
- - Locked elements can still be moved when selected with unlocked elements via box select
- - Assign Token doesn't clear flags, so to be sure you should always assign to a fresh actor
- - Moving a token rapidly(by holding a keyboard arrow key for example) will cause the attached elements to lag behind.
+ - Moving multiple tokens at the same time doesn't work. Don't do it. If you do it you can fix misalignments by moven each token seperatly afterwards. Also if you need to do it you can attach all tokens to a base token and move the base token, that should cause no issue.
 
 ## Installation
 
@@ -56,13 +78,13 @@ Attach or detach an element by selecting it and pressing the attach or detach bu
 
 ![](gifs/attach_detach.gif)
 
+Attach elements on multiple layer with the rectangle select tool.
+
+![](gifs/rectangle_select.gif)
+
 Detach all elements by clicking the detach all button.
 
 ![](gifs/detach_all.gif)
-
-Prevent attached elements from being interacted with by pressing the lock/unlock button.
-
-![](gifs/lock_unlock.gif)
 
 Highlight your attached elements by pressing the highlight button.
 
@@ -73,12 +95,22 @@ Copy and paste all attached elements by pressing the copy button on the source t
 ![](gifs/copy_paste.gif)
 
 Make a prefab by adding a token with attached elements to the prototype Token of an Actor.
+The grid size of the current scene will be saved to the prefab, so when you drag the prefab out on a scene with a different grid size it will resize accordingly.
 
 ![](gifs/prefab.gif)
 
 Export compendiums with prefabs. Copy the resulting json into a .json file. To see how to auto import compendiums(so that this works between systems) in your module see my example module: https://github.com/KayelGee/token-attacher-compendium-example
 
 ![](gifs/compendium_export.gif)
+
+Resize the whole chain by resizing the base token.
+
+![](gifs/resize.gif)
+
+Auto resizing when the grid size differs.
+
+![](gifs/auto_resize.gif)
+
 ## Contact
 
 If you wish to contact me for any reason, reach me out on Discord using my tag: `KayelGee#5241`
