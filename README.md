@@ -45,8 +45,22 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
 
 ## Macros
+
 There are some example macros bundled in a macro compendium.
-Macro Examples:
+ - Mount Up!:
+  - Select your token and target another token, click 'Mount Up!' to mount the target on the closest space.
+ - Pick Up:
+  - Select your token and target another token, click 'Pick Up' to attach the target to your token at the position it is right now.
+ - Follow Target!:
+  - Select your token and target another token, click 'Follow Target!' to follow the target with your token at the position it is right now.
+ - Dismount/Drop all:
+  - Select a token and click 'Dismount/Drop all' to drop all picked up tokens, drop all riders that have mounted it and cause all followers to stop following you.
+ - Dismount/Drop Target:
+  - Select your token and target another token, click 'Dismount/Drop Target' to drop the target if you previously picked it up, it has mounted you or is following you.
+ - Stop Follow:
+  - Select your token and target another token, click 'Stop Follow' to stop following the target.
+	
+Simple Macro Example:
 ```
 (async () => {
 const some_element = canvas.tiles.children[0].children[0];
@@ -62,6 +76,7 @@ console.log(canvas.tiles.get(all_attached_tiles[0]));
 ```
 
 ## Known Issues
+
  - Moving multiple tokens at the same time doesn't work. Don't do it. If you do it you can fix misalignments by moven each token seperatly afterwards. Also if you need to do it you can attach all tokens to a base token and move the base token, that should cause no issue.
 
 ## Installation

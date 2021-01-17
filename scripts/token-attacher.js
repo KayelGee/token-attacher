@@ -53,11 +53,14 @@ import {libWrapper} from './shim.js';
 			let force_scene_migration=html.find(".scene-migration");
 			let force_actor_migration=html.find(".actor-migration");
 			let force_compendium_migration=html.find(".compendium-migration");
+			let import_json_dialog=html.find(".import-json-dialog");
+			let export_actors_to_json=html.find(".export-actors-to-json");
 
 			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
 			force_actor_migration.click(()=>{TokenAttacher.migrateAllPrototypeActors();});
 			force_compendium_migration.click(()=>{TokenAttacher.migrateAllActorCompendiums();});
-			//super.activateListeners(html);
+			import_json_dialog.click(()=>{TokenAttacher.importFromJSONDialog();});
+			export_actors_to_json.click(()=>{TokenAttacher.getActorsWithPrototype();});
 		}
 	
 	}
