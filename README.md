@@ -12,6 +12,7 @@ Resizing the base token will also resize all attached elements.
 Attached elements can no longer be selected via the rectangle selection tool of each layer, unless the attach ui of the base token is open. 
 Attached elements can still be interacted with via double left or right click.
 Attached elements can no longer move independently of the base token.
+When dragging an actor to the canvas the attached tiles will be sorted to the top.
 
 To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
 You can also attach those by using the new all layer select tool in combination with a select tool on a layer like the token layer.

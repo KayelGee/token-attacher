@@ -79,6 +79,7 @@ import {libWrapper} from './shim.js';
 				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
 				importFromJSON: TokenAttacher.importFromJSON,
 				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
+				regenerateLinks: TokenAttacher.regenerateLinks,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -1388,6 +1389,7 @@ import {libWrapper} from './shim.js';
 			pasted[token.constructor.name].push(token.data);
 			for (const key in toCreate) {
 				if (toCreate.hasOwnProperty(key)) {
+					if(key === "Tile") toCreate[key] = TokenAttacher.zSort(true, key, toCreate[key]);
 					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], {[moduleName]:true});
 					if(!pasted.hasOwnProperty(key)) pasted[key] = [];
 					if(Array.isArray(created)) pasted[key] = pasted[key].concat(created);
@@ -1403,6 +1405,9 @@ import {libWrapper} from './shim.js';
 			return;
 		}
 
+		/*	RegenerateLinks on pasted objects
+			example: pasted = {'Token': [someobject....]}
+		*/
 		static async regenerateLinks(pasted){
 			let updates = {};
 			const pushUpdate = (key, update) => {
@@ -1784,6 +1789,28 @@ import {libWrapper} from './shim.js';
 			return [data.width ?? data.radius  ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright),
 			data.height ?? data.radius ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright)];
 
+		}
+		//Update z in elements_data and return elements_data
+		static zSort(up, type, elements_data) {	
+			let layer = canvas.getLayerByEmbeddedName(type);
+			const siblings = layer.placeables;	
+			// Determine target sort index
+			let z = 0;
+			if ( up ) {
+				elements_data.sort((a, b) => a.z - b.z);
+			  	z = siblings.length ? Math.max(...siblings.map(o => o.data.z)) + 1 : 1;
+			}
+			else {
+				elements_data.sort((a, b) => b.z - a.z);
+			  	z = siblings.length ? Math.min(...siblings.map(o => o.data.z)) - 1 : -1;
+			}
+		
+			// Update all controlled objects
+			for (let i = 0; i < elements_data.length; i++) {
+				let d = up ? i : i * -1;
+				elements_data[i].z = z + d;				
+			}
+			return elements_data;
 		}
 	}
 
