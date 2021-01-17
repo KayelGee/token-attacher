@@ -735,8 +735,9 @@ import {libWrapper} from './shim.js';
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static async _DetachFromToken(token, elements, suppressNotification=false, options={}){
-			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
+			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
+			if(!token) return;
 			if(!elements || !elements.hasOwnProperty("type")){
 				//Detach all
 				let attached=token.getFlag(moduleName, `attached`);
@@ -1426,11 +1427,12 @@ import {libWrapper} from './shim.js';
 						const base = arr[i];
 						const old_base_id = getProperty(base , `flags.${moduleName}.pos.base_id`);
 						if(old_base_id) {
-							let current_attached = getProperty(base , `flags.${moduleName}.attached`);
+							let current_attached = duplicate(getProperty(base , `flags.${moduleName}.attached`) ?? {});
 							let new_attached = {}; 
 							for (const attKey in pasted) {
+								const layer = canvas.getLayerByEmbeddedName(attKey);
 								if (pasted.hasOwnProperty(attKey)) {
-									new_attached[attKey] = pasted[attKey].filter(item => getProperty(item , `flags.${moduleName}.parent`) === old_base_id);;
+									new_attached[attKey] = pasted[attKey].filter(item => getProperty(item , `flags.${moduleName}.parent`) === old_base_id);
 									for (let j = 0; j < new_attached[attKey].length; j++) {
 										const attached_element = new_attached[attKey][j];	
 										let update =  {_id: attached_element._id};	
@@ -1439,8 +1441,10 @@ import {libWrapper} from './shim.js';
 									}
 									new_attached[attKey] = new_attached[attKey].map(item => item._id);
 									if(current_attached && current_attached.hasOwnProperty(attKey)){
+										current_attached[attKey] = current_attached[attKey].filter(item => getProperty(layer.get(item) , `flags.${moduleName}.parent`) === base._id);
 										new_attached[attKey] = [...new Set(new_attached[attKey].concat(current_attached[attKey]))];
 									}
+									if(new_attached[attKey].length <= 0) delete new_attached[attKey];
 								}
 							}
 							let update = {
