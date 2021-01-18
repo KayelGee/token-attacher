@@ -50,12 +50,14 @@ import {libWrapper} from './shim.js';
 		}
 	
 		activateListeners(html) {
+			let reset_migration=html.find(".reset-migration");
 			let force_scene_migration=html.find(".scene-migration");
 			let force_actor_migration=html.find(".actor-migration");
 			let force_compendium_migration=html.find(".compendium-migration");
 			let import_json_dialog=html.find(".import-json-dialog");
 			let export_actors_to_json=html.find(".export-actors-to-json");
 
+			reset_migration.click(()=>{TokenAttacher._resetMigration();});
 			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
 			force_actor_migration.click(()=>{TokenAttacher.migrateAllPrototypeActors();});
 			force_compendium_migration.click(()=>{TokenAttacher.migrateAllActorCompendiums();});
@@ -189,7 +191,10 @@ import {libWrapper} from './shim.js';
 
 			TASettings.init();
 		}
-
+		static async _resetMigration(){
+			await game.settings.set(moduleName, "data-model-version", dataModelVersion-1);
+			TokenAttacher.startMigration();
+		}
 		static async startMigration(){
 			let currentDataModelVersion = game.settings.get(moduleName, "data-model-version");
 			//Migration to Model 2 is last supported on 3.2.3
@@ -220,30 +225,35 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async migrateSceneHook(remaining_scenes){
-			if(remaining_scenes.length > 0){
-				if(game.scenes.get(remaining_scenes[0]) !== game.scenes.active){
-					Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
-					return;
-				}
-				else {
-					for (const token of canvas.tokens.placeables) {
-						const attached=token.getFlag(moduleName, 'attached') || {};
-						if(Object.keys(attached).length > 0){
-							await TokenAttacher._attachElementsToToken(attached, token, true);					
+			try {				
+				if(remaining_scenes.length > 0){
+					if(game.scenes.get(remaining_scenes[0]) !== game.scenes.active){
+						Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
+						return;
+					}
+					else {
+						for (const token of canvas.tokens.placeables) {
+							const attached=token.getFlag(moduleName, 'attached') || {};
+							if(Object.keys(attached).length > 0){
+								await TokenAttacher._attachElementsToToken(attached, token, true);					
+							}
+						}
+						
+						ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}));
+						remaining_scenes.shift();
+						if(remaining_scenes.length > 0){
+							Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
+							await game.scenes.get(remaining_scenes[0]).activate();
+							return;	
 						}
 					}
-					
-					ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}));
-					remaining_scenes.shift();
-					if(remaining_scenes.length > 0){
-						Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
-						await game.scenes.get(remaining_scenes[0]).activate();
-						return;	
-					}
 				}
-			}
-			game.settings.set(moduleName, "data-model-version", dataModelVersion);
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));	
+				game.settings.set(moduleName, "data-model-version", dataModelVersion);
+				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));
+			} catch (error) {
+				console.error(error);
+				ui.notifications.error(game.i18n.format("TOKENATTACHER.error.MigrationErrorScene", {scene: game.scenes.active.name}));				
+			}	
 		}
 
 		static migrateAllPrototypeActors(){
@@ -1762,10 +1772,12 @@ import {libWrapper} from './shim.js';
 					let layer = eval(key).layer ?? eval(key).collection;
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
-						const elementAttached = element.getFlag(moduleName, "attached") || {};
-						if(Object.keys(elementAttached).length > 0){
-							if(!add_base(element)){
-								return element;
+						if(element){
+							const elementAttached = element.getFlag(moduleName, "attached") || {};
+							if(Object.keys(elementAttached).length > 0){
+								if(!add_base(element)){
+									return element;
+								}
 							}
 						}
 					}
