@@ -457,7 +457,7 @@ import {libWrapper} from './shim.js';
 							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, updatedElementData, true);
 							for (const key in subUpdates) {
 								if (subUpdates.hasOwnProperty(key)) {
-									updates[key] = updates[key].concat(subUpdates[key]);	
+									updates[key] = subUpdates[key].concat(updates[key] ?? []);	
 									let base_updates = updates[key].filter(item => item._id === elem_id);
 									if(base_updates.length > 0){
 										let non_base_updates = updates[key].filter(item => item._id !== elem_id);
