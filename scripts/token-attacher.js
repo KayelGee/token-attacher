@@ -239,6 +239,7 @@ import {libWrapper} from './shim.js';
 							}
 						}
 						
+						console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}) );
 						ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}));
 						remaining_scenes.shift();
 						if(remaining_scenes.length > 0){
@@ -249,6 +250,7 @@ import {libWrapper} from './shim.js';
 					}
 				}
 				game.settings.set(moduleName, "data-model-version", dataModelVersion);
+				console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}) );
 				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));
 			} catch (error) {
 				console.error(error);
@@ -265,6 +267,7 @@ import {libWrapper} from './shim.js';
 			});
 			const allMappedActors = allActors.map(async (actor) => {return await TokenAttacher.migrateActor(actor)});
 			
+			console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedActors") );
 			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedActors"));
 		}
 		
@@ -335,6 +338,7 @@ import {libWrapper} from './shim.js';
 			for (let i = 0; i < allCompendiums.length; i++) {
 				const pack = allCompendiums[i];
 				const packIndex = await pack.getIndex();
+				console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratingCompendium", {compendium: pack.metadata.label}) );
 				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratingCompendium", {compendium: pack.metadata.label}));
 				for (let j = 0; j < packIndex.length; j++) {
 					const index = packIndex[j];
@@ -351,6 +355,7 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
+			console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedCompendiums"));
 			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedCompendiums"));
 		}
 
@@ -1793,7 +1798,7 @@ import {libWrapper} from './shim.js';
 			//Tokens, Tiles
 			if ( "width" in data && "height" in data ) {
 				let [width, height] = [data.width, data.height];
-				if(type !== "Tile") [width, height] = [width * grid.w, height * grid.h]
+				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (width / 2), y:y + (height / 2)};
 			}
 			//Walls
@@ -1830,6 +1835,12 @@ import {libWrapper} from './shim.js';
 				elements_data[i].z = z + d;				
 			}
 			return elements_data;
+		}
+
+		static isGridSpace(type){
+			if(type === "Tile") return false;
+			if(type === "Drawing") return false;
+			return true;
 		}
 	}
 
