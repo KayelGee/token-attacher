@@ -85,6 +85,7 @@ import {libWrapper} from './shim.js';
 				importFromJSON: TokenAttacher.importFromJSON,
 				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
 				regenerateLinks: TokenAttacher.regenerateLinks,
+				toggleQuickEditMode: TokenAttacher.toggleQuickEditMode
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -136,13 +137,15 @@ import {libWrapper} from './shim.js';
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken("Token", parent, entity, options, userId));
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
+			Hooks.on("canvasInit", (canvasObj) => TokenAttacher.canvasInit(canvasObj));
 
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
 				//Attached elements are not allowed to be moved by anything other then Token Attacher
+				Hooks.on(`update${type}`, (parent, doc, update, options, userId) => TokenAttacher.updateOffset(type, parent, doc, update, options, userId));
 				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
+				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.handleBaseMoved(parent, doc, update, options, userId));
 				Hooks.on(`preDelete${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled));
-				
 				//Deleting attached elements should detach them
 				Hooks.on(`delete${type}`, (parent, doc, options, userId) => TokenAttacher.DetachAfterDelete(type, parent, doc, options, userId));
 				//Recreating an element from Undo History will leave them detached, so reattach them
@@ -410,17 +413,30 @@ import {libWrapper} from './shim.js';
 				)){
 				return;
 			}
-			if(!TokenAttacher.isFirstActiveGM()) return;
+			const layer = canvas.getLayerByEmbeddedName(type);
+			let base =layer.get(doc._id);
+			const attached=base.getFlag(moduleName, "attached") || {};
+			if(Object.keys(attached).length == 0) return true;
 
-			const token = canvas.tokens.get(update._id);
-			const attached=token.getFlag(moduleName, "attached") || {};
-			const tokenCenter = duplicate(token.center);
+			if(game.user._id === userId && game.user.isGM){
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvas.scene._id === quickEdit.scene){
+					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
+					clearTimeout(quickEdit.timer);
+					TokenAttacher._quickEditUpdateOffsetsOfBase(quickEdit, type, doc);
+					quickEdit.timer = setTimeout(TokenAttacher.saveAllQuickEditOffsets, 1000);
+					return;
+				}
+			}
+			if(!TokenAttacher.isFirstActiveGM()) return;
+			if(getProperty(options, `${moduleName}.QuickEdit`)) return;
+			const tokenCenter = duplicate(base.center);
 			if(Object.keys(attached).length == 0) return true;
 			if(getProperty(options, moduleName)) return true;
 
 			TokenAttacher.detectGM();
 
-			const data = [type, mergeObject(duplicate(token.data), update)];
+			const data = [type, mergeObject(duplicate(base.data), update)];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...data);
 			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: data});
 		}
@@ -807,6 +823,14 @@ import {libWrapper} from './shim.js';
 						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
 						button: true
 					  });
+					controls[i].tools.push({
+						name: "TAToggleQuickEdit",
+						title: game.i18n.format("TOKENATTACHER.button.ToggleQuickEditMode"),
+						icon: "fas fa-feather-alt",
+						visible: game.user.isGM,
+						onClick: () => TokenAttacher.toggleQuickEditMode(),
+						button: true
+					});
 				}
 			}
 			console.log("Token Attacher | Tools added.");
@@ -1417,7 +1441,6 @@ import {libWrapper} from './shim.js';
 				}
 			}
 
-			console.log(pasted);
 			//Fix connections
 			await TokenAttacher.regenerateLinks(pasted);
 			await token.unsetFlag(moduleName, "prototypeAttached");
@@ -1656,10 +1679,33 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
 			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'parent') || "";
-			if(document.getElementById("tokenAttacher")) return TokenAttacher.isCurrentAttachUITarget(objParent);
+			if(document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
+			if(game.user.isGM){
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvas.scene._id === quickEdit.scene) {
+					setProperty(options, `${moduleName}.QuickEdit`, true);
+					return true;
+				}
+			}
 			return false;
 		}
 
+		static handleBaseMoved(parent, doc, update, options, userId){
+			if(!(	update.hasOwnProperty("x")
+				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("rotation"))){
+				return true;
+			}
+			let attached = getProperty(doc, `flags.${moduleName}.attached`);
+			if(!attached) return true;
+			if(game.user.isGM){
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvas.scene._id === quickEdit.scene) {
+					setProperty(options, `${moduleName}.QuickEdit`, true);
+				}
+			}
+			return true;
+		}
 		//Attached elements are only allowed to be selected while token attacher ui is open.
 		static isAllowedToControl(object, isControlled){
 			let offset = object.getFlag(moduleName, 'offset') || {};
@@ -1668,6 +1714,11 @@ import {libWrapper} from './shim.js';
 			if(document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
 			let unlocked = object.getFlag(moduleName, 'unlocked');
 			if(unlocked) return;
+			
+			if(game.user.isGM){
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvas.scene._id === quickEdit.scene) return;
+			}
 			return object.release();
 		}
 
@@ -1842,6 +1893,131 @@ import {libWrapper} from './shim.js';
 			if(type === "Tile") return false;
 			if(type === "Drawing") return false;
 			return true;
+		}
+		static toggleQuickEditMode(){
+			if(!game.user.isGM) return;
+
+			let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+			TokenAttacher.setQuickEditMode(quickEdit? false: true);
+		}
+
+		static async setQuickEditMode(value){
+			if(!game.user.isGM) return;
+			
+			if(value) {
+				window.tokenAttacher.quickEdit = {
+					scene: canvas.scene._id,
+					timer: null,
+					elements: {},
+					bases: {}
+				}
+				if(document.getElementById("tokenAttacherQuickEdit")) return;
+				// Get the handlebars output
+				const myHtml = await renderTemplate(`${templatePath}/QuickEdit.html`, {});
+
+				document.getElementById("pause").insertAdjacentHTML('afterend', myHtml);
+
+			}
+			else {
+				if(getProperty(window, 'tokenAttacher.quickEdit')) {
+					//Update Offsets
+					clearTimeout(window.tokenAttacher.quickEdit.timer);
+					window.tokenAttacher.quickEdit.timer = null;
+					const quickEdit = duplicate(window.tokenAttacher.quickEdit);
+					delete quickEdit[game.user._id];
+					delete window.tokenAttacher.quickEdit;
+					await TokenAttacher.saveAllQuickEditOffsets(quickEdit);
+					
+					document.getElementById("tokenAttacherQuickEdit").remove();
+				}
+			}	
+		}
+
+		static async saveAllQuickEditOffsets(quickEdit){
+			if(!quickEdit) {
+				quickEdit = duplicate(window.tokenAttacher.quickEdit);
+				window.tokenAttacher.quickEdit.elements = {};
+				window.tokenAttacher.quickEdit.bases = {};
+				window.tokenAttacher.quickEdit.timer = null;
+			}
+			if(canvas.scene._id !== quickEdit.scene) return;
+
+			let updates = {};
+			for (const key in quickEdit.elements) {
+				const layer = canvas.getLayerByEmbeddedName(key);
+				updates[key] = quickEdit.elements[key].map(elem =>{
+					let element = layer.get(elem._id);
+					//unset offset locally because I've set it locally so the user see's the effects immediatly
+					setProperty(element.data, `flags.${moduleName}.offset`, {});
+					return {_id:elem._id, [`flags.${moduleName}.offset`]: elem.offset};
+				});
+			}
+			//Fire all updates by type
+			for (const key in updates) { 
+				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
+			}
+		}
+
+		static updateOffset(type, parent, doc, update, options, userId){
+			//Only attached need to do anything
+			let offset = getProperty(doc, `flags.${moduleName}.offset`);
+			if(!offset) return;
+			if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
+
+			if(game.user._id === userId && game.user.isGM){
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvas.scene._id === quickEdit.scene){					
+					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
+					clearTimeout(quickEdit.timer);
+					const parent_type = "Token";
+					const parent_layer = canvas.getLayerByEmbeddedName(parent_type);
+					let parent =parent_layer.get(getProperty(doc, `flags.${moduleName}.parent`));
+					TokenAttacher.updateOffsetOfElement(quickEdit, parent_type, parent.data, type, doc._id);
+					quickEdit.timer = setTimeout(TokenAttacher.saveAllQuickEditOffsets, 1000);
+				}
+			}
+		}
+
+		static updateOffsetOfElement(quickEdit, base_type, base_data, type, element_id){
+			const layer = canvas.getLayerByEmbeddedName(type);
+			let element =layer.get(element_id);
+			const new_offset = TokenAttacher.getElementOffset(type, element.data, base_type, base_data, {});
+			//set offset locally only so the user see's the effects immediatly
+			setProperty(element.data, `flags.${moduleName}.offset`, new_offset);
+			if(!getProperty(quickEdit, `elements.${type}`)) quickEdit.elements[type] = [];
+			const elemIndex = quickEdit.elements[type].findIndex(item => item._id === element_id);
+			if(elemIndex === -1) quickEdit.elements[type].push({_id:element_id, offset:new_offset});
+			else quickEdit.elements[type][elemIndex].offset = new_offset;
+		}
+
+		
+		static _quickEditUpdateOffsetsOfBase(quickEdit, type, base_data){
+			let attached = getProperty(base_data, `flags.${moduleName}.attached`);
+			for (const key in attached) { 
+				const layer = canvas.getLayerByEmbeddedName(key);
+				for (let i = 0; i < attached[key].length; i++) {
+					const element_id = attached[key][i];
+					let element =layer.get(element_id);
+					
+					TokenAttacher.updateOffsetOfElement(quickEdit, type, base_data, key, element_id);
+					if(element.getFlag(moduleName, 'attached')){
+						TokenAttacher._quickEditUpdateOffsetsOfBase(key, element.data);
+					}
+				}
+
+			}
+		}
+
+		static canvasInit(canvasObj){
+			if(game.user.isGM){
+				if(!document.getElementById("tokenAttacherQuickEdit")) return;
+				document.getElementById("tokenAttacherQuickEdit").remove();
+
+				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
+				if(quickEdit && canvasObj.scene._id !== quickEdit.scene && quickEdit.timer !== null){
+					ui.notifications.error(game.i18n.format("TOKENATTACHER.error.QuickEditNotFinished"));
+				}				
+			}
 		}
 	}
 

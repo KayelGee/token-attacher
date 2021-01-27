@@ -95,3 +95,38 @@
 #tokenAttacher li i.hidden{
 	display: none;
 }
+
+#tokenAttacherQuickEdit {
+	width: 100%;
+	height: 100px;
+	position: fixed;
+	bottom: 10%;
+	left: -250px;
+	pointer-events: none;
+	z-index: 160;
+	background: url("/ui/pausebg.png") no-repeat 50% 50%;
+	display: block;
+}
+
+#tokenAttacherQuickEdit img{
+	position: absolute;
+	top: -16px;
+	left: calc(50% - 64px);
+	height: 128px;
+	width: 128px;
+	opacity: 0.5;
+	border: none;
+	-webkit-animation: rotation 5s infinite linear;
+}
+
+#tokenAttacherQuickEdit h3{
+	margin: 0;
+	font-size: 2em;
+	font-weight: normal;
+	line-height: 100px;
+	text-align: center;
+	position: relative;
+	z-index: 199;
+	color: #EEE;
+	text-shadow: 1px 1px 30px #000;
+}
