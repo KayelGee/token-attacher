@@ -499,10 +499,21 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			if(return_data) return updates;
+			
+			//Temporary hack to prevent Vehicles endless loops
+			const base_layer = canvas.getLayerByEmbeddedName(type); 
+			let base = base_layer.get(baseData._id);
+			base.data.x = -100000;
+			base.data.y = -100000;
+
 			//Fire all updates by type
 			for (const key in updates) {
 				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
 			}
+			//Temporary hack to prevent Vehicles endless loops
+			base.data.x = baseData.x;
+			base.data.y = baseData.y;
+
 			return;
 		}
 
@@ -1370,10 +1381,16 @@ import {libWrapper} from './shim.js';
 
 		static async updateAttachedCreatedToken(type, parent, entity, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
+			const token = canvas.tokens.get(entity._id);
+
+			//Checks for multilevel tokens and v&m
+			if(getProperty(game, 'multilevel')) {
+				if(game.multilevel._isReplicatedToken(token)) token.unsetFlag(moduleName, 'attached');
+			}
 			if(getProperty(options, "isUndo") === true && getProperty(options, "mlt_bypass") === true) return;
+
 			if(getProperty(options, moduleName)) return;
 			
-			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
 			const attached = token.getFlag(moduleName, "attached") || {};
 			
