@@ -484,7 +484,7 @@ import {libWrapper} from './shim.js';
 			if(return_data) return updates;
 			//Fire all updates by type
 			for (const key in updates) {
-				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});
+				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
 			}
 			return;
 		}
@@ -764,7 +764,7 @@ import {libWrapper} from './shim.js';
 							for (let i = 0; i < arr.length; i++) {
 								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 							}	
-							if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(key, deletes, {[moduleName]:true});						
+							if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(key, deletes, {[moduleName]:{}});						
 						}
 					}
 				}
@@ -789,7 +789,7 @@ import {libWrapper} from './shim.js';
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 				}
-				if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(elements.type, deletes, {[moduleName]:true});	
+				if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(elements.type, deletes, {[moduleName]:{}});	
 			}
 		}
 		
@@ -863,7 +863,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});	
+					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});	
 				}
 			}
 		}
@@ -969,7 +969,7 @@ import {libWrapper} from './shim.js';
 			//Fire Updates
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					if(updates[key].length > 0) await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:true});	
+					if(updates[key].length > 0) await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});	
 				}
 			}
 			if(!suppressNotification) {
@@ -1338,7 +1338,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					let layer = eval(key).layer ?? eval(key).collection;
-					await layer.deleteMany(attached[key], {[moduleName]:true});
+					await layer.deleteMany(attached[key], {[moduleName]:{}});
 				}
 			}
 		}
@@ -1346,7 +1346,7 @@ import {libWrapper} from './shim.js';
 		static async updateAttachedCreatedToken(type, parent, entity, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(getProperty(options, "isUndo") === true && getProperty(options, "mlt_bypass") === true) return;
-			if(getProperty(options, moduleName) === true) return;
+			if(getProperty(options, moduleName)) return;
 			
 			const token = canvas.tokens.get(entity._id);
 			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
@@ -1410,7 +1410,7 @@ import {libWrapper} from './shim.js';
 			for (const key in toCreate) {
 				if (toCreate.hasOwnProperty(key)) {
 					if(key === "Tile") toCreate[key] = TokenAttacher.zSort(true, key, toCreate[key]);
-					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], {[moduleName]:true});
+					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], {[moduleName]:{}});
 					if(!pasted.hasOwnProperty(key)) pasted[key] = [];
 					if(Array.isArray(created)) pasted[key] = pasted[key].concat(created);
 					else pasted[key].push(created);
