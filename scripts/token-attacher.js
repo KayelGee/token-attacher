@@ -1158,7 +1158,7 @@ import {libWrapper} from './shim.js';
 			return size;
 		}
 
-		static getObjectsFromIds(type, idArray){
+		static getObjectsFromIds(base_type, base_data, type, idArray){
 			let layer = eval(type).layer ?? eval(type).collection;
 			let copyArray = [];
 			for (const elementid of idArray) {
@@ -1166,6 +1166,7 @@ import {libWrapper} from './shim.js';
 				const elem_attached = element.getFlag(moduleName, "attached") ?? {};
 				let dup_data = duplicate(element.data);
 				delete dup_data._id;
+				setProperty(dup_data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, dup_data, base_type, mergeObject(duplicate(base_data), getProperty(base_data, `flags.${moduleName}.pos.xy`)), {}));
 				if(Object.keys(elem_attached).length > 0){
 					const prototypeAttached = TokenAttacher.generatePrototypeAttached(element.data, elem_attached);
 					delete dup_data.flags[moduleName].attached;
@@ -1183,7 +1184,7 @@ import {libWrapper} from './shim.js';
 		
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					copyObjects.map[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
+					copyObjects.map[key] = TokenAttacher.getObjectsFromIds("Token", token.data, key, attached[key]);
 				}
 			}
 			copyObjects.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
@@ -1292,7 +1293,7 @@ import {libWrapper} from './shim.js';
 			let prototypeAttached = {};
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					prototypeAttached[key] = TokenAttacher.getObjectsFromIds(key, attached[key]);
+					prototypeAttached[key] = TokenAttacher.getObjectsFromIds("Token", token_data, key, attached[key]);
 				}
 			}	
 			return prototypeAttached;
