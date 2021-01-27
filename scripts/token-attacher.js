@@ -402,6 +402,7 @@ import {libWrapper} from './shim.js';
 		static async UpdateAttachedOfToken(type, parent, doc, update, options, userId){
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("c")
 				||	update.hasOwnProperty("rotation")
 				||	update.hasOwnProperty("direction")
 				||	update.hasOwnProperty("width")
@@ -1672,6 +1673,7 @@ import {libWrapper} from './shim.js';
 		static isAllowedToMove(parent, doc, update, options, userId){
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("c")
 				||	update.hasOwnProperty("rotation"))){
 				return true;
 			}
@@ -1693,6 +1695,7 @@ import {libWrapper} from './shim.js';
 		static handleBaseMoved(parent, doc, update, options, userId){
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
+				||	update.hasOwnProperty("c")
 				||	update.hasOwnProperty("rotation"))){
 				return true;
 			}
