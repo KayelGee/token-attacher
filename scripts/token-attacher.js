@@ -500,19 +500,10 @@ import {libWrapper} from './shim.js';
 			}
 			if(return_data) return updates;
 			
-			//Temporary hack to prevent Vehicles endless loops
-			const base_layer = canvas.getLayerByEmbeddedName(type); 
-			let base = base_layer.get(baseData._id);
-			base.data.x = -100000;
-			base.data.y = -100000;
-
 			//Fire all updates by type
 			for (const key in updates) {
 				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
 			}
-			//Temporary hack to prevent Vehicles endless loops
-			base.data.x = baseData.x;
-			base.data.y = baseData.y;
 
 			return;
 		}
