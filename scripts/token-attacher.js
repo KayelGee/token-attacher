@@ -138,6 +138,7 @@ import {libWrapper} from './shim.js';
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
 			Hooks.on("canvasInit", (canvasObj) => TokenAttacher.canvasInit(canvasObj));
+			Hooks.on("createPlaceableObjects", (parent, createdObjs, options, userId) => TokenAttacher.batchPostProcess(parent, createdObjs, options, userId));
 
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
 				//Attached elements are not allowed to be moved by anything other then Token Attacher
@@ -1454,6 +1455,8 @@ import {libWrapper} from './shim.js';
 			await TokenAttacher.regenerateLinks(pasted);
 			await token.unsetFlag(moduleName, "prototypeAttached");
 			ui.notifications.info(`Pasted elements and attached to token.`);
+			
+			Hooks.callAll("createPlaceableObjects", canvas.scene, pasted, {[moduleName]:{}}, game.userId);
 			return;
 		}
 
@@ -1513,6 +1516,13 @@ import {libWrapper} from './shim.js';
 					await canvas.scene.updateEmbeddedEntity(key, updates[key]);
 				}
 			}
+		}
+
+		
+		static async batchPostProcess(parent, createdObjs, options, userId){			
+			if(!TokenAttacher.isFirstActiveGM()) return;
+			if(getProperty(options, moduleName)) return;
+			await TokenAttacher.regenerateLinks(createdObjs);
 		}
 
 		static async regenerateAttachedFromHistory(token, attached){
