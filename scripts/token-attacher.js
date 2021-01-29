@@ -655,6 +655,13 @@ import {libWrapper} from './shim.js';
 		 */
 		static listen(data){
 			switch (data.event) {
+				case "createPlaceableObjects":
+					{
+						let [parent, createdObjs, options, userId] = data.eventdata;
+						parent = game.scenes.get(parent._id);
+						Hooks.callAll("createPlaceableObjects", parent, createdObjs, options, userId);
+					}
+					break;
 				case "AttachToToken":
 					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._AttachToToken(...data.eventdata);
 					break;
@@ -1441,22 +1448,28 @@ import {libWrapper} from './shim.js';
 
 			pasted[token.constructor.name] = [];
 			pasted[token.constructor.name].push(token.data);
+			await token.unsetFlag(moduleName, "prototypeAttached");
+			
+			let options = {[moduleName]:{base:{type: token.constructor.name, data:token.data}}};
+			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
+			if (allowed === false) {
+			  console.debug(`${moduleName} | creation of PlacableObjects prevented by preCreatePlaceableObjects hook`);
+			  return;
+			}
+
 			for (const key in toCreate) {
 				if (toCreate.hasOwnProperty(key)) {
 					if(key === "Tile") toCreate[key] = TokenAttacher.zSort(true, key, toCreate[key]);
-					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], {[moduleName]:{}});
+					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], options);
 					if(!pasted.hasOwnProperty(key)) pasted[key] = [];
 					if(Array.isArray(created)) pasted[key] = pasted[key].concat(created);
 					else pasted[key].push(created);
 				}
 			}
 
-			//Fix connections
-			await TokenAttacher.regenerateLinks(pasted);
-			await token.unsetFlag(moduleName, "prototypeAttached");
+			Hooks.callAll("createPlaceableObjects", canvas.scene, pasted, options, game.userId);
+			game.socket.emit(`module.${moduleName}`, {event: `createPlaceableObjects`, eventdata: [canvas.scene.data, pasted, options, game.userId]});
 			ui.notifications.info(`Pasted elements and attached to token.`);
-			
-			Hooks.callAll("createPlaceableObjects", canvas.scene, pasted, {[moduleName]:{}}, game.userId);
 			return;
 		}
 
@@ -1521,8 +1534,18 @@ import {libWrapper} from './shim.js';
 		
 		static async batchPostProcess(parent, createdObjs, options, userId){			
 			if(!TokenAttacher.isFirstActiveGM()) return;
-			if(getProperty(options, moduleName)) return;
-			await TokenAttacher.regenerateLinks(createdObjs);
+			let myCreatedObjs = createdObjs;
+			if(getProperty(options, `${moduleName}.base`)){
+				const base = getProperty(options, `${moduleName}.base`);
+				myCreatedObjs = duplicate(createdObjs);
+				if(!getProperty(myCreatedObjs, base.type)) myCreatedObjs[base.type] = [base.data];
+				else{
+					if(!myCreatedObjs[base.type].find(item => item._id === base.data._id)){
+						myCreatedObjs[base.type].push([base.data]);
+					}
+				}
+			}
+			await TokenAttacher.regenerateLinks(myCreatedObjs);
 		}
 
 		static async regenerateAttachedFromHistory(token, attached){
