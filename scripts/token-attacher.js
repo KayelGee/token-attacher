@@ -85,7 +85,8 @@ import {libWrapper} from './shim.js';
 				importFromJSON: TokenAttacher.importFromJSON,
 				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
 				regenerateLinks: TokenAttacher.regenerateLinks,
-				toggleQuickEditMode: TokenAttacher.toggleQuickEditMode
+				toggleQuickEditMode: TokenAttacher.toggleQuickEditMode,
+				deleteMissingLinks: TokenAttacher.deleteMissingLinks
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -134,6 +135,7 @@ import {libWrapper} from './shim.js';
 
 			Hooks.on("updateToken", (parent, doc, update, options, userId) => TokenAttacher.UpdateAttachedOfToken("Token", parent, doc, update, options, userId));
 			Hooks.on("updateActor", (entity, data, options, userId) => TokenAttacher.updateAttachedPrototype(entity, data, options, userId));
+			Hooks.on("preCreateToken", (parent, toCreate, options, userId) => TokenAttacher.preCreateBase(parent, toCreate, options, userId));
 			Hooks.on("createToken", (parent, entity, options, userId) => TokenAttacher.updateAttachedCreatedToken("Token", parent, entity, options, userId));
 			Hooks.on("pasteToken", (copy, toCreate) => TokenAttacher.pasteTokens(copy, toCreate));
 			Hooks.on("deleteToken", (entity, options, userId) => TokenAttacher.deleteToken(entity, options, userId));
@@ -145,7 +147,7 @@ import {libWrapper} from './shim.js';
 				Hooks.on(`update${type}`, (parent, doc, update, options, userId) => TokenAttacher.updateOffset(type, parent, doc, update, options, userId));
 				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
 				Hooks.on(`preUpdate${type}`, (parent, doc, update, options, userId) => TokenAttacher.handleBaseMoved(parent, doc, update, options, userId));
-				Hooks.on(`preDelete${type}`, (parent, doc, update, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, update, options, userId));
+				Hooks.on(`preDelete${type}`, (parent, doc, options, userId) => TokenAttacher.isAllowedToMove(parent, doc, {}, options, userId));
 				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled));
 				//Deleting attached elements should detach them
 				Hooks.on(`delete${type}`, (parent, doc, options, userId) => TokenAttacher.DetachAfterDelete(type, parent, doc, options, userId));
@@ -1378,6 +1380,12 @@ import {libWrapper} from './shim.js';
 			}
 		}
 
+		static preCreateBase(parent, toCreate, options, userId){
+			if(getProperty(toCreate,`flags.${moduleName}.prototypeAttached`)){
+				setProperty(toCreate, `flags.${moduleName}.needsPostProcessing`, true);
+			}
+		}
+
 		static async updateAttachedCreatedToken(type, parent, entity, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const token = canvas.tokens.get(entity._id);
@@ -1411,6 +1419,7 @@ import {libWrapper} from './shim.js';
 			}
 			return;
 		}
+
 		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, return_data = false){
 			grid_multi = mergeObject({size:1, w: 1, h:1}, grid_multi);
 			let pasted = {};
@@ -1445,10 +1454,6 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			if(return_data) return toCreate;
-
-			pasted[token.constructor.name] = [];
-			pasted[token.constructor.name].push(token.data);
-			await token.unsetFlag(moduleName, "prototypeAttached");
 			
 			let options = {[moduleName]:{base:{type: token.constructor.name, data:token.data}}};
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
@@ -1469,7 +1474,7 @@ import {libWrapper} from './shim.js';
 
 			Hooks.callAll("createPlaceableObjects", canvas.scene, pasted, options, game.userId);
 			game.socket.emit(`module.${moduleName}`, {event: `createPlaceableObjects`, eventdata: [canvas.scene.data, pasted, options, game.userId]});
-			ui.notifications.info(`Pasted elements and attached to token.`);
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.PastedAndAttached"));
 			return;
 		}
 
@@ -1478,11 +1483,12 @@ import {libWrapper} from './shim.js';
 		*/
 		static async regenerateLinks(pasted){
 			let updates = {};
-			const pushUpdate = (key, update) => {
-				if(!updates.hasOwnProperty(key)) updates[key] = [];
-				const dupIndex = updates[key].findIndex(item => update._id === item._id);
-				if(dupIndex === -1) updates[key].push(update);
-				else updates[key][dupIndex] = mergeObject(updates[key][dupIndex], update);
+			let afterUpdates = {};
+			const pushUpdate = (key, update, updateObj) => {
+				if(!updateObj.hasOwnProperty(key)) updateObj[key] = [];
+				const dupIndex = updateObj[key].findIndex(item => update._id === item._id);
+				if(dupIndex === -1) updateObj[key].push(update);
+				else updateObj[key][dupIndex] = mergeObject(updateObj[key][dupIndex], update);
 			};
 			for (const key in pasted) {
 				if (pasted.hasOwnProperty(key)) {
@@ -1501,7 +1507,7 @@ import {libWrapper} from './shim.js';
 										const attached_element = new_attached[attKey][j];	
 										let update =  {_id: attached_element._id};	
 										update[`flags.${moduleName}.parent`] = base._id;
-										pushUpdate(attKey, update);
+										pushUpdate(attKey, update, updates);
 									}
 									new_attached[attKey] = new_attached[attKey].map(item => item._id);
 									if(current_attached && current_attached.hasOwnProperty(attKey)){
@@ -1518,7 +1524,12 @@ import {libWrapper} from './shim.js';
 								[`flags.${moduleName}.-=prototypeAttached`]: null,
 								[`flags.${moduleName}.-=grid`]: null
 							};
-							pushUpdate(key, update);
+							let afterUpdate = {
+								_id: base._id, 
+								[`flags.${moduleName}.-=needsPostProcessing`]: null
+							};
+							pushUpdate(key, update, updates);
+							pushUpdate(key, afterUpdate, afterUpdates);
 						}				
 					}
 				}
@@ -1526,11 +1537,43 @@ import {libWrapper} from './shim.js';
 			//Fire updates
 			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedEntity(key, updates[key]);
+					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
+				}
+			}
+			//Fire After updates
+			for (const key in afterUpdates){
+				if (afterUpdates.hasOwnProperty(key)) {
+					await canvas.scene.updateEmbeddedEntity(key, afterUpdates[key], {[moduleName]:{}});
 				}
 			}
 		}
 
+		static async deleteMissingLinks(){		
+			const base_layer = 	canvas.getLayerByEmbeddedName("Token");
+			let deletes = {};
+			const pushUpdate = (key, update, updateObj) => {
+				if(!updateObj.hasOwnProperty(key)) updateObj[key] = [];
+				const dupIndex = updateObj[key].findIndex(item => update=== item);
+				if(dupIndex === -1) updateObj[key].push(update);
+			};
+			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
+				const layer = canvas.getLayerByEmbeddedName(type);
+				for (let i = 0; i < layer.placeables.length; i++) {
+					const element = layer.placeables[i];
+					if(getProperty(element, `data.flags.${moduleName}.needsPostProcessing`)) pushUpdate(type, element.data._id, deletes);
+					else if(getProperty(element, `data.flags.${moduleName}.parent`)){
+						const base = base_layer.get(getProperty(element, `data.flags.${moduleName}.parent`));
+						if(!base) pushUpdate(type, element.data._id, deletes);
+					}
+				}
+			}
+			//Fire deletes
+			for (const key in deletes){
+				if (deletes.hasOwnProperty(key)) {
+					await canvas.scene.deleteEmbeddedEntity(key, deletes[key], {[moduleName]:{}});
+				}
+			}
+		}
 		
 		static async batchPostProcess(parent, createdObjs, options, userId){			
 			if(!TokenAttacher.isFirstActiveGM()) return;
@@ -1545,7 +1588,8 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
-			await TokenAttacher.regenerateLinks(myCreatedObjs);
+			await TokenAttacher.regenerateLinks(myCreatedObjs);	
+			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.PostProcessingFinished"));
 		}
 
 		static async regenerateAttachedFromHistory(token, attached){
@@ -1712,6 +1756,10 @@ import {libWrapper} from './shim.js';
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
 		static isAllowedToMove(parent, doc, update, options, userId){
+			if(getProperty(doc, `flags.${moduleName}.needsPostProcessing`) && !getProperty(options, moduleName)) {				
+				ui.notifications.error(game.i18n.format("TOKENATTACHER.error.PostProcessingNotFinished"));
+				return false;
+			}
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
 				||	update.hasOwnProperty("c")
