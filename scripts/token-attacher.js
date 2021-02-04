@@ -1584,7 +1584,7 @@ import {libWrapper} from './shim.js';
 				if(!getProperty(myCreatedObjs, base.type)) myCreatedObjs[base.type] = [base.data];
 				else{
 					if(!myCreatedObjs[base.type].find(item => item._id === base.data._id)){
-						myCreatedObjs[base.type].push([base.data]);
+						myCreatedObjs[base.type].push(base.data);
 					}
 				}
 			}
@@ -1756,20 +1756,27 @@ import {libWrapper} from './shim.js';
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
 		static isAllowedToMove(parent, doc, update, options, userId){
-			if(getProperty(doc, `flags.${moduleName}.needsPostProcessing`) && !getProperty(options, moduleName)) {				
+			if(	(		update.hasOwnProperty("x")
+					||	update.hasOwnProperty("y")
+					||	update.hasOwnProperty("c")
+					||	update.hasOwnProperty("rotation")
+					||	Object.keys(update).length == 0)
+				&&	getProperty(doc, `flags.${moduleName}.needsPostProcessing`) 
+				&& !getProperty(options, `${moduleName}`)) {				
 				ui.notifications.error(game.i18n.format("TOKENATTACHER.error.PostProcessingNotFinished"));
 				return false;
 			}
+
 			if(!(	update.hasOwnProperty("x")
 				||	update.hasOwnProperty("y")
 				||	update.hasOwnProperty("c")
 				||	update.hasOwnProperty("rotation"))){
 				return true;
 			}
-			let offset = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'offset') || {};
+			let offset = getProperty(doc, `flags.${moduleName}.offset`) || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
-			let objParent = getProperty(getProperty(getProperty(doc, 'flags'), moduleName), 'parent') || "";
+			let objParent = getProperty(doc, `flags.${moduleName}.parent`) || "";
 			if(document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
