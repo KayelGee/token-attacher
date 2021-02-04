@@ -11,7 +11,7 @@
 Attach anything(even other tokens and their attached elements aswell) to tokens, so that they move when the token moves and rotate/move when the token rotates.
 Resizing the base token will also resize all attached elements.
 
-Baileywiki created a great showcase and tutorial video for the 4.0 release. I recommend it if you're updating from 3.x to 4.0 or if you haven't yet used Token Attacher at all: https://www.youtube.com/watch?v=vEtyhxMUFTA
+Baileywiki created a great showcase and tutorial video for the 4.0 release. I recommend it if you're updating from 3.x to 4.0 or if you haven't yet used Token Attacher at all: https://www.youtube.com/watch?v=2i0TX0BS8Vg
 
 Attached elements can no longer be selected via the rectangle selection tool of each layer, unless the attach ui of the base token is open or you use the unlock feature. 
 Attached elements can still be interacted with via double left or right click.
