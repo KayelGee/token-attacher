@@ -1,5 +1,6 @@
 # FoundryVTT - Token Attacher
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/KayelGee/token-attacher?style=for-the-badge) 
+![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Ftoken-attacher&colorB=4aa94a&style=for-the-badge)
 ![GitHub Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/latest/total?style=for-the-badge) 
 ![GitHub All Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/total?style=for-the-badge&label=Downloads+total)  
 
@@ -9,15 +10,18 @@
 
 Attach anything(even other tokens and their attached elements aswell) to tokens, so that they move when the token moves and rotate/move when the token rotates.
 Resizing the base token will also resize all attached elements.
-Attached elements can no longer be selected via the rectangle selection tool of each layer, unless the attach ui of the base token is open. 
+
+Baileywiki created a great showcase and tutorial video for the 4.0 release. I recommend it if you're updating from 3.x to 4.0 or if you haven't yet used Token Attacher at all: https://www.youtube.com/watch?v=vEtyhxMUFTA
+
+Attached elements can no longer be selected via the rectangle selection tool of each layer, unless the attach ui of the base token is open or you use the unlock feature. 
 Attached elements can still be interacted with via double left or right click.
 Attached elements can no longer move independently of the base token.
-When dragging an actor to the canvas the attached tiles will be sorted to the top.
+When dragging an prefab to the canvas the attached tiles will be sorted to the top(but still respect their z order inside the prefab).
 
 To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
 You can also attach those by using the new all layer select tool in combination with a select tool on a layer like the token layer.
 
-Infos for updating from Token Attacher 3.2.x to 4.0:
+## Infos for updating from Token Attacher 3.2.x to 4.0:
  - Backup your world!
  - All Scenes in your world get auto migrated, so that tokens on them will work right away(but it might take some time as every Scene will be loaded)
  - To migrate the Actor Directory:
@@ -34,6 +38,8 @@ Infos for updating from Token Attacher 3.2.x to 4.0:
  	- This can take a while depending on the amount of actors in your compendiums
  	- After it's done it should put out a message and your compendiums are good to go
  	- Only actors with attached elements in their prototype token will be touched
+	
+## Macros
 
 A public interface for usage in macros can be accessed via tokenAttacher, following functions can be called:
  - tokenAttacher.attachElementToToken(element, target_token, suppresNotification=false)
@@ -43,8 +49,8 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsOfToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
-
-## Macros
+ - tokenAttacher.setElementsLockStatus(elements, isLocked, suppressNotification = false),
+ - tokenAttacher.regenerateLinks(elements),
 
 There are some example macros bundled in a macro compendium.
  - Mount Up!:
@@ -59,7 +65,13 @@ There are some example macros bundled in a macro compendium.
   - Select your token and target another token, click 'Dismount/Drop Target' to drop the target if you previously picked it up, it has mounted you or is following you.
  - Stop Follow:
   - Select your token and target another token, click 'Stop Follow' to stop following the target.
-	
+
+Also there are some GM only macros in the macro compendium
+ - Delete Missing Links:
+  - If a prefab didn't get created correctly this will delete all broken elements. You might need to call it mutliple times.
+ - Toggle Quick Edit Mode:
+  - QoL macro that toggles Quick Edit Mode if you don't want to switch to the token layer every time.
+
 Simple Macro Example:
 ```
 (async () => {
@@ -78,7 +90,9 @@ console.log(canvas.tiles.get(all_attached_tiles[0]));
 ## Known Issues
 
  - Moving multiple tokens at the same time doesn't work. Don't do it. If you do it you can fix misalignments by moven each token seperatly afterwards. Also if you need to do it you can attach all tokens to a base token and move the base token, that should cause no issue.
-
+ - Multi Level Tokens and Vehicles & Mechanism are not fully compatible yet. See for example baileywiki's assets and videos to see what is currently possible. 
+ - When dropping a prefab on a scene and then switching the scene or deleting the base token before the "Post processing is done" message shows up can result in broken attachments. Remove them with the 'Delete Missing Links' macro.
+   
 ## Installation
 
 1. token-attacher using manifest URL: https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json
@@ -102,6 +116,10 @@ Detach all elements by clicking the detach all button.
 
 ![](gifs/detach_all.gif)
 
+Enable selection of an attached element by selecting the element and then pressing the unlock button. To prevent the selection again use the lock button.
+
+![](gifs/unlock.gif)
+
 Highlight your attached elements by pressing the highlight button.
 
 ![](gifs/highlight.gif)
@@ -109,6 +127,10 @@ Highlight your attached elements by pressing the highlight button.
 Copy and paste all attached elements by pressing the copy button on the source token and the paste button on the target token.
 
 ![](gifs/copy_paste.gif)
+
+Quickly reposition attached elements without opening the attachment ui by clicking the Quick Edit Button, move attachments and then finish by clicking the Quick Edit Button again.
+
+![](gifs/quick_edit.gif)
 
 Make a prefab by adding a token with attached elements to the prototype Token of an Actor.
 The grid size of the current scene will be saved to the prefab, so when you drag the prefab out on a scene with a different grid size it will resize accordingly.

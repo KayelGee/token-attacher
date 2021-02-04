@@ -5,7 +5,60 @@ import {libWrapper} from './shim.js';
 	const templatePath = `/modules/${moduleName}/templates`;
 	const dataModelVersion = 3;
 	//CONFIG.debug.hooks = true
-
+	const localizedStrings = {
+		error : {
+			NothingSelected: 				"TOKENATTACHER.error.NothingSelected",
+			NoTokensSelected:				"TOKENATTACHER.error.NoTokensSelected",
+			NoActiveGMFound:				"TOKENATTACHER.error.NoActiveGMFound",	
+			ExportAllowsOnlyActor:			"TOKENATTACHER.error.ExportAllowsOnlyActor",	
+			NoValidJSONProvided:			"TOKENATTACHER.error.NoValidJSONProvided",	
+			ElementAlreadyAttachedInChain:	"TOKENATTACHER.error.ElementAlreadyAttachedInChain",
+			ActorDataModelNeedsMigration:	"TOKENATTACHER.error.ActorDataModelNeedsMigration",
+			MigrationErrorScene:			"TOKENATTACHER.error.MigrationErrorScene",
+			QuickEditNotFinished:			"TOKENATTACHER.error.QuickEditNotFinished",
+			PostProcessingNotFinished:		"TOKENATTACHER.error.PostProcessingNotFinished"
+		},
+		info : {
+			ObjectsAttached:				"TOKENATTACHER.info.ObjectsAttached",
+			ObjectsDetached:				"TOKENATTACHER.info.ObjectsDetached",
+			SelectionSaved:					"TOKENATTACHER.info.SelectionSaved",
+			MigrationInProgress:			"TOKENATTACHER.info.MigrationInProgress",
+			MigratedScene:					"TOKENATTACHER.info.MigratedScene",
+			DataModelMergedTo:				"TOKENATTACHER.info.DataModelMergedTo",
+			MigratedActors:					"TOKENATTACHER.info.MigratedActors",
+			MigratingCompendium:			"TOKENATTACHER.info.MigratingCompendium",
+			MigratedCompendiums:			"TOKENATTACHER.info.MigratedCompendiums",
+			DragSelectElements:				"TOKENATTACHER.info.DragSelectElements",
+			PostProcessingFinished:			"TOKENATTACHER.info.PostProcessingFinished",
+			PastedAndAttached:				"TOKENATTACHER.info.PastedAndAttached",
+			ObjectsUnlocked:				"TOKENATTACHER.info.ObjectsUnlocked",
+			ObjectsLocked:					"TOKENATTACHER.info.ObjectsLocked"
+		},
+		button : {
+			AttachToToken:					"TOKENATTACHER.button.AttachToToken",
+			DetachFromToken:				"TOKENATTACHER.button.DetachFromToken",
+			SaveSelection:					"TOKENATTACHER.button.SaveSelection",
+			StartTokenAttach:				"TOKENATTACHER.button.StartTokenAttach",
+			ToggleQuickEditMode:			"TOKENATTACHER.button.ToggleQuickEditMode",
+			select:							"TOKENATTACHER.button.select",
+			link:							"TOKENATTACHER.button.link",
+			unlink:							"TOKENATTACHER.button.unlink",
+			'unlink-all':					"TOKENATTACHER.button.unlink-all",
+			lock:							"TOKENATTACHER.button.lock",
+			highlight:						"TOKENATTACHER.button.highlight",
+			copy:							"TOKENATTACHER.button.copy",
+			paste:							"TOKENATTACHER.button.paste",
+			close:							"TOKENATTACHER.button.close",
+			gmMenu: {
+				SceneMigration:				"TOKENATTACHER.button.gmMenu.SceneMigration",
+				ActorsMigration:			"TOKENATTACHER.button.gmMenu.ActorsMigration",
+				CompendiumsMigration:		"TOKENATTACHER.button.gmMenu.CompendiumsMigration",
+				ImportJSONDialog:			"TOKENATTACHER.button.gmMenu.ImportJSONDialog",
+				ExportActorsToJSON:			"TOKENATTACHER.button.gmMenu.ExportActorsToJSON",
+				ResetMigration:				"TOKENATTACHER.button.gmMenu.ResetMigration"
+			}
+		}
+	}
 	class TASettings extends FormApplication {
 		static init() {
 		game.settings.registerMenu(moduleName, 'menu', {
@@ -164,7 +217,7 @@ import {libWrapper} from './shim.js';
 					  icon: '<i class="fas fa-file-export"></i>',
 					  callback: target => {
 						let pack = game.packs.get(target.data("pack"));
-						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ExportAllowsOnlyActor"));
+						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
 						TokenAttacher.exportCompendiumToJSON(pack);
 					  }
 					  
@@ -211,7 +264,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async migrateToDataModel_3(){
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigrationInProgress", {version: dataModelVersion}));
+			ui.notifications.info(game.i18n.format(localizedStrings.info.MigrationInProgress, {version: dataModelVersion}));
 			let scene_id_array = [];
 			for (const scene of Scene.collection) {
 				scene_id_array.push(scene.data._id);	
@@ -245,8 +298,8 @@ import {libWrapper} from './shim.js';
 							}
 						}
 						
-						console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}) );
-						ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedScene", {scenename: game.scenes.active.name}));
+						console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.MigratedScene, {scenename: game.scenes.active.name}) );
+						ui.notifications.info(game.i18n.format(localizedStrings.info.MigratedScene, {scenename: game.scenes.active.name}));
 						remaining_scenes.shift();
 						if(remaining_scenes.length > 0){
 							Hooks.once('canvasReady', () => TokenAttacher.migrateSceneHook(remaining_scenes));
@@ -256,11 +309,11 @@ import {libWrapper} from './shim.js';
 					}
 				}
 				game.settings.set(moduleName, "data-model-version", dataModelVersion);
-				console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}) );
-				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.DataModelMergedTo", {version: dataModelVersion}));
+				console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.DataModelMergedTo, {version: dataModelVersion}) );
+				ui.notifications.info(game.i18n.format(localizedStrings.info.DataModelMergedTo, {version: dataModelVersion}));
 			} catch (error) {
 				console.error(error);
-				ui.notifications.error(game.i18n.format("TOKENATTACHER.error.MigrationErrorScene", {scene: game.scenes.active.name}));				
+				ui.notifications.error(game.i18n.format(localizedStrings.error.MigrationErrorScene, {scene: game.scenes.active.name}));				
 			}	
 		}
 
@@ -273,8 +326,8 @@ import {libWrapper} from './shim.js';
 			});
 			const allMappedActors = allActors.map(async (actor) => {return await TokenAttacher.migrateActor(actor)});
 			
-			console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedActors") );
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedActors"));
+			console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.MigratedActors) );
+			ui.notifications.info(game.i18n.format(localizedStrings.info.MigratedActors));
 		}
 		
 		static async migrateActor(actor, return_data = false){
@@ -344,8 +397,8 @@ import {libWrapper} from './shim.js';
 			for (let i = 0; i < allCompendiums.length; i++) {
 				const pack = allCompendiums[i];
 				const packIndex = await pack.getIndex();
-				console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratingCompendium", {compendium: pack.metadata.label}) );
-				ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratingCompendium", {compendium: pack.metadata.label}));
+				console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.MigratingCompendium, {compendium: pack.metadata.label}) );
+				ui.notifications.info(game.i18n.format(localizedStrings.info.MigratingCompendium, {compendium: pack.metadata.label}));
 				for (let j = 0; j < packIndex.length; j++) {
 					const index = packIndex[j];
 					const entity = await pack.getEntity(index._id);
@@ -361,8 +414,8 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
-			console.log("Token Attacher | " + game.i18n.format("TOKENATTACHER.info.MigratedCompendiums"));
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.MigratedCompendiums"));
+			console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.MigratedCompendiums));
+			ui.notifications.info(game.i18n.format(localizedStrings.info.MigratedCompendiums));
 		}
 
 		static updatedLockedAttached(){
@@ -648,7 +701,7 @@ import {libWrapper} from './shim.js';
 		static detectGM(){
 			const firstGm = game.users.find((u) => u.isGM && u.active);
 			if(!firstGm){
-				return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoActiveGMFound"));
+				return ui.notifications.error(game.i18n.format(localizedStrings.error.NoActiveGMFound));
 			}
 		}
 		
@@ -696,7 +749,7 @@ import {libWrapper} from './shim.js';
 		 */
 		static async _AttachToToken(token, elements, suppressNotification=false, return_data=false){
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
-			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format(localizedStrings.error.NoTokensSelected));
 			if(!elements.hasOwnProperty("type")) return;
 			
 			let updates = {};
@@ -711,7 +764,7 @@ import {libWrapper} from './shim.js';
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
 			if(dup !== false){
 				console.log("Token Attacher | Element already in Attached Chain: ", dup);
-				return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ElementAlreadyAttachedInChain"));
+				return ui.notifications.error(game.i18n.format(localizedStrings.error.ElementAlreadyAttachedInChain));
 			}
 
 			let token_update = await TokenAttacher.saveBasePositon(token.constructor.name, token, true);
@@ -739,7 +792,7 @@ import {libWrapper} from './shim.js';
 			}
 			await canvas.scene.updateEmbeddedEntity(elements.type, updates[elements.type]);
 
-			if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsAttached"));
+			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsAttached));
 			return; 
 		}
 
@@ -747,7 +800,7 @@ import {libWrapper} from './shim.js';
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static async _StartTokenAttach(token){
-			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format(localizedStrings.error.NoTokensSelected));
 			TokenAttacher.showTokenAttacherUI(token);
 		}
 
@@ -779,7 +832,7 @@ import {libWrapper} from './shim.js';
 		 * Detach previously saved selection of walls to the currently selected token
 		 */
 		static async _DetachFromToken(token, elements, suppressNotification=false, options={}){
-			if(!token) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.NoTokensSelected"));
+			if(!token) return ui.notifications.error(game.i18n.format(localizedStrings.error.NoTokensSelected));
 			if(typeof token === 'string' || token instanceof String) token = canvas.tokens.get(token);
 			if(!token) return;
 			if(!elements || !elements.hasOwnProperty("type")){
@@ -799,7 +852,7 @@ import {libWrapper} from './shim.js';
 				}
 
 				token.unsetFlag(moduleName, "attached");
-				if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsDetached"));
+				if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 				return;
 			}
 			else{
@@ -810,7 +863,7 @@ import {libWrapper} from './shim.js';
 				attached= attached.filter((item) => !elements.data.includes(item));
 				
 				token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
-					if(!suppressNotification) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsDetached"));
+					if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 				});
 				
 				const col = eval(elements.type).layer ?? eval(elements.type).collection;
@@ -830,7 +883,7 @@ import {libWrapper} from './shim.js';
 				if(controls[i].name === "token"){
 					controls[i].tools.push({
 						name: "TAStartTokenAttach",
-						title: game.i18n.format("TOKENATTACHER.button.StartTokenAttach"),
+						title: game.i18n.format(localizedStrings.button.StartTokenAttach),
 						icon: "fas fa-link",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher._StartTokenAttach(canvas.tokens.controlled[0]),
@@ -838,7 +891,7 @@ import {libWrapper} from './shim.js';
 					  });
 					controls[i].tools.push({
 						name: "TAToggleQuickEdit",
-						title: game.i18n.format("TOKENATTACHER.button.ToggleQuickEditMode"),
+						title: game.i18n.format(localizedStrings.button.ToggleQuickEditMode),
 						icon: "fas fa-feather-alt",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher.toggleQuickEditMode(),
@@ -929,7 +982,7 @@ import {libWrapper} from './shim.js';
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				if(current_layer.controlled.length == 1)
 					TokenAttacher.attachElementToToken(current_layer.controlled[0], token);
 				else{
@@ -938,7 +991,7 @@ import {libWrapper} from './shim.js';
 			});
 			$(unlink_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				if(current_layer.controlled.length == 1)
 					TokenAttacher.detachElementFromToken(current_layer.controlled[0], token);
 				else{
@@ -951,7 +1004,7 @@ import {libWrapper} from './shim.js';
 			$(select_tool).click(()=>{
 				select_tool.classList.toggle("active");				
 				if($(document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
-					ui.notifications.info(game.i18n.format(`TOKENATTACHER.info.DragSelectElements`));
+					ui.notifications.info(game.i18n.format(localizedStrings.info.DragSelectElements));
 				}
 			});
 			$(highlight_tool).click(()=>{
@@ -966,12 +1019,12 @@ import {libWrapper} from './shim.js';
 			
 			$(lock_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, true);
 			});
 			$(unlock_tool).click(()=>{
 				const current_layer = canvas.activeLayer;
-				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(`TOKENATTACHER.error.NothingSelected`));
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, false);
 			});
 		}
@@ -1010,8 +1063,8 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			if(!suppressNotification) {
-				if(!isLocked) ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsUnlocked"));
-				else ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsLocked"));
+				if(!isLocked) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsUnlocked));
+				else ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsLocked));
 			}
 		}
 
@@ -1409,7 +1462,7 @@ import {libWrapper} from './shim.js';
 			}
 
 			if(Object.keys(prototypeAttached).length > 0){
-				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format("TOKENATTACHER.error.ActorDataModelNeedsMigration"));
+				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format(localizedStrings.error.ActorDataModelNeedsMigration));
 				
 				let grid_multi = token.getFlag(moduleName, "grid");
 				grid_multi.size = canvas.grid.size / grid_multi.size;
@@ -1474,7 +1527,7 @@ import {libWrapper} from './shim.js';
 
 			Hooks.callAll("createPlaceableObjects", canvas.scene, pasted, options, game.userId);
 			game.socket.emit(`module.${moduleName}`, {event: `createPlaceableObjects`, eventdata: [canvas.scene.data, pasted, options, game.userId]});
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.PastedAndAttached"));
+			ui.notifications.info(game.i18n.format(localizedStrings.info.PastedAndAttached));
 			return;
 		}
 
@@ -1589,7 +1642,7 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			await TokenAttacher.regenerateLinks(myCreatedObjs);	
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.PostProcessingFinished"));
+			ui.notifications.info(game.i18n.format(localizedStrings.info.PostProcessingFinished));
 		}
 
 		static async regenerateAttachedFromHistory(token, attached){
@@ -1691,7 +1744,7 @@ import {libWrapper} from './shim.js';
 				const fd = new FormDataExtended(form[0]);
 				const data = fd.toObject();
 				if ( !data.JSONContent ) {
-				  const err = new Error(game.i18n.format("TOKENATTACHER.error.NoValidJSONProvided"));
+				  const err = new Error(game.i18n.format(localizedStrings.error.NoValidJSONProvided));
 				  return ui.notifications.warn(err.message);
 				}
 				TokenAttacher.importFromJSON(data.JSONContent);
@@ -1763,7 +1816,7 @@ import {libWrapper} from './shim.js';
 					||	Object.keys(update).length == 0)
 				&&	getProperty(doc, `flags.${moduleName}.needsPostProcessing`) 
 				&& !getProperty(options, `${moduleName}`)) {				
-				ui.notifications.error(game.i18n.format("TOKENATTACHER.error.PostProcessingNotFinished"));
+				ui.notifications.error(game.i18n.format(localizedStrings.error.PostProcessingNotFinished));
 				return false;
 			}
 
@@ -1899,7 +1952,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(selected.length === 0) return;
 			TokenAttacher._attachElementsToToken(selected, token, false);
-			ui.notifications.info(game.i18n.format("TOKENATTACHER.info.ObjectsAttached"));
+			ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsAttached));
 		}
 
 		static areDuplicatesInAttachChain(base, attached){
@@ -2114,7 +2167,7 @@ import {libWrapper} from './shim.js';
 
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
 				if(quickEdit && canvasObj.scene._id !== quickEdit.scene && quickEdit.timer !== null){
-					ui.notifications.error(game.i18n.format("TOKENATTACHER.error.QuickEditNotFinished"));
+					ui.notifications.error(game.i18n.format(localizedStrings.error.QuickEditNotFinished));
 				}				
 			}
 		}
