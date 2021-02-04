@@ -49,8 +49,8 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.detachAllElementsFromToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsOfToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
- - tokenAttacher.setElementsLockStatus(elements, isLocked, suppressNotification = false),
- - tokenAttacher.regenerateLinks(elements),
+ - tokenAttacher.setElementsLockStatus(elements, isLocked, suppressNotification = false)
+ - tokenAttacher.regenerateLinks(elements)
 
 There are some example macros bundled in a macro compendium.
  - Mount Up!:
