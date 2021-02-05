@@ -24,6 +24,7 @@ You can also attach those by using the new all layer select tool in combination 
 ## Infos for updating from Token Attacher 3.2.x to 4.0:
  - Backup your world!
  - All Scenes in your world get auto migrated, so that tokens on them will work right away(but it might take some time as every Scene will be loaded)
+ 	- If you have many scenes in your world then at some point you might encounter and error 'You are using a Scene background texture with dimensons x by y...' and 'Background can't be loaded', which don't cause any issues by themselves. You can safely ignore those. If you want to make sure the migration finished properly look in your browser console for  'Token Attacher | Data migration finished. New data model version: 3'. When this message is there then the migration ended succesfully.
  - To migrate the Actor Directory:
  	- open a Scene, set the grid size to what you used to create your tokens
  	- Go to Game Settings/Configure Settings/Module Settings/Token Attacher GM Menu and press "Migrate Sidebar Actors"
