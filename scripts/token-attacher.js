@@ -1517,7 +1517,23 @@ import {libWrapper} from './shim.js';
 
 			for (const key in toCreate) {
 				if (toCreate.hasOwnProperty(key)) {
-					if(key === "Tile") toCreate[key] = TokenAttacher.zSort(true, key, toCreate[key]);
+					if(key === "Tile") {
+						toCreate[key] = TokenAttacher.zSort(true, key, toCreate[key]);
+						let promises = [];
+						for (let i = 0; i < toCreate[key].length; i++) {
+							const element = toCreate[key][i];
+							promises.push(loadTexture(element.img, {fallback: 'icons/svg/hazard.svg'}));
+						}
+						await Promise.all(promises);
+					}
+					if(key === "Drawing") {
+						let promises = [];
+						for (let i = 0; i < toCreate[key].length; i++) {
+							const element = toCreate[key][i];
+							if(element.texture !== "") promises.push(loadTexture(element.texture, {fallback: 'icons/svg/hazard.svg'}));
+						}
+						await Promise.all(promises);
+					}
 					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], options);
 					if(!pasted.hasOwnProperty(key)) pasted[key] = [];
 					if(Array.isArray(created)) pasted[key] = pasted[key].concat(created);
