@@ -1443,7 +1443,7 @@ import {libWrapper} from './shim.js';
 		static async updateAttachedCreatedToken(type, parent, entity, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const token = canvas.tokens.get(entity._id);
-
+			if(!token) return;
 			//Checks for multilevel tokens and v&m
 			if(getProperty(game, 'multilevel')) {
 				if(game.multilevel._isReplicatedToken(token)) token.unsetFlag(moduleName, 'attached');
