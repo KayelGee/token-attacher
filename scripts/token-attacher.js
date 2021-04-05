@@ -1421,6 +1421,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async deleteToken(entity, token_data, userId){
+			if(!TokenAttacher.isFirstActiveGM()) return;
 			const attached=getProperty(token_data, `flags.${moduleName}.attached`) || {};
 			if(Object.keys(attached).length == 0) return true;
 
@@ -1687,7 +1688,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static mapActorForExport(actor){
-			return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder || null, token: actor.data.token};
+			return {img:actor.data.img, name:actor.data.name, folder:actor.data.folder || null, token: actor.data.token, flags: actor.data.flags};
 		}
 
 		static async getActorsWithPrototype(){
@@ -1801,7 +1802,7 @@ import {libWrapper} from './shim.js';
 			}
 			await Promise.all(allPromises);
 			actors.forEach(async actor => {
-				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token});
+				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token, flags: actor.flags});
 			});
 		}
 
@@ -1817,7 +1818,7 @@ import {libWrapper} from './shim.js';
 			let worldCompendium = await Compendium.create({label:label, name: name, entity:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
-				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token});
+				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
 			});
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
