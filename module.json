@@ -29,7 +29,12 @@
 			"lang": "ko",
 			"name": "Korean",
 			"path": "languages/ko.json"
-		}
+		},
+		{
+			"lang": "ja",
+			"name": "日本語",
+			"path": "languages/ja.json"
+    }
 	],
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
