@@ -153,3 +153,8 @@ Auto resizing when the grid size differs.
 ## Contact
 
 If you wish to contact me for any reason, reach me out on Discord using my tag: `KayelGee#5241`
+
+## Credits
+
+Korean translation provided by KLO
+Japanese translation provided by touge
