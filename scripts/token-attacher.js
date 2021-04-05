@@ -467,6 +467,7 @@ import {libWrapper} from './shim.js';
 				||	update.hasOwnProperty("dim")
 				||	update.hasOwnProperty("bright")
 				||	update.hasOwnProperty("distance")
+				||	update.hasOwnProperty("hidden")
 				)){
 				return;
 			}
@@ -572,7 +573,7 @@ import {libWrapper} from './shim.js';
 			const center = TokenAttacher.getCenter(type, data);
 			if(overrideData) data = mergeObject(data, overrideData);
 
-			pos = {base_id: getProperty(data, '_id'), xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction};
+			pos = {base_id: getProperty(data, '_id'), xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction, hidden: data.hidden};
 
 			if(!return_data) return base.setFlag(moduleName, "pos", pos);
 
@@ -1588,6 +1589,7 @@ import {libWrapper} from './shim.js';
 							}
 							let update = {
 								_id: base._id, 
+								hidden: getProperty(base, `flags.${moduleName}.pos.hidden`) ?? base.hidden, 
 								[`flags.${moduleName}.attached`]:new_attached, 
 								[`flags.${moduleName}.pos.base_id`]:base._id,
 								[`flags.${moduleName}.-=prototypeAttached`]: null,
