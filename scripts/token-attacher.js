@@ -266,7 +266,8 @@ import {libWrapper} from './shim.js';
 		static async migrateToDataModel_3(){
 			ui.notifications.info(game.i18n.format(localizedStrings.info.MigrationInProgress, {version: dataModelVersion}));
 			let scene_id_array = [];
-			for (const scene of Scene.collection) {
+			let scene_collection = game.collections.get("Scene");
+			for (const scene of scene_collection) {
 				scene_id_array.push(scene.data._id);	
 			}
 			
@@ -427,7 +428,7 @@ import {libWrapper} from './shim.js';
 				if(isLocked)
 					for (const key in attached) {
 						if (attached.hasOwnProperty(key) && key !== "unknown") {
-							let layer = eval(key).layer ?? eval(key).collection;
+							let layer = TokenAttacher.getLayerOrCollection(key);
 							for (const elementid of attached[key]) {
 								let element = layer.get(elementid);
 								TokenAttacher.lockElement(key, element, false);
@@ -756,7 +757,7 @@ import {libWrapper} from './shim.js';
 			let updates = {};
 			let attached=duplicate(token.getFlag(moduleName, `attached.${elements.type}`) || []);
 			
-			const col = eval(elements.type).layer ?? eval(elements.type).collection;
+			const col = TokenAttacher.getLayerOrCollection(elements.type);
 			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
 			attached = attached.filter((item) => col.get(item));
@@ -867,7 +868,7 @@ import {libWrapper} from './shim.js';
 					if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 				});
 				
-				const col = eval(elements.type).layer ?? eval(elements.type).collection;
+				const col = TokenAttacher.getLayerOrCollection(elements.type);
 				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
@@ -1077,7 +1078,7 @@ import {libWrapper} from './shim.js';
 			
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
 						if(!isLocked) TokenAttacher.lockElement(key, element, false);
@@ -1104,7 +1105,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
 						if(!isHighlighted) element.alpha = 0.5;
@@ -1250,7 +1251,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getObjectsFromIds(base_type, base_data, type, idArray){
-			let layer = eval(type).layer ?? eval(type).collection;
+			let layer = TokenAttacher.getLayerOrCollection(type);
 			let copyArray = [];
 			for (const elementid of idArray) {
 				const element = layer.get(elementid);
@@ -1429,7 +1430,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 					await layer.deleteMany(attached[key], {[moduleName]:{}});
 				}
 			}
@@ -1481,7 +1482,7 @@ import {libWrapper} from './shim.js';
 			let toCreate = {};
 			for (const key in prototypeAttached) {
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 
 					let pos = TokenAttacher.getCenter(type, token.data);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
@@ -1669,7 +1670,7 @@ import {libWrapper} from './shim.js';
 			const newattached= {};
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && attached[key].length > 0) {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 					
 					const undone = await layer.undoHistory();
 					if(Array.isArray(undone)){
@@ -1930,7 +1931,7 @@ import {libWrapper} from './shim.js';
 				TokenAttacher._AttachToToken(parent_token, {type:type, data:[entity._id]}, true);
 			}
 			else{
-				let layer = eval(type).layer ?? eval(type).collection;
+				let layer = TokenAttacher.getLayerOrCollection(type);
 				const element = layer.get(entity._id);
 				
 				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null};
@@ -1997,7 +1998,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = eval(key).layer ?? eval(key).collection;
+					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
 						if(element){
@@ -2189,6 +2190,10 @@ import {libWrapper} from './shim.js';
 					ui.notifications.error(game.i18n.format(localizedStrings.error.QuickEditNotFinished));
 				}				
 			}
+		}
+
+		static getLayerOrCollection(key){
+			return canvas.getLayerByEmbeddedName(key) ?? game.collections.get(key);
 		}
 	}
 
