@@ -293,7 +293,7 @@ import {libWrapper} from './shim.js';
 					}
 					else {
 						for (const token of canvas.tokens.placeables) {
-							const attached=token.getFlag(moduleName, 'attached') || {};
+							const attached=token.document.getFlag(moduleName, 'attached') || {};
 							if(Object.keys(attached).length > 0){
 								await TokenAttacher._attachElementsToToken(attached, token, true);					
 							}
@@ -422,9 +422,9 @@ import {libWrapper} from './shim.js';
 		static updatedLockedAttached(){
 			const tokens = canvas.tokens.placeables;
 			for (const token of tokens) {
-				const attached=token.getFlag(moduleName, "attached") || {};
+				const attached=token.document.getFlag(moduleName, "attached") || {};
 				if(Object.keys(attached).length == 0) continue;
-				const isLocked = token.getFlag(moduleName, "locked") || false;
+				const isLocked = token.document.getFlag(moduleName, "locked") || false;
 				if(isLocked)
 					for (const key in attached) {
 						if (attached.hasOwnProperty(key) && key !== "unknown") {
@@ -473,13 +473,13 @@ import {libWrapper} from './shim.js';
 				return;
 			}
 			const layer = canvas.getLayerByEmbeddedName(type);
-			let base =layer.get(doc._id);
-			const attached=base.getFlag(moduleName, "attached") || {};
+			let base =layer.get(document.data._id);
+			const attached=base.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return true;
 
-			if(game.user._id === userId && game.user.isGM){
+			if(game.user.data._id === userId && game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvas.scene._id === quickEdit.scene){
+				if(quickEdit && canvas.scene.data._id === quickEdit.scene){
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 					clearTimeout(quickEdit.timer);
 					TokenAttacher._quickEditUpdateOffsetsOfBase(quickEdit, type, document);
@@ -755,13 +755,13 @@ import {libWrapper} from './shim.js';
 			if(!elements.hasOwnProperty("type")) return;
 			
 			let updates = {};
-			let attached=duplicate(token.getFlag(moduleName, `attached.${elements.type}`) || []);
+			let attached=duplicate(token.document.getFlag(moduleName, `attached.${elements.type}`) || []);
 			
 			const col = TokenAttacher.getLayerOrCollection(elements.type);
 			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
 			attached = attached.filter((item) => col.get(item));
-			let all_attached=duplicate(token.getFlag(moduleName, `attached`) || {});
+			let all_attached=duplicate(token.document.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
 			if(dup !== false){
@@ -811,7 +811,7 @@ import {libWrapper} from './shim.js';
 		 */
 		static async _updateAttachedOffsets({type, element}){
 			const updateFunc = async (base) =>{
-				let attached=base.getFlag(moduleName, "attached") || {};
+				let attached=base.document.getFlag(moduleName, "attached") || {};
 				for (const key in attached) {
 					if (attached.hasOwnProperty(key) && key !== "unknown") {
 						await TokenAttacher._AttachToToken(base, {type:key, data:attached[key]}, true);
@@ -839,7 +839,7 @@ import {libWrapper} from './shim.js';
 			if(!token) return;
 			if(!elements || !elements.hasOwnProperty("type")){
 				//Detach all
-				let attached=token.getFlag(moduleName, `attached`);
+				let attached=token.document.getFlag(moduleName, `attached`);
 				if(Object.keys(attached).length > 0){
 					for (const key in attached) {
 						if (attached.hasOwnProperty(key)) {
@@ -859,7 +859,7 @@ import {libWrapper} from './shim.js';
 			}
 			else{
 				//Detach all passed elements
-				let attached=token.getFlag(moduleName, `attached.${elements.type}`) || [];
+				let attached=token.document.getFlag(moduleName, `attached.${elements.type}`) || [];
 				if(attached.length === 0) return;
 
 				attached= attached.filter((item) => !elements.data.includes(item));
@@ -962,24 +962,24 @@ import {libWrapper} from './shim.js';
 
 		static async showTokenAttacherUI(token){
 			if(!token) return;
-			if(document.getElementById("tokenAttacher")) await TokenAttacher.closeTokenAttacherUI();			
-			await canvas.scene.setFlag(moduleName, "attach_base", {type:token.constructor.name, element:token.data._id});
-			const locked_status = token.getFlag(moduleName, "locked") || false;
+			if(window.document.getElementById("tokenAttacher")) await TokenAttacher.closeTokenAttacherUI();			
+			await canvas.scene.setFlag(moduleName, "attach_base", {type:token.layer.constructor.documentName, element:token.document.data._id});
+			const locked_status = token.document.getFlag(moduleName, "locked") || false;
 			// Get the handlebars output
-			const myHtml = await renderTemplate(`${templatePath}/tokenAttacherUI.html`, {["token-image"]: token.data.img, ["token-name"]: token.data.name});
+			const myHtml = await renderTemplate(`${templatePath}/tokenAttacherUI.html`, {["token-image"]: token.document.data.img, ["token-name"]: token.document.data.name});
 
 			window.document.getElementById("hud").insertAdjacentHTML('afterend', myHtml);
 
-			let close_button=document.getElementById("tokenAttacher").getElementsByClassName("close")[0];
-			let link_tool=document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
-			let unlink_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
-			let unlinkAll_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
-			let select_tool=document.getElementById("tokenAttacher").getElementsByClassName("select")[0];
-			let highlight_tool=document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
-			let copy_tool=document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
-			let paste_tool=document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
-			let lock_tool=document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
-			let unlock_tool=document.getElementById("tokenAttacher").getElementsByClassName("unlock")[0];
+			let close_button=window.document.getElementById("tokenAttacher").getElementsByClassName("close")[0];
+			let link_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
+			let unlink_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
+			let unlinkAll_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
+			let select_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("select")[0];
+			let highlight_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
+			let copy_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
+			let paste_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
+			let lock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
+			let unlock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlock")[0];
 
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
@@ -1071,9 +1071,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static lockAttached(token, button){
-			const attached=token.getFlag(moduleName, "attached") || {};
+			const attached=token.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
-			const isLocked = token.getFlag(moduleName, "locked") || false;
+			const isLocked = token.document.getFlag(moduleName, "locked") || false;
 			let icons = button.getElementsByTagName("i");
 			
 			for (const key in attached) {
@@ -1098,7 +1098,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static highlightAttached(token, button){
-			const attached=token.getFlag(moduleName, "attached") || {};
+			const attached=token.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
 			let icons = button.getElementsByTagName("i");
 			const isHighlighted = icons[0].classList.contains("hidden");
@@ -1164,11 +1164,11 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getAllAttachedElementsOfToken(target_token, suppressNotification=false){
-			return target_token.getFlag(moduleName, "attached") || {};
+			return target_token.document.getFlag(moduleName, "attached") || {};
 		}
 
 		static getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false){
-			return target_token.getFlag(moduleName, `attached.${type}`) || {};
+			return target_token.document.getFlag(moduleName, `attached.${type}`) || {};
 		}
 
 		/*
@@ -1255,7 +1255,7 @@ import {libWrapper} from './shim.js';
 			let copyArray = [];
 			for (const elementid of idArray) {
 				const element = layer.get(elementid);
-				const elem_attached = element.getFlag(moduleName, "attached") ?? {};
+				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
 				let dup_data = duplicate(element.data);
 				delete dup_data._id;
 				setProperty(dup_data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, dup_data, base_type, mergeObject(duplicate(base_data), getProperty(base_data, `flags.${moduleName}.pos.xy`)), {}));
@@ -1271,7 +1271,7 @@ import {libWrapper} from './shim.js';
 
 		static async copyAttached(token){
 			let copyObjects = {map: {}};
-			const attached=token.getFlag(moduleName, "attached") || {};
+			const attached=token.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return;
 		
 			for (const key in attached) {
@@ -1454,8 +1454,8 @@ import {libWrapper} from './shim.js';
 
 			if(getProperty(options, moduleName)) return;
 			
-			const prototypeAttached = token.getFlag(moduleName, "prototypeAttached") || {};
-			const attached = token.getFlag(moduleName, "attached") || {};
+			const prototypeAttached = token.document.getFlag(moduleName, "prototypeAttached") || {};
+			const attached = token.document.getFlag(moduleName, "attached") || {};
 			
 			if(getProperty(options, "isUndo") === true){
 				if(Object.keys(attached).length > 0){
@@ -1467,7 +1467,7 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(prototypeAttached).length > 0){
 				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format(localizedStrings.error.ActorDataModelNeedsMigration));
 				
-				let grid_multi = token.getFlag(moduleName, "grid");
+				let grid_multi = token.document.getFlag(moduleName, "grid");
 				grid_multi.size = canvas.grid.size / grid_multi.size;
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
@@ -1853,7 +1853,7 @@ import {libWrapper} from './shim.js';
 			if(window.document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvas.scene._id === quickEdit.scene) {
+				if(quickEdit && canvas.scene.data._id === quickEdit.scene) {
 					setProperty(options, `${moduleName}.QuickEdit`, true);
 					return true;
 				}
@@ -1872,7 +1872,7 @@ import {libWrapper} from './shim.js';
 			if(!attached) return true;
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvas.scene._id === quickEdit.scene) {
+				if(quickEdit && canvas.scene.data._id === quickEdit.scene) {
 					setProperty(options, `${moduleName}.QuickEdit`, true);
 				}
 			}
@@ -1880,16 +1880,16 @@ import {libWrapper} from './shim.js';
 		}
 		//Attached elements are only allowed to be selected while token attacher ui is open.
 		static isAllowedToControl(object, isControlled){
-			let offset = object.getFlag(moduleName, 'offset') || {};
+			let offset = object.document.getFlag(moduleName, 'offset') || {};
 			if(Object.keys(offset).length === 0) return;
-			let objParent = object.getFlag(moduleName, 'parent') || {};
-			let unlocked = object.getFlag(moduleName, 'unlocked');
+			let objParent = object.document.getFlag(moduleName, 'parent') || {};
 			if(window.document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
+			let unlocked = object.document.getFlag(moduleName, 'unlocked');
 			if(unlocked) return;
 			
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvas.scene._id === quickEdit.scene) return;
+				if(quickEdit && canvas.scene.data._id === quickEdit.scene) return;
 			}
 			return object.release();
 		}
@@ -1961,7 +1961,7 @@ import {libWrapper} from './shim.js';
 						//filter base out
 						if(obj.data._id === baseId) return;
 						//Filter attached elements except when they are already attached to the base
-						const parent = obj.getFlag(moduleName, 'parent') || "";
+						const parent = obj.document.getFlag(moduleName, 'parent') || "";
 						if(parent !== "" && parent !== baseId) return;
 						//filter all inside selection
 						return Number.between(c.x, x, x+width) && Number.between(c.y, y, y+height);
@@ -2002,7 +2002,7 @@ import {libWrapper} from './shim.js';
 					for (const elementid of attached[key]) {
 						let element = layer.get(elementid);
 						if(element){
-							const elementAttached = element.getFlag(moduleName, "attached") || {};
+							const elementAttached = element.document.getFlag(moduleName, "attached") || {};
 							if(Object.keys(elementAttached).length > 0){
 								if(!add_base(element)){
 									return element;
@@ -2078,7 +2078,7 @@ import {libWrapper} from './shim.js';
 			
 			if(value) {
 				window.tokenAttacher.quickEdit = {
-					scene: canvas.scene._id,
+					scene: canvas.scene.data._id,
 					timer: null,
 					elements: {},
 					bases: {}
@@ -2096,7 +2096,7 @@ import {libWrapper} from './shim.js';
 					clearTimeout(window.tokenAttacher.quickEdit.timer);
 					window.tokenAttacher.quickEdit.timer = null;
 					const quickEdit = duplicate(window.tokenAttacher.quickEdit);
-					delete quickEdit[game.user._id];
+					delete quickEdit[game.user.data._id];
 					delete window.tokenAttacher.quickEdit;
 					await TokenAttacher.saveAllQuickEditOffsets(quickEdit);
 					
@@ -2112,7 +2112,7 @@ import {libWrapper} from './shim.js';
 				window.tokenAttacher.quickEdit.bases = {};
 				window.tokenAttacher.quickEdit.timer = null;
 			}
-			if(canvas.scene._id !== quickEdit.scene) return;
+			if(canvas.scene.data._id !== quickEdit.scene) return;
 
 			let updates = {};
 			for (const key in quickEdit.elements) {
@@ -2136,9 +2136,9 @@ import {libWrapper} from './shim.js';
 			if(!offset) return;
 			if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 
-			if(game.user._id === userId && game.user.isGM){
+			if(game.user.data._id === userId && game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvas.scene._id === quickEdit.scene){					
+				if(quickEdit && canvas.scene.data._id === quickEdit.scene){					
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 					clearTimeout(quickEdit.timer);
 					const parent_type = "Token";
@@ -2172,7 +2172,7 @@ import {libWrapper} from './shim.js';
 					let element =layer.get(element_id);
 					
 					TokenAttacher.updateOffsetOfElement(quickEdit, type, base_data, key, element_id);
-					if(element.getFlag(moduleName, 'attached')){
+					if(element.document.getFlag(moduleName, 'attached')){
 						TokenAttacher._quickEditUpdateOffsetsOfBase(key, element.data);
 					}
 				}
@@ -2182,11 +2182,11 @@ import {libWrapper} from './shim.js';
 
 		static canvasInit(canvasObj){
 			if(game.user.isGM){
-				if(!document.getElementById("tokenAttacherQuickEdit")) return;
-				document.getElementById("tokenAttacherQuickEdit").remove();
+				if(!window.document.getElementById("tokenAttacherQuickEdit")) return;
+				window.document.getElementById("tokenAttacherQuickEdit").remove();
 
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
-				if(quickEdit && canvasObj.scene._id !== quickEdit.scene && quickEdit.timer !== null){
+				if(quickEdit && canvasObj.scene.data._id !== quickEdit.scene && quickEdit.timer !== null){
 					ui.notifications.error(game.i18n.format(localizedStrings.error.QuickEditNotFinished));
 				}				
 			}
