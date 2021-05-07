@@ -560,7 +560,7 @@ import {libWrapper} from './shim.js';
 			
 			//Fire all updates by type
 			for (const key in updates) {
-				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
 			}
 
 			return;
@@ -789,10 +789,10 @@ import {libWrapper} from './shim.js';
 			if(return_data){
 				return updates;
 			}
-				await canvas.scene.updateEmbeddedEntity(token.constructor.name, token_update);
 			if(token.layer.constructor.documentName !== elements.type) {
+				await canvas.scene.updateEmbeddedDocuments(token.layer.constructor.documentName, updates[token.layer.constructor.documentName]);
 			}
-			await canvas.scene.updateEmbeddedEntity(elements.type, updates[elements.type]);
+			await canvas.scene.updateEmbeddedDocuments(elements.type, updates[elements.type]);
 
 			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsAttached));
 			return; 
@@ -848,7 +848,7 @@ import {libWrapper} from './shim.js';
 							for (let i = 0; i < arr.length; i++) {
 								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 							}	
-							if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(key, deletes, {[moduleName]:{}});						
+							if(deletes.length > 0)	canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{}});						
 						}
 					}
 				}
@@ -873,7 +873,7 @@ import {libWrapper} from './shim.js';
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 				}
-				if(deletes.length > 0)	canvas.scene.updateEmbeddedEntity(elements.type, deletes, {[moduleName]:{}});	
+				if(deletes.length > 0)	canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{}});	
 			}
 		}
 		
@@ -955,7 +955,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});	
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});	
 				}
 			}
 		}
@@ -1061,7 +1061,7 @@ import {libWrapper} from './shim.js';
 			//Fire Updates
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					if(updates[key].length > 0) await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});	
+					if(updates[key].length > 0) await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});	
 				}
 			}
 			if(!suppressNotification) {
@@ -1358,7 +1358,7 @@ import {libWrapper} from './shim.js';
 
 			if(return_data) return toCreate;
 			// Create all objects
-			const created = await canvas.scene.createEmbeddedEntity(cls.name, toCreate);
+			const created = await canvas.scene.createEmbeddedDocuments(cls.name, toCreate);
 			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
 			return created;
 		}
@@ -1537,7 +1537,7 @@ import {libWrapper} from './shim.js';
 						}
 						await Promise.all(promises);
 					}
-					const created = await canvas.scene.createEmbeddedEntity(key, toCreate[key], options);
+					const created = await canvas.scene.createEmbeddedDocuments(key, toCreate[key], options);
 					if(!pasted.hasOwnProperty(key)) pasted[key] = [];
 					if(Array.isArray(created)) pasted[key] = pasted[key].concat(created);
 					else pasted[key].push(created);
@@ -1610,13 +1610,13 @@ import {libWrapper} from './shim.js';
 			//Fire updates
 			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
 				}
 			}
 			//Fire After updates
 			for (const key in afterUpdates){
 				if (afterUpdates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedEntity(key, afterUpdates[key], {[moduleName]:{}});
+					await canvas.scene.updateEmbeddedDocuments(key, afterUpdates[key], {[moduleName]:{}});
 				}
 			}
 		}
@@ -2126,7 +2126,7 @@ import {libWrapper} from './shim.js';
 			}
 			//Fire all updates by type
 			for (const key in updates) { 
-				await canvas.scene.updateEmbeddedEntity(key, updates[key], {[moduleName]:{}});
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
 			}
 		}
 
