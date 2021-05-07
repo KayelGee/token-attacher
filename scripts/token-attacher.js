@@ -769,9 +769,9 @@ import {libWrapper} from './shim.js';
 				return ui.notifications.error(game.i18n.format(localizedStrings.error.ElementAlreadyAttachedInChain));
 			}
 
-			let token_update = await TokenAttacher.saveBasePositon(token.constructor.name, token, true);
+			let token_update = await TokenAttacher.saveBasePositon(token.layer.constructor.documentName, token, true);
 			token_update[`flags.${moduleName}.attached.${elements.type}`] = attached;
-			updates[token.constructor.name] = [token_update];
+			updates[token.layer.constructor.documentName] = [token_update];
 
 			const xy = {x:token.data.x, y:token.data.y};
 			const center = {x:token.center.x, y:token.center.y};
@@ -784,13 +784,13 @@ import {libWrapper} from './shim.js';
 				const element = col.get(attached[i]);
 				updates[elements.type].push({_id:attached[i], 
 					[`flags.${moduleName}.parent`]: token.data._id, 
-					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element.data, token.constructor.name, token.data, {})});
+					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element.data, token.layer.constructor.documentName, token.data, {})});
 			}
 			if(return_data){
 				return updates;
 			}
-			if(token.constructor.name !== elements.type) {
 				await canvas.scene.updateEmbeddedEntity(token.constructor.name, token_update);
+			if(token.layer.constructor.documentName !== elements.type) {
 			}
 			await canvas.scene.updateEmbeddedEntity(elements.type, updates[elements.type]);
 
@@ -905,7 +905,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async attachElementToToken(element, target_token, suppressNotification=false){
-			const type = element.constructor.name;
+			const type = element.layer.constructor.documentName;
 			const selected = [element.data._id];
 			
 			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._AttachToToken(target_token, {type:type, data:selected}, suppressNotification);
@@ -916,7 +916,7 @@ import {libWrapper} from './shim.js';
 		static async attachElementsToToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
-				const type = element.constructor.name;
+				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
@@ -927,7 +927,7 @@ import {libWrapper} from './shim.js';
 		static async _attachElementsToToken(selected, target_token, suppressNotification=false){
 			if(typeof target_token === 'string' || target_token instanceof String) target_token = canvas.tokens.get(target_token);
 			let updates = {};
-			const type = target_token.constructor.name;
+			const type = target_token.layer.constructor.documentName;
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
 					let newUpdates =await TokenAttacher._AttachToToken(target_token, {type:key, data:selected[key]}, suppressNotification, true);
@@ -1035,7 +1035,7 @@ import {libWrapper} from './shim.js';
 			let selected = {}
 			if(!Array.isArray(elements)) elements=[elements];
 			for (const element of elements) {
-				const type = element.constructor.name;
+				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
@@ -1130,7 +1130,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static detachElementFromToken(element, target_token, suppressNotification=false){
-			const type = element.constructor.name;
+			const type = element.layer.constructor.documentName;
 			const selected = [element.data._id];
 			
 			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(target_token, {type:type, data:selected}, suppressNotification);
@@ -1140,7 +1140,7 @@ import {libWrapper} from './shim.js';
 		static detachElementsFromToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
-				const type = element.constructor.name;
+				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
@@ -1288,7 +1288,7 @@ import {libWrapper} from './shim.js';
 		static async pasteAttached(token){
 			const copyObjects = duplicate(game.user.getFlag(moduleName, "copy")) || {};
 			if(Object.keys(copyObjects).length == 0) return;
-			await TokenAttacher.saveBasePositon(token.constructor.name, token);
+			await TokenAttacher.saveBasePositon(token.layer.constructor.documentName, token);
 			//Set parent in copyObjects
 			for (const key in copyObjects.map) {
 				if (copyObjects.map.hasOwnProperty(key) && key !== "unknown") {
@@ -1301,7 +1301,7 @@ import {libWrapper} from './shim.js';
 				grid_multi.size = canvas.grid.size / grid_multi.size;
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
-			await TokenAttacher.regenerateAttachedFromPrototype(token.constructor.name, token, copyObjects.map, grid_multi);
+			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi);
 		}
 
 		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
@@ -1511,7 +1511,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(return_data) return toCreate;
 			
-			let options = {[moduleName]:{base:{type: token.constructor.name, data:token.data}}};
+			let options = {[moduleName]:{base:{type: token.layer.constructor.documentName, data:token.data}}};
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
 			if (allowed === false) {
 			  console.debug(`${moduleName} | creation of PlacableObjects prevented by preCreatePlaceableObjects hook`);
@@ -1977,7 +1977,7 @@ import {libWrapper} from './shim.js';
 
 		static areDuplicatesInAttachChain(base, attached){
 			//Check if base tried to attach itself
-			const type = base.constructor.name;
+			const type = base.layer.constructor.documentName;
 			const att = getProperty(attached, type) || [];
 			if(att.indexOf(base.data._id) !== -1) return base;
 
@@ -1985,7 +1985,7 @@ import {libWrapper} from './shim.js';
 			let duplicate = null;
 			//Add base to bases object and return true when no duplicate was found
 			const add_base = (element) => {
-				const type = element.constructor.name;
+				const type = element.layer.constructor.documentName;
 				if(!bases.hasOwnProperty(type)) bases[type] = {};
 				if(!bases[type].hasOwnProperty(element.data._id)){
 					bases[type][element.data._id] = 1;
