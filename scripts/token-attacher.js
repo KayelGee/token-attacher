@@ -143,7 +143,9 @@ import {libWrapper} from './shim.js';
 				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
 				regenerateLinks: TokenAttacher.regenerateLinks,
 				toggleQuickEditMode: TokenAttacher.toggleQuickEditMode,
-				deleteMissingLinks: TokenAttacher.deleteMissingLinks
+				deleteMissingLinks: TokenAttacher.deleteMissingLinks,
+				toggleAnimateStatus: TokenAttacher.toggleAnimateStatus,
+				setAnimateStatus: TokenAttacher.setAnimateStatus,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
