@@ -242,7 +242,7 @@ import {libWrapper} from './shim.js';
 			game.settings.register(moduleName,"data-model-version",{
 				name: "token attacher dataModelVersion",
 				hint: "token attacher dataModelVersion",
-				default: 0,
+				default: dataModelVersion,
 				type: Number,
 				scope: "world",
 				config: false
@@ -656,7 +656,7 @@ import {libWrapper} from './shim.js';
 			let newRot = (anchorRot + offset.offRot) % 360;
 			//if(newRot != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians((newRot - offset.rot) % 360);
+				const deltaRotRad = Math.toRadians((newRot - offset.rot) % 360);
 				// rotate vector around angle
 				let rectCenter = {};
 				rectCenter.x = anchorCenter.x + offset.centerX;
@@ -678,7 +678,7 @@ import {libWrapper} from './shim.js';
 			point.rotation=(anchorRot + offset.offRot) % 360;
 			//if(point.rotation != offset.rot){
 				// get vector from center to template
-				const deltaRotRad = toRadians((point.rotation - offset.rot) % 360);
+				const deltaRotRad = Math.toRadians((point.rotation - offset.rot) % 360);
 				// rotate vector around angle
 				[point.x, point.y] = TokenAttacher.computeRotatedPosition(anchorCenter.x, anchorCenter.y, point.x, point.y, deltaRotRad, size_multi);
 				
