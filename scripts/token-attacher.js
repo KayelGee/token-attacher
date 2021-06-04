@@ -1431,7 +1431,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					let layer = TokenAttacher.getLayerOrCollection(key);
-					await layer.deleteMany(attached[key], {[moduleName]:{}});
+					await canvas.scene.deleteEmbeddedDocuments(layer.constructor.documentName, attached[key], {[moduleName]:{}});
 				}
 			}
 		}
@@ -1643,7 +1643,7 @@ import {libWrapper} from './shim.js';
 			//Fire deletes
 			for (const key in deletes){
 				if (deletes.hasOwnProperty(key)) {
-					await canvas.scene.deleteEmbeddedEntity(key, deletes[key], {[moduleName]:{}});
+					await canvas.scene.deleteEmbeddedDocuments(key, deletes[key], {[moduleName]:{}});
 				}
 			}
 		}
@@ -1816,7 +1816,7 @@ import {libWrapper} from './shim.js';
 			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
 			 
 			const parentMap = {null:{value:null}};
-			let worldCompendium = await Compendium.create({label:label, name: name, entity:"Actor"});
+			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name, entity:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
 				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
@@ -1824,7 +1824,7 @@ import {libWrapper} from './shim.js';
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
 			// }
-			return await worldCompendium.createEntity(creates);
+			return await worldCompendium.documentClass.create(creates, {pack:worldCompendium.collection});
 		}
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
