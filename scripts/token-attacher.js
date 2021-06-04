@@ -482,7 +482,7 @@ import {libWrapper} from './shim.js';
 				if(quickEdit && canvas.scene.data._id === quickEdit.scene){
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 					clearTimeout(quickEdit.timer);
-					TokenAttacher._quickEditUpdateOffsetsOfBase(quickEdit, type, document);
+					TokenAttacher._quickEditUpdateOffsetsOfBase(quickEdit, type, document.data);
 					quickEdit.timer = setTimeout(TokenAttacher.saveAllQuickEditOffsets, 1000);
 					return;
 				}
@@ -848,7 +848,7 @@ import {libWrapper} from './shim.js';
 							for (let i = 0; i < arr.length; i++) {
 								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 							}	
-							if(deletes.length > 0)	canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{}});						
+							if(deletes.length > 0)	await canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{}});						
 						}
 					}
 				}
@@ -863,17 +863,15 @@ import {libWrapper} from './shim.js';
 				if(attached.length === 0) return;
 
 				attached= attached.filter((item) => !elements.data.includes(item));
-				
-				token.setFlag(moduleName, `attached.${elements.type}`, attached).then(()=>{
-					if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
-				});
-				
+								
 				const col = TokenAttacher.getLayerOrCollection(elements.type);
 				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 				}
-				if(deletes.length > 0)	canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{}});	
+				if(deletes.length > 0) await canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{}});	
+				await token.document.setFlag(moduleName, `attached.${elements.type}`, attached);
+				if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 			}
 		}
 		
@@ -1196,6 +1194,15 @@ import {libWrapper} from './shim.js';
 				offset.c[1] = data.c[1] - center.y;
 				offset.c[3] = data.c[3] - center.y;
 			}
+			
+			if(data.hasOwnProperty('points')){
+				offset.points = [];
+				for (let i = 0; i < data.points.length; i++) {
+					offset.points[i] = [];
+					offset.points[i][0] = data.points[i][0];
+					offset.points[i][1] = data.points[i][1];			
+				}
+			}
 			offset.x -= center.x; 
 			offset.y -= center.y;
 			offset.centerX -= center.x;
@@ -1235,8 +1242,14 @@ import {libWrapper} from './shim.js';
 				offset.c[1] *= grid_multi.h;
 				offset.c[3] *= grid_multi.h;
 			}
+			if(offset.hasOwnProperty('points')){
+				for (let i = 0; i < offset.points.length; i++) {
+					offset.points[i][0] *= grid_multi.w;
+					offset.points[i][1] *= grid_multi.h;					
+				}
+			}
 
-			if(type === "Tile"){
+			if(type === "Tile" || type === "Drawing"){
 				offset.size.width  *= grid_multi.w;
 				offset.size.height *= grid_multi.h;
 			}
@@ -1329,6 +1342,11 @@ import {libWrapper} from './shim.js';
 					});
 				}
 
+				if(data.hasOwnProperty('points')){
+					data.points = data.points.map((c, i) => {
+						return [offset.points[i][0], offset.points[i][1]];
+					});
+				}
 				
 				if(data.hasOwnProperty('width')){
 					mergeObject(data, {
@@ -1533,7 +1551,7 @@ import {libWrapper} from './shim.js';
 						let promises = [];
 						for (let i = 0; i < toCreate[key].length; i++) {
 							const element = toCreate[key][i];
-							if(element.texture !== "") promises.push(loadTexture(element.texture, {fallback: 'icons/svg/hazard.svg'}));
+							if(element.texture !== "" && element.texture !== null) promises.push(loadTexture(element.texture, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
 					}
