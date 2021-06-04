@@ -1,5 +1,6 @@
 'use strict';
 import {libWrapper} from './shim.js';
+ 
 (async () => {
 	const moduleName = "token-attacher";
 	const templatePath = `/modules/${moduleName}/templates`;
@@ -16,7 +17,8 @@ import {libWrapper} from './shim.js';
 			ActorDataModelNeedsMigration:	"TOKENATTACHER.error.ActorDataModelNeedsMigration",
 			MigrationErrorScene:			"TOKENATTACHER.error.MigrationErrorScene",
 			QuickEditNotFinished:			"TOKENATTACHER.error.QuickEditNotFinished",
-			PostProcessingNotFinished:		"TOKENATTACHER.error.PostProcessingNotFinished"
+			PostProcessingNotFinished:		"TOKENATTACHER.error.PostProcessingNotFinished",
+			OnlyTokenToggleAnimate:			"TOKENATTACHER.error.OnlyTokenToggleAnimate"
 		},
 		info : {
 			ObjectsAttached:				"TOKENATTACHER.info.ObjectsAttached",
@@ -32,7 +34,8 @@ import {libWrapper} from './shim.js';
 			PostProcessingFinished:			"TOKENATTACHER.info.PostProcessingFinished",
 			PastedAndAttached:				"TOKENATTACHER.info.PastedAndAttached",
 			ObjectsUnlocked:				"TOKENATTACHER.info.ObjectsUnlocked",
-			ObjectsLocked:					"TOKENATTACHER.info.ObjectsLocked"
+			ObjectsLocked:					"TOKENATTACHER.info.ObjectsLocked",
+			AnimationToggled:				"TOKENATTACHER.info.AnimationToggled"
 		},
 		button : {
 			AttachToToken:					"TOKENATTACHER.button.AttachToToken",
@@ -48,6 +51,7 @@ import {libWrapper} from './shim.js';
 			highlight:						"TOKENATTACHER.button.highlight",
 			copy:							"TOKENATTACHER.button.copy",
 			paste:							"TOKENATTACHER.button.paste",
+			toggleAnimate:					"TOKENATTACHER.button.toggleAnimate",
 			close:							"TOKENATTACHER.button.close",
 			gmMenu: {
 				SceneMigration:				"TOKENATTACHER.button.gmMenu.SceneMigration",
@@ -978,6 +982,7 @@ import {libWrapper} from './shim.js';
 			let paste_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
 			let lock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
 			let unlock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlock")[0];
+			let toggle_animate_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("toggle-animate")[0];
 
 			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
 			$(link_tool).click(()=>{
@@ -1015,6 +1020,12 @@ import {libWrapper} from './shim.js';
 			});
 			$(paste_tool).click(()=>{
 				TokenAttacher.pasteAttached(token);
+			});
+			$(toggle_animate_tool).click(()=>{
+				const current_layer = canvas.activeLayer;
+				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
+				if(current_layer !== canvas.getLayerByEmbeddedName("Token")) return ui.notifications.error(game.i18n.format(localizedStrings.error.OnlyTokenToggleAnimate));
+				TokenAttacher.toggleAnimateStatus(current_layer.controlled);
 			});
 			
 			$(lock_tool).click(()=>{
@@ -1864,6 +1875,10 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("rotation"))){
 				return true;
 			}
+
+			let animate = getProperty(document, `data.flags.${moduleName}.animate`) ?? true;
+			if(animate !== undefined) setProperty(options, `animate`, animate);
+
 			let offset = getProperty(document, `data.flags.${moduleName}.offset`) || {};
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, moduleName)) return true;
@@ -1888,6 +1903,10 @@ import {libWrapper} from './shim.js';
 			}
 			let attached = getProperty(document, `data.flags.${moduleName}.attached`);
 			if(!attached) return true;
+			
+			let animate = getProperty(document, `data.flags.${moduleName}.animate`) ?? true;
+			if(animate !== undefined) setProperty(options, `animate`, animate);
+
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
 				if(quickEdit && canvas.scene.data._id === quickEdit.scene) {
@@ -2212,6 +2231,22 @@ import {libWrapper} from './shim.js';
 
 		static getLayerOrCollection(key){
 			return canvas.getLayerByEmbeddedName(key) ?? game.collections.get(key);
+		}
+
+		static async setAnimateStatus(tokens, animate, suppressNotification=false){			
+			let updates = tokens.map(elem =>{
+				return {_id:elem.document.data._id, [`flags.${moduleName}.animate`]: animate};
+			});
+			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{}});
+			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.AnimationToggled, {count: tokens.length}));
+		}
+
+		static async  toggleAnimateStatus(tokens, suppressNotification=false){
+			let updates = tokens.map(elem =>{
+				return {_id:elem.document.data._id, [`flags.${moduleName}.animate`]: !(elem.document.getFlag(moduleName,`animate`) ?? true)};
+			});
+			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{}});
+			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.AnimationToggled, {count: tokens.length}));
 		}
 	}
 

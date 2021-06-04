@@ -9,6 +9,8 @@
 	"TOKENATTACHER.error.MigrationErrorScene": "シーン名：{scene} のマイグレーションでエラーが発生しました。詳細はコンソールを確認してください。",
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacherのクイック編集モードが終了せず、自動保存できませんでした。最後に変更した内容は保存されません。",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacherの後処理が完了していません。その前にシーンを切り替えた場合は「(TA)Delete missing Links」マクロを使用する必要があります。",
+	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
+	
 	"TOKENATTACHER.info.ObjectsAttached": "選択したオブジェクトをコマに連結しました。",
 	"TOKENATTACHER.info.ObjectsDetached": "選択したオブジェクトをコマから切り離しました。",
 	"TOKENATTACHER.info.SelectionSaved": "選択したオブジェクトを、将来の連結のために保存しました。",
@@ -23,6 +25,7 @@
 	"TOKENATTACHER.info.PastedAndAttached": "貼り付けられた要素です。後処理が終わるまでお待ちください……。",
 	"TOKENATTACHER.info.ObjectsUnlocked": "選択した要素がアンロックされました",
 	"TOKENATTACHER.info.ObjectsLocked": "選択した要素がロックされました。",
+	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
 
 	"TOKENATTACHER.button.AttachToToken": "コマに選択範囲を連結する",
 	"TOKENATTACHER.button.DetachFromToken": "コマからすべてを切り離す",
@@ -37,6 +40,7 @@
 	"TOKENATTACHER.button.highlight": "連結要素を強調",
 	"TOKENATTACHER.button.copy": "連結をコピー",
 	"TOKENATTACHER.button.paste": "貼り付けて連結",
+	"TOKENATTACHER.button.toggleAnimate": "Toggle Token Animation",
 	"TOKENATTACHER.button.close": "アタッチUIを閉じる",
 	
 	"TOKENATTACHER.button.gmMenu.SceneMigration": "現在シーンの強制マイグレーション",

@@ -9,6 +9,7 @@
 	"TOKENATTACHER.error.MigrationErrorScene": "Migration error on scene {scene}. See console for more informations.",
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacher Quick Edit Mode was not ended and auto save didn't finish. Your last changes won't be saved.",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacher's Post Processing is not finished. If you switched the scene before then you need to use the (TA)Delete missing Links Macro.",
+	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
 
 	"TOKENATTACHER.info.ObjectsAttached": "Selected objects attached to token.",
 	"TOKENATTACHER.info.ObjectsDetached": "Selected objects detached from token.",
@@ -24,6 +25,7 @@
 	"TOKENATTACHER.info.PastedAndAttached": "Pasted elements. Please wait for post processing to finish...",
 	"TOKENATTACHER.info.ObjectsUnlocked": "Selection for elements unlocked.",
 	"TOKENATTACHER.info.ObjectsLocked": "Selection for elements locked.",
+	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
 
 	"TOKENATTACHER.button.AttachToToken": "Attach selection to token",
 	"TOKENATTACHER.button.DetachFromToken": "Detach all from token",
@@ -38,6 +40,7 @@
 	"TOKENATTACHER.button.highlight": "Highlight attached elements",
 	"TOKENATTACHER.button.copy": "Copy attached elements",
 	"TOKENATTACHER.button.paste": "Paste and attach elements",
+	"TOKENATTACHER.button.toggleAnimate": "Toggle Token Animation",
 	"TOKENATTACHER.button.close": "Close attaching UI",
 	
 	"TOKENATTACHER.button.gmMenu.SceneMigration": "Force migration of current Scene",

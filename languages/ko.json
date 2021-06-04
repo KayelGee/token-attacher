@@ -9,6 +9,7 @@
 	"TOKENATTACHER.error.MigrationErrorScene": "{scene} 씬의 마이그레이션 오류. 자세한 내용은 콘솔을 참조해주세요.",
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacher 빠른 편집 모드가 종료되지 않았으며 자동 저장도 완료되지 않았습니다. 마지막 변경 내용이 저장되지 않습니다.",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacher의 사후 처리가 완료되지 않았습니다. 이전에 씬을 전환한 경우 (TA)미싱 링크 삭제 매크로를 사용해야 합니다.",
+	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
 
 	"TOKENATTACHER.info.ObjectsAttached": "선택된 개체가 토큰에게 부착되었습니다.",
 	"TOKENATTACHER.info.ObjectsDetached": "선택된 개체가 토큰에게 분리되었습니다.",
@@ -24,6 +25,7 @@
 	"TOKENATTACHER.info.PastedAndAttached": "붙여넣기 된 요소. 사후 처리가 완료될 때까지 기다려주십시오...",
 	"TOKENATTACHER.info.ObjectsUnlocked": "요소 선택이 잠금 해제되었습니다.",
 	"TOKENATTACHER.info.ObjectsLocked": "요소 선택이 잠금 되었습니다.",
+	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
 
 	"TOKENATTACHER.button.AttachToToken": "토큰에 선택 항목 부착",
 	"TOKENATTACHER.button.DetachFromToken": "토큰에서 모든 선택 항목 분리",
@@ -38,6 +40,7 @@
 	"TOKENATTACHER.button.highlight": "부착된 요소 강조 표시",
 	"TOKENATTACHER.button.copy": "부착된 요소 복사",
 	"TOKENATTACHER.button.paste": "부착된 요소 붙여넣기",
+	"TOKENATTACHER.button.toggleAnimate": "Toggle Token Animation",
 	"TOKENATTACHER.button.close": "부착 UI 닫기",
 
 	"TOKENATTACHER.button.gmMenu.SceneMigration": "현재 씬에 대한 강제 마이그레이션",
