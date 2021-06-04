@@ -576,7 +576,7 @@ import {libWrapper} from './shim.js';
 
 			pos = {base_id: getProperty(data, '_id'), xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction, hidden: data.hidden};
 
-			if(!return_data) return base.setFlag(moduleName, "pos", pos);
+			if(!return_data) return base.document.setFlag(moduleName, "pos", pos);
 
 			return {_id:data._id, 
 				[`flags.${moduleName}.pos`]: pos};
@@ -853,7 +853,7 @@ import {libWrapper} from './shim.js';
 					}
 				}
 
-				token.unsetFlag(moduleName, "attached");
+				await token.document.unsetFlag(moduleName, "attached");
 				if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 				return;
 			}
@@ -1094,7 +1094,7 @@ import {libWrapper} from './shim.js';
 				icons[0].classList.toggle("hidden", false);
 				icons[1].classList.toggle("hidden", true);
 			}
-			token.setFlag(moduleName, "locked", !isLocked); 
+			token.document.setFlag(moduleName, "locked", !isLocked); 
 		}
 
 		static highlightAttached(token, button){
@@ -1448,7 +1448,7 @@ import {libWrapper} from './shim.js';
 			if(!token) return;
 			//Checks for multilevel tokens and v&m
 			if(getProperty(game, 'multilevel')) {
-				if(game.multilevel._isReplicatedToken(token)) token.unsetFlag(moduleName, 'attached');
+				if(game.multilevel._isReplicatedToken(token)) token.document.unsetFlag(moduleName, 'attached');
 			}
 			if(getProperty(options, "isUndo") === true && getProperty(options, "mlt_bypass") === true) return;
 
@@ -1684,8 +1684,8 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			
-			await token.unsetFlag(moduleName, `attached`);
-			await token.setFlag(moduleName, `attached`, newattached);
+			await token.document.unsetFlag(moduleName, `attached`);
+			await token.document.setFlag(moduleName, `attached`, newattached);
 		}
 
 		static mapActorForExport(actor){
