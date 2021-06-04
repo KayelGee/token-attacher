@@ -638,6 +638,14 @@ import {libWrapper} from './shim.js';
 				if(data.hasOwnProperty('radius')){
 					update.radius 	= offset.size.radius * size_multi.w;
 				}
+				if(data.hasOwnProperty('points')){
+					let points = duplicate(data.points);
+					for (let i = 0; i < points.length; i++) {
+						points[i][0] = offset.points[i][0] * size_multi.w;
+						points[i][1] = offset.points[i][1] * size_multi.h;					
+					}
+					update.points = points;
+				}
 				return update;
 			}
 			//Point Entities
