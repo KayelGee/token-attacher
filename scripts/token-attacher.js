@@ -146,6 +146,7 @@ import {libWrapper} from './shim.js';
 				deleteMissingLinks: TokenAttacher.deleteMissingLinks,
 				toggleAnimateStatus: TokenAttacher.toggleAnimateStatus,
 				setAnimateStatus: TokenAttacher.setAnimateStatus,
+				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -2286,6 +2287,58 @@ import {libWrapper} from './shim.js';
 		static layerGetElement(layer, id){
 			const foreground = canvas.foreground;
 			return layer.get(id) ?? foreground.get(id);
+		}
+
+		static async migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly){
+			const allCompendiums = [...game.packs].filter(pack =>{
+				if(pack.locked) return false;
+				if(pack.metadata.entity !== "Actor") return false;
+				return true;
+			});
+			let elementCount = 0;
+			for (let i = 0; i < allCompendiums.length; i++) {
+				const pack = allCompendiums[i];
+				const packIndex = await pack.getIndex();
+				let options = {};
+				options.pack = pack;
+				for (const index of packIndex) {
+					const entity = await pack.getDocument(index._id);				
+					const prototypeAttached = getProperty(entity, `data.token.flags.${moduleName}.prototypeAttached`);
+					if(prototypeAttached){
+						const updateElement = migrateFunc;
+						const updateBase = (base) =>{
+							const children = getProperty(base, `flags.${moduleName}.prototypeAttached`) ?? getProperty(base, `flags.${moduleName}.attached`);
+							if(!children) return;
+							for (let i = 0; i < elementTypes.length; i++) {
+								const type = elementTypes[i];
+								
+								if(children.hasOwnProperty(type)){
+									for (let i = 0; i < children[type].length; i++) {
+										const elem = children[type][i];
+										updateElement(elem, type);
+									}
+								}
+							}
+							
+							for (const key in children) {
+								if (children.hasOwnProperty(key)) {
+									for (let i = 0; i < children[key].length; i++) {
+										const element = children[key][i];
+										updateBase(element, key);
+									}
+								}
+							}
+						}
+						let new_token = duplicate(getProperty(entity, `data.token`));
+						if(elementTypes.includes("Token")) updateElement(new_token, "Token");
+						if(!topLevelOnly) updateBase(new_token);
+						elementCount++;
+						await entity.update({token: new_token}, options);
+					}
+				}
+				console.log("Token Attacher - Done migrating Elements in " + pack.metadata.label);
+			}				
+			console.log(`Token Attacher - Done migrating ${elementCount} Elements in ${allCompendiums.length} Compendiums!`);
 		}
 	}
 
