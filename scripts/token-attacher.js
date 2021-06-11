@@ -479,7 +479,7 @@ import {libWrapper} from './shim.js';
 				return;
 			}
 			const layer = canvas.getLayerByEmbeddedName(type);
-			let base =layer.get(document.data._id);
+			let base = TokenAttacher.layerGetElement(layer, document.data._id);
 			const attached=base.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return true;
 
@@ -513,7 +513,7 @@ import {libWrapper} from './shim.js';
 			//Get Entities
 			for (const key in attached) {
 				const layer = canvas.getLayerByEmbeddedName(key);
-				attachedEntities[key] = attached[key].map(id => layer.get(id));
+				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id));
 			}
 
 			let updates = {};
@@ -834,10 +834,10 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			const layer = canvas.getLayerByEmbeddedName(type);
-			if(typeof element === 'string' || element instanceof String) element = layer.get(element);
+			if(typeof element === 'string' || element instanceof String) element = TokenAttacher.layerGetElement(layer, element);
 			if(Array.isArray(element)){
 				for (let i = 0; i < element.length; i++) {
-					const elem = layer.get(element[i]);
+					const elem = TokenAttacher.layerGetElement(layer, element[i]);
 					await updateFunc(elem);
 				}
 			}
@@ -1067,8 +1067,9 @@ import {libWrapper} from './shim.js';
 			let updates = {};
 			for (const key in elements) {
 				if (elements.hasOwnProperty(key)) {
+					const layer = canvas.getLayerByEmbeddedName(key);
 					for (let i = 0; i < elements[key].length; i++) {
-						const element = canvas.getLayerByEmbeddedName(key).get(elements[key][i]);
+						const element = TokenAttacher.layerGetElement(layer, elements[key][i]);
 						if(getProperty(element, `data.flags.${moduleName}.parent`)){
 							if(!updates.hasOwnProperty(key)) updates[key] = [];
 							if(!isLocked) updates[key].push({_id:element.data._id, [`flags.${moduleName}.unlocked`]:true});
@@ -1622,7 +1623,7 @@ import {libWrapper} from './shim.js';
 									}
 									new_attached[attKey] = new_attached[attKey].map(item => item._id);
 									if(current_attached && current_attached.hasOwnProperty(attKey)){
-										current_attached[attKey] = current_attached[attKey].filter(item => getProperty(layer.get(item) , `flags.${moduleName}.parent`) === base._id);
+										current_attached[attKey] = current_attached[attKey].filter(item => getProperty(TokenAttacher.layerGetElement(layer, item) , `document.dataflags.${moduleName}.parent`) === base._id);
 										new_attached[attKey] = [...new Set(new_attached[attKey].concat(current_attached[attKey]))];
 									}
 									if(new_attached[attKey].length <= 0) delete new_attached[attKey];
@@ -1670,13 +1671,19 @@ import {libWrapper} from './shim.js';
 			};
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
 				const layer = canvas.getLayerByEmbeddedName(type);
-				for (let i = 0; i < layer.placeables.length; i++) {
-					const element = layer.placeables[i];
-					if(getProperty(element, `data.flags.${moduleName}.needsPostProcessing`)) pushUpdate(type, element.data._id, deletes);
-					else if(getProperty(element, `data.flags.${moduleName}.parent`)){
-						const base = base_layer.get(getProperty(element, `data.flags.${moduleName}.parent`));
-						if(!base) pushUpdate(type, element.data._id, deletes);
+				const deleteLinks = (layer) => {
+						for (let i = 0; i < layer.placeables.length; i++) {
+							const element = layer.placeables[i];
+							if(getProperty(element, `data.flags.${moduleName}.needsPostProcessing`)) pushUpdate(type, element.data._id, deletes);
+							else if(getProperty(element, `data.flags.${moduleName}.parent`)){
+								const base = base_layer.get(getProperty(element, `data.flags.${moduleName}.parent`));
+								if(!base) pushUpdate(type, element.data._id, deletes);
+							}
+						}
 					}
+				deleteLinks(layer);
+				if(type === "Tile"){
+					deleteLinks(canvas.foreground);
 				}
 			}
 			//Fire deletes
@@ -2000,22 +2007,28 @@ import {libWrapper} from './shim.js';
 			const token = canvas.tokens.get(baseId);
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
 				const layer = canvas.getLayerByEmbeddedName(type);
-				//if (layer.options.controllableObjects) {
-					// Identify controllable objects
-					const controllable = layer.placeables.filter(obj => obj.visible && (obj.control instanceof Function));
-					const newSet = controllable.filter(obj => {
-						let c = obj.center;
-						//filter base out
-						if(obj.data._id === baseId) return;
-						//Filter attached elements except when they are already attached to the base
-						const parent = obj.document.getFlag(moduleName, 'parent') || "";
-						if(parent !== "" && parent !== baseId) return;
-						//filter all inside selection
-						return Number.between(c.x, x, x+width) && Number.between(c.y, y, y+height);
-					});		
-					selected[type] = newSet.map(a => a.data._id);
-					if(selected[type].length <= 0) delete selected[type];		
-				//}
+				const selectAll = (layer) => {
+					//if (layer.options.controllableObjects) {
+						// Identify controllable objects
+						const controllable = layer.placeables.filter(obj => obj.visible && (obj.control instanceof Function));
+						const newSet = controllable.filter(obj => {
+							let c = obj.center;
+							//filter base out
+							if(obj.data._id === baseId) return;
+							//Filter attached elements except when they are already attached to the base
+							const parent = obj.document.getFlag(moduleName, 'parent') || "";
+							if(parent !== "" && parent !== baseId) return;
+							//filter all inside selection
+							return Number.between(c.x, x, x+width) && Number.between(c.y, y, y+height);
+						});		
+						selected[type] = newSet.map(a => a.data._id);
+						if(selected[type].length <= 0) delete selected[type];		
+					//}
+					}
+				selectAll(layer);
+				if(type === "Tile"){
+					selectAll(canvas.foreground);
+				}
 			}
 			if(selected.length === 0) return;
 			TokenAttacher._attachElementsToToken(selected, token, false);
@@ -2087,23 +2100,34 @@ import {libWrapper} from './shim.js';
 		}
 		//Update z in elements_data and return elements_data
 		static zSort(up, type, elements_data) {	
-			let layer = canvas.getLayerByEmbeddedName(type);
+			const layer = canvas.getLayerByEmbeddedName(type);
+			const overhead_layer = canvas.foreground;
 			const siblings = layer.placeables;	
+			const overhead_siblings = overhead_layer.placeables;	
 			// Determine target sort index
-			let z = 0;
+			let z_background = 0;
+			let z_foreround = 0;
 			if ( up ) {
 				elements_data.sort((a, b) => a.z - b.z);
-			  	z = siblings.length ? Math.max(...siblings.map(o => o.data.z)) + 1 : 1;
+			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.data.z)) + 1 : 1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.data.z)) + 1 : 1;
 			}
 			else {
 				elements_data.sort((a, b) => b.z - a.z);
-			  	z = siblings.length ? Math.min(...siblings.map(o => o.data.z)) - 1 : -1;
+			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.data.z)) - 1 : -1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.data.z)) + 1 : 1;
 			}
 		
 			// Update all controlled objects
-			for (let i = 0; i < elements_data.length; i++) {
-				let d = up ? i : i * -1;
-				elements_data[i].z = z + d;				
+			for (let i = 0, j =0, k = 0; i < elements_data.length; i++) {
+				let d;
+				if(elements_data[i]?.overhead === "true"){
+					d = up ? k++ : k++ * -1;
+				}
+				else{					
+					d = up ? j++ : j++ * -1;
+				}
+				elements_data[i].z = z_background + d;				
 			}
 			return elements_data;
 		}
@@ -2165,7 +2189,7 @@ import {libWrapper} from './shim.js';
 			for (const key in quickEdit.elements) {
 				const layer = canvas.getLayerByEmbeddedName(key);
 				updates[key] = quickEdit.elements[key].map(elem =>{
-					let element = layer.get(elem._id);
+					let element = TokenAttacher.layerGetElement(layer, _id);
 					//unset offset locally because I've set it locally so the user see's the effects immediatly
 					setProperty(element.data, `flags.${moduleName}.offset`, {});
 					return {_id:elem._id, [`flags.${moduleName}.offset`]: elem.offset};
@@ -2190,7 +2214,8 @@ import {libWrapper} from './shim.js';
 					clearTimeout(quickEdit.timer);
 					const parent_type = "Token";
 					const parent_layer = canvas.getLayerByEmbeddedName(parent_type);
-					let parent =parent_layer.get(getProperty(document, `data.flags.${moduleName}.parent`));
+					const parent_id = getProperty(document, `data.flags.${moduleName}.parent`);
+					let parent = TokenAttacher.layerGetElement(parent_layer, parent_id);
 					TokenAttacher.updateOffsetOfElement(quickEdit, parent_type, parent.data, type, document.data._id);
 					quickEdit.timer = setTimeout(TokenAttacher.saveAllQuickEditOffsets, 1000);
 				}
@@ -2199,7 +2224,7 @@ import {libWrapper} from './shim.js';
 
 		static updateOffsetOfElement(quickEdit, base_type, base_data, type, element_id){
 			const layer = canvas.getLayerByEmbeddedName(type);
-			let element =layer.get(element_id);
+			let element = TokenAttacher.layerGetElement(layer, element_id);
 			const new_offset = TokenAttacher.getElementOffset(type, element.data, base_type, base_data, {});
 			//set offset locally only so the user see's the effects immediatly
 			setProperty(element.data, `flags.${moduleName}.offset`, new_offset);
@@ -2216,8 +2241,7 @@ import {libWrapper} from './shim.js';
 				const layer = canvas.getLayerByEmbeddedName(key);
 				for (let i = 0; i < attached[key].length; i++) {
 					const element_id = attached[key][i];
-					let element =layer.get(element_id);
-					
+					let element =TokenAttacher.layerGetElement(layer, element_id);
 					TokenAttacher.updateOffsetOfElement(quickEdit, type, base_data, key, element_id);
 					if(element.document.getFlag(moduleName, 'attached')){
 						TokenAttacher._quickEditUpdateOffsetsOfBase(key, element.data);
@@ -2257,6 +2281,11 @@ import {libWrapper} from './shim.js';
 			});
 			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{}});
 			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.AnimationToggled, {count: tokens.length}));
+		}
+
+		static layerGetElement(layer, id){
+			const foreground = canvas.foreground;
+			return layer.get(id) ?? foreground.get(id);
 		}
 	}
 
