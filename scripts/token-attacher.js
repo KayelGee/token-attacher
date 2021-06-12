@@ -407,9 +407,9 @@ import {libWrapper} from './shim.js';
 				const packIndex = await pack.getIndex();
 				console.log("Token Attacher | " + game.i18n.format(localizedStrings.info.MigratingCompendium, {compendium: pack.metadata.label}) );
 				ui.notifications.info(game.i18n.format(localizedStrings.info.MigratingCompendium, {compendium: pack.metadata.label}));
-				for (let j = 0; j < packIndex.length; j++) {
-					const index = packIndex[j];
-					const entity = await pack.getEntity(index._id);
+				
+				for (const index of packIndex) {
+					const entity = await pack.getDocument(index._id);
 					const prototypeAttached = getProperty(entity, `data.token.flags.${moduleName}.prototypeAttached`);
 					console.log(index._id);
 					console.log(entity);
@@ -1779,9 +1779,8 @@ import {libWrapper} from './shim.js';
 				const packIndex = await pack.getIndex();
 				console.log(pack);
 				console.log(packIndex);
-				for (let j = 0; j < packIndex.length; j++) {
-					const index = packIndex[j];
-					const entity = await pack.getEntity(index._id);
+				for (const index of packIndex) {
+					const entity = await pack.getDocument(index._id);
 					console.log(entity);
 				}
 			}
@@ -1792,9 +1791,8 @@ import {libWrapper} from './shim.js';
 			console.log(pack);
 			console.log(packIndex);
 			let actors = [];
-			for (let j = 0; j < packIndex.length; j++) {
-				const index = packIndex[j];
-				const entity = await pack.getEntity(index._id);
+			for (const index of packIndex) {
+				const entity = await pack.getDocument(index._id);
 				actors.push(TokenAttacher.mapActorForExport(entity));
 				console.log(entity);
 			}
