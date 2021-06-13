@@ -437,7 +437,7 @@ import {libWrapper} from './shim.js';
 						if (attached.hasOwnProperty(key) && key !== "unknown") {
 							let layer = TokenAttacher.getLayerOrCollection(key);
 							for (const elementid of attached[key]) {
-								let element = layer.get(elementid);
+								let element = TokenAttacher.layerGetElement(layer, elementid);
 								TokenAttacher.lockElement(key, element, false);
 							}
 						}
@@ -775,7 +775,7 @@ import {libWrapper} from './shim.js';
 			const col = TokenAttacher.getLayerOrCollection(elements.type);
 			attached = attached.concat(elements.data.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
-			attached = attached.filter((item) => col.get(item));
+			attached = attached.filter((item) => TokenAttacher.layerGetElement(col, item));
 			let all_attached=duplicate(token.document.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
@@ -879,7 +879,6 @@ import {libWrapper} from './shim.js';
 
 				attached= attached.filter((item) => !elements.data.includes(item));
 								
-				const col = TokenAttacher.getLayerOrCollection(elements.type);
 				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
@@ -1101,7 +1100,7 @@ import {libWrapper} from './shim.js';
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = layer.get(elementid);
+						let element = TokenAttacher.layerGetElement(layer, elementid);
 						if(!isLocked) TokenAttacher.lockElement(key, element, false);
 						else TokenAttacher.lockElement(key, element, true);
 					}
@@ -1128,7 +1127,7 @@ import {libWrapper} from './shim.js';
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = layer.get(elementid);
+						let element = TokenAttacher.layerGetElement(layer, elementid);
 						if(!isHighlighted) element.alpha = 0.5;
 						else element.alpha = 1;
 					}
@@ -1290,7 +1289,7 @@ import {libWrapper} from './shim.js';
 			let layer = TokenAttacher.getLayerOrCollection(type);
 			let copyArray = [];
 			for (const elementid of idArray) {
-				const element = layer.get(elementid);
+				const element = TokenAttacher.layerGetElement(layer, elementid);
 				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
 				let dup_data = duplicate(element.data);
 				delete dup_data._id;
@@ -1985,7 +1984,7 @@ import {libWrapper} from './shim.js';
 			}
 			else{
 				let layer = TokenAttacher.getLayerOrCollection(type);
-				const element = layer.get(entity._id);
+				const element = TokenAttacher.layerGetElement(layer, entity._id);
 				
 				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null};
 				await element.update(deletes);
@@ -2019,8 +2018,9 @@ import {libWrapper} from './shim.js';
 							if(parent !== "" && parent !== baseId) return;
 							//filter all inside selection
 							return Number.between(c.x, x, x+width) && Number.between(c.y, y, y+height);
-						});		
-						selected[type] = newSet.map(a => a.data._id);
+						});	
+						if(!Array.isArray(selected[type])) selected[type] = [];	
+						selected[type] = selected[type].concat(newSet.map(a => a.data._id).filter(a => !selected[type].includes(a)));
 						if(selected[type].length <= 0) delete selected[type];		
 					//}
 					}
@@ -2059,7 +2059,7 @@ import {libWrapper} from './shim.js';
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = layer.get(elementid);
+						let element = TokenAttacher.layerGetElement(layer, elementid);
 						if(element){
 							const elementAttached = element.document.getFlag(moduleName, "attached") || {};
 							if(Object.keys(elementAttached).length > 0){
