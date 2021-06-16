@@ -1892,7 +1892,7 @@ import {libWrapper} from './shim.js';
 			}
 
 			let animate = getProperty(document, `data.flags.${moduleName}.animate`) ?? true;
-			if(animate !== undefined) setProperty(options, `animate`, animate);
+			if(!animate) setProperty(options, `animate`, animate);
 
 			let offset = getProperty(document, `data.flags.${moduleName}.offset`) || {};
 			if(Object.keys(offset).length === 0) return true;
@@ -1920,7 +1920,7 @@ import {libWrapper} from './shim.js';
 			if(!attached) return true;
 			
 			let animate = getProperty(document, `data.flags.${moduleName}.animate`) ?? true;
-			if(animate !== undefined) setProperty(options, `animate`, animate);
+			if(!animate) setProperty(options, `animate`, animate);
 
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
