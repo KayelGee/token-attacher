@@ -59,7 +59,8 @@ import {libWrapper} from './shim.js';
 				CompendiumsMigration:		"TOKENATTACHER.button.gmMenu.CompendiumsMigration",
 				ImportJSONDialog:			"TOKENATTACHER.button.gmMenu.ImportJSONDialog",
 				ExportActorsToJSON:			"TOKENATTACHER.button.gmMenu.ExportActorsToJSON",
-				ResetMigration:				"TOKENATTACHER.button.gmMenu.ResetMigration"
+				ResetMigration:				"TOKENATTACHER.button.gmMenu.ResetMigration",
+				PurgeTADataInScene:			"TOKENATTACHER.button.gmMenu.PurgeTADataInScene"
 			}
 		}
 	}
@@ -113,6 +114,7 @@ import {libWrapper} from './shim.js';
 			let force_compendium_migration=html.find(".compendium-migration");
 			let import_json_dialog=html.find(".import-json-dialog");
 			let export_actors_to_json=html.find(".export-actors-to-json");
+			let purge_ta_data_in_scene=html.find(".purge-ta-data-in-scene");
 
 			reset_migration.click(()=>{TokenAttacher._resetMigration();});
 			force_scene_migration.click(()=>{TokenAttacher._migrateScene();});
@@ -120,6 +122,7 @@ import {libWrapper} from './shim.js';
 			force_compendium_migration.click(()=>{TokenAttacher.migrateAllActorCompendiums();});
 			import_json_dialog.click(()=>{TokenAttacher.importFromJSONDialog();});
 			export_actors_to_json.click(()=>{TokenAttacher.getActorsWithPrototype();});
+			purge_ta_data_in_scene.click(()=>{TokenAttacher.purgeTAData();});
 		}
 	
 	}
@@ -2338,7 +2341,37 @@ import {libWrapper} from './shim.js';
 			}				
 			console.log(`Token Attacher - Done migrating ${elementCount} Elements in ${allCompendiums.length} Compendiums!`);
 		}
-	}
 
+		static async purgeTAData(){		
+			const base_layer = 	canvas.getLayerByEmbeddedName("Token");
+			const moduleName = 'token-attacher';
+			let updates = {};
+			const pushUpdate = (key, update, updateObj) => {
+				if(!updateObj.hasOwnProperty(key)) updateObj[key] = [];
+				const dupIndex = updateObj[key].findIndex(item => update._id=== item._id);
+				if(dupIndex === -1) updateObj[key].push(update);
+			};
+			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
+				const layer = canvas.getLayerByEmbeddedName(type);
+				const deleteLinks = (layer) => {
+						for (let i = 0; i < layer.placeables.length; i++) {
+							const element = layer.placeables[i];
+							if(getProperty(element, `data.flags.${moduleName}`)) pushUpdate(type, {_id:element.data._id, [`flags.-=${moduleName}`]:null}, updates);
+						}
+					}
+				deleteLinks(layer);
+				if(type === "Tile"){
+					deleteLinks(canvas.foreground);
+				}
+			}
+			//Fire updates
+			for (const key in updates){
+				if (updates.hasOwnProperty(key)) {
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+				}
+			}
+			console.log("All Token Attacher Data has been removed from scene.");
+		}
+	}
 	TokenAttacher.registerHooks();
 })();

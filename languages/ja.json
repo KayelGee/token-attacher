@@ -48,6 +48,7 @@
 	"TOKENATTACHER.button.gmMenu.CompendiumsMigration": "連結要素を含むすべてのアクター辞典をマイグレーションする",
 	"TOKENATTACHER.button.gmMenu.ImportJSONDialog": "JSONファイルのインポートダイアログを開く",
 	"TOKENATTACHER.button.gmMenu.ExportActorsToJSON": "アクターをJSONファイルへエクスポートするダイアログを開く",
-	"TOKENATTACHER.button.gmMenu.ResetMigration": "データモデルをリセットし、自動マイグレーションを強制再起動する"
+	"TOKENATTACHER.button.gmMenu.ResetMigration": "データモデルをリセットし、自動マイグレーションを強制再起動する",
+	"TOKENATTACHER.button.gmMenu.PurgeTADataInScene": "Remove all Token Attacher data in Scene"
 
 }

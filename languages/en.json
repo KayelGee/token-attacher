@@ -43,11 +43,12 @@
 	"TOKENATTACHER.button.toggleAnimate": "Toggle Token Animation",
 	"TOKENATTACHER.button.close": "Close attaching UI",
 	
-	"TOKENATTACHER.button.gmMenu.SceneMigration": "Force migration of current Scene",
+	"TOKENATTACHER.button.gmMenu.SceneMigration": "Force migration of active Scene",
 	"TOKENATTACHER.button.gmMenu.ActorsMigration": "Migrate Sidebar Actors",
 	"TOKENATTACHER.button.gmMenu.CompendiumsMigration": "Migrate all Actor Compendiums that have attached Elements",
 	"TOKENATTACHER.button.gmMenu.ImportJSONDialog": "Open Import JSON Dialog",
 	"TOKENATTACHER.button.gmMenu.ExportActorsToJSON": "Open Export Actors to JSON Dialog",
-	"TOKENATTACHER.button.gmMenu.ResetMigration": "Reset Datamodel and force restart automatic Migration"
+	"TOKENATTACHER.button.gmMenu.ResetMigration": "Reset Datamodel and force restart automatic Migration",
+	"TOKENATTACHER.button.gmMenu.PurgeTADataInScene": "Remove all Token Attacher data in Scene"
 
 }

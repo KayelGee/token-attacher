@@ -48,5 +48,6 @@
 	"TOKENATTACHER.button.gmMenu.CompendiumsMigration": "요소가 부착된 모든 액터 컴펜디엄 마이그레이션",
 	"TOKENATTACHER.button.gmMenu.ImportJSONDialog": "JSON 가져오기 대화상자 열기",
 	"TOKENATTACHER.button.gmMenu.ExportActorsToJSON": "액터 JSON 내보내기 대화상자 열기",
-	"TOKENATTACHER.button.gmMenu.ResetMigration": "데이터 모델 재설정 및 자동 마이그레이션 강제 재시작"	
+	"TOKENATTACHER.button.gmMenu.ResetMigration": "데이터 모델 재설정 및 자동 마이그레이션 강제 재시작",
+	"TOKENATTACHER.button.gmMenu.PurgeTADataInScene": "Remove all Token Attacher data in Scene"	
 }
