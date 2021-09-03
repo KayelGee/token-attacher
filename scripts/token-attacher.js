@@ -525,7 +525,7 @@ import {libWrapper} from './shim.js';
 			if(getProperty(options, `${moduleName}.QuickEdit`)) return;
 			const tokenCenter = duplicate(base.center);
 			if(Object.keys(attached).length == 0) return true;
-			if(getProperty(options, moduleName)) return true;
+			if(getProperty(options, `${moduleName}.update`)) return true;
 
 			TokenAttacher.detectGM();
 
@@ -591,7 +591,7 @@ import {libWrapper} from './shim.js';
 			
 			//Fire all updates by type
 			for (const key in updates) {
-				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});
 			}
 
 			return;
@@ -887,7 +887,7 @@ import {libWrapper} from './shim.js';
 							for (let i = 0; i < arr.length; i++) {
 								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 							}	
-							if(deletes.length > 0)	await canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{}});						
+							if(deletes.length > 0)	await canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{update:true}});						
 						}
 					}
 				}
@@ -907,7 +907,7 @@ import {libWrapper} from './shim.js';
 				for (let i = 0; i < elements.data.length; i++) {
 					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
 				}
-				if(deletes.length > 0) await canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{}});	
+				if(deletes.length > 0) await canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{update:true}});	
 				await token.document.setFlag(moduleName, `attached.${elements.type}`, attached);
 				if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsDetached));
 			}
@@ -991,7 +991,7 @@ import {libWrapper} from './shim.js';
 
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});	
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});	
 				}
 			}
 		}
@@ -1105,7 +1105,7 @@ import {libWrapper} from './shim.js';
 			//Fire Updates
 			for (const key in updates) {
 				if (updates.hasOwnProperty(key)) {
-					if(updates[key].length > 0) await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});	
+					if(updates[key].length > 0) await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});	
 				}
 			}
 			if(!suppressNotification) {
@@ -1498,7 +1498,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					let layer = TokenAttacher.getLayerOrCollection(key);
-					await canvas.scene.deleteEmbeddedDocuments(layer.constructor.documentName, attached[key], {[moduleName]:{}});
+					await canvas.scene.deleteEmbeddedDocuments(layer.constructor.documentName, attached[key], {[moduleName]:{update:true}});
 				}
 			}
 		}
@@ -1519,7 +1519,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(getProperty(options, "isUndo") === true && getProperty(options, "mlt_bypass") === true) return;
 
-			if(getProperty(options, moduleName)) return;
+			if(getProperty(options, `${moduleName}.update`)) return;
 			
 			const prototypeAttached = token.document.getFlag(moduleName, "prototypeAttached") || {};
 			const attached = token.document.getFlag(moduleName, "attached") || {};
@@ -1543,7 +1543,7 @@ import {libWrapper} from './shim.js';
 			return;
 		}
 
-		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, return_data = false){
+		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options={},  return_data = false){
 			grid_multi = mergeObject({size:1, w: 1, h:1}, grid_multi);
 			let pasted = {};
 			let toCreate = {};
@@ -1677,13 +1677,13 @@ import {libWrapper} from './shim.js';
 			//Fire updates
 			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});
 				}
 			}
 			//Fire After updates
 			for (const key in afterUpdates){
 				if (afterUpdates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedDocuments(key, afterUpdates[key], {[moduleName]:{}});
+					await canvas.scene.updateEmbeddedDocuments(key, afterUpdates[key], {[moduleName]:{update:true}});
 				}
 			}
 		}
@@ -1716,7 +1716,7 @@ import {libWrapper} from './shim.js';
 			//Fire deletes
 			for (const key in deletes){
 				if (deletes.hasOwnProperty(key)) {
-					await canvas.scene.deleteEmbeddedDocuments(key, deletes[key], {[moduleName]:{}});
+					await canvas.scene.deleteEmbeddedDocuments(key, deletes[key], {[moduleName]:{update:true}});
 				}
 			}
 		}
@@ -1923,7 +1923,7 @@ import {libWrapper} from './shim.js';
 
 			let offset = getProperty(document, `data.flags.${moduleName}.offset`) || {};
 			if(Object.keys(offset).length === 0) return true;
-			if(getProperty(options, moduleName)) return true;
+			if(getProperty(options, `${moduleName}.update`)) return true;
 			let objParent = getProperty(document, `data.flags.${moduleName}.parent`) || "";
 			if(window.document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
 			if(game.user.isGM){
@@ -1980,7 +1980,7 @@ import {libWrapper} from './shim.js';
 		//Detach Elements when they get deleted
 		static DetachAfterDelete(type, document, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return; 
-			if(getProperty(options, moduleName)) return;
+			if(getProperty(options, `${moduleName}.update`)) return;
 			let objParent = getProperty(getProperty(getProperty(document, 'flags'), moduleName), 'parent') || "";
 			if(objParent !== ""){
 				if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(objParent, {type:type, data:[document.data._id]}, true);
@@ -2223,7 +2223,7 @@ import {libWrapper} from './shim.js';
 			}
 			//Fire all updates by type
 			for (const key in updates) { 
-				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});
 			}
 		}
 
@@ -2297,7 +2297,7 @@ import {libWrapper} from './shim.js';
 			let updates = tokens.map(elem =>{
 				return {_id:elem.document.data._id, [`flags.${moduleName}.animate`]: animate};
 			});
-			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{}});
+			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{update:true}});
 			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.AnimationToggled, {count: tokens.length}));
 		}
 
@@ -2305,7 +2305,7 @@ import {libWrapper} from './shim.js';
 			let updates = tokens.map(elem =>{
 				return {_id:elem.document.data._id, [`flags.${moduleName}.animate`]: !(elem.document.getFlag(moduleName,`animate`) ?? true)};
 			});
-			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{}});
+			await canvas.scene.updateEmbeddedDocuments(tokens[0].layer.constructor.documentName, updates, {[moduleName]:{update:true}});
 			if(!suppressNotification) ui.notifications.info(game.i18n.format(localizedStrings.info.AnimationToggled, {count: tokens.length}));
 		}
 
@@ -2391,7 +2391,7 @@ import {libWrapper} from './shim.js';
 			//Fire updates
 			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
-					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+					await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});
 				}
 			}
 			console.log("All Token Attacher Data has been removed from scene.");
@@ -2448,7 +2448,7 @@ import {libWrapper} from './shim.js';
 			
 			//Fire all updates by type
 			for (const key in updates) {
-				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});
 			}
 
 			return;
