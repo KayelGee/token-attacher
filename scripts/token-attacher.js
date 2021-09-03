@@ -239,7 +239,7 @@ import {libWrapper} from './shim.js';
 
 			PlaceablesLayer.prototype.copyObjects= function() {
 				const result = oldCopyObjects.apply(this, arguments);
-				switch(this.constructor.placeableClass.name){
+				switch(this.constructor.documentName){
 					case "Token": 
 						TokenAttacher.copyTokens(this, result);
 					break;
@@ -1347,7 +1347,7 @@ import {libWrapper} from './shim.js';
 
 		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
 			if ( !objects.length ) return [];
-			const cls = layer.constructor.placeableClass;
+			const cls = layer.constructor.documentName;
 
 			// Iterate over objects
 			const toCreate = [];
@@ -1441,12 +1441,12 @@ import {libWrapper} from './shim.js';
 			const copyPrototypeMap = {map: {}};
 			const prototypeMap= {};
 			tokens.forEach(token => {
-				if(		token.data.flags.hasOwnProperty(moduleName)
+				if(token.data.flags.hasOwnProperty(moduleName)
 					&& 	token.data.flags[moduleName].hasOwnProperty("attached")){
 					prototypeMap[token.id] = TokenAttacher.generatePrototypeAttached(token.data, token.data.flags[moduleName].attached);
 				}
 			});
-			copyPrototypeMap.map[layer.constructor.placeableClass.name] = prototypeMap;
+			copyPrototypeMap.map[layer.constructor.documentName] = prototypeMap;
 			copyPrototypeMap.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
 			await game.user.unsetFlag(moduleName, "copyPrototypeMap");
 			await game.user.setFlag(moduleName, "copyPrototypeMap", copyPrototypeMap);
@@ -1455,10 +1455,10 @@ import {libWrapper} from './shim.js';
 		static pasteTokens(copy, toCreate){
 			const copyPrototypeMap = game.user.getFlag(moduleName, "copyPrototypeMap") || {};
 			for (let i = 0; i < toCreate.length; i++) {
-				if(		toCreate[i].flags.hasOwnProperty(moduleName)
+				if(toCreate[i].flags.hasOwnProperty(moduleName)
 					&& 	toCreate[i].flags[moduleName].hasOwnProperty("attached")){
 					delete toCreate[i].flags[moduleName].attached;
-					const clsname = copy[i].layer.constructor.placeableClass.name;
+					const clsname = copy[i].layer.constructor.documentName;
 					if(copyPrototypeMap.map.hasOwnProperty(clsname)){
 						toCreate[i].flags[moduleName].prototypeAttached = copyPrototypeMap.map[clsname][copy[i].data._id];	
 						toCreate[i].flags[moduleName].grid = copyPrototypeMap.grid;	
