@@ -1147,7 +1147,10 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async closeTokenAttacherUI(){
-			TokenAttacher._updateAttachedOffsets(canvas.scene.getFlag(moduleName, "attach_base"));
+			const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");			
+			const layer = canvas.getLayerByEmbeddedName(attachment_base.type);
+			const base = this.layerGetElement(layer, attachment_base.element);
+			if(base) TokenAttacher._updateAttachedOffsets(attachment_base);
 			window.document.getElementById("tokenAttacher").remove();
 			return await canvas.scene.unsetFlag(moduleName, "attach_base");		
 		}
