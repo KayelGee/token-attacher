@@ -196,6 +196,7 @@ import {libWrapper} from './shim.js';
 				}, 'WRAPPER');
 			});
 
+			Hooks.on("preUpdateToken", (document, change, options, userId) => TokenAttacher.UpdateBasePosition("Token", document, change, options, userId));
 			Hooks.on("updateToken", (document, change, options, userId) => TokenAttacher.UpdateAttachedOfToken("Token", document, change, options, userId));
 			Hooks.on("updateActor", (document, change, options, userId) => TokenAttacher.updateAttachedPrototype(document, change, options, userId));
 			Hooks.on("preCreateToken", (document, data, options, userId) => TokenAttacher.preCreateBase(document, data, options, userId));
@@ -465,6 +466,28 @@ import {libWrapper} from './shim.js';
 					element.interactive = interactive;
 			}
 		}
+		static async UpdateBasePosition(type, document, change, options, userId){
+			if(!(	change.hasOwnProperty("x")
+				||	change.hasOwnProperty("y")
+				||	change.hasOwnProperty("c")
+				||	change.hasOwnProperty("rotation")
+				||	change.hasOwnProperty("direction")
+				||	change.hasOwnProperty("width")
+				||	change.hasOwnProperty("height")
+				||	change.hasOwnProperty("radius")
+				||	change.hasOwnProperty("dim")
+				||	change.hasOwnProperty("bright")
+				||	change.hasOwnProperty("distance")
+				||	change.hasOwnProperty("hidden")
+				)){
+				return true;
+			}
+			let baseData = duplicate(document.data);
+			mergeObject(baseData, change);
+			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
+			mergeObject(change, basePos);
+			return true;
+		}
 
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
 			if(!(	change.hasOwnProperty("x")
@@ -530,9 +553,6 @@ import {libWrapper} from './shim.js';
 					if(!updates[key]) delete updates[key];
 				}
 			}
-			if(!updates.hasOwnProperty(type)) updates[type] = [];
-			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
-			updates[type].push(basePos);
 
 			for (const key in attachedEntities) {
 				if (attachedEntities.hasOwnProperty(key)) {
@@ -2088,7 +2108,7 @@ import {libWrapper} from './shim.js';
 			if ( "width" in data && "height" in data ) {
 				let [width, height] = [data.width, data.height];
 				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
-				center={x:x + (width / 2), y:y + (height / 2)};
+				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
 			}
 			//Walls
 			if("c" in data){
