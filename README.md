@@ -57,27 +57,27 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
 
 There are some example macros bundled in a macro compendium.
  - Mount Up!:
-  - Select your token and target another token, click 'Mount Up!' to mount the target on the closest space.
+   - Select your token and target another token, click 'Mount Up!' to mount the target on the closest space.
  - Pick Up:
-  - Select your token and target another token, click 'Pick Up' to attach the target to your token at the position it is right now.
+   - Select your token and target another token, click 'Pick Up' to attach the target to your token at the position it is right now.
  - Follow Target!:
-  - Select your token and target another token, click 'Follow Target!' to follow the target with your token at the position it is right now.
+   - Select your token and target another token, click 'Follow Target!' to follow the target with your token at the position it is right now.
  - Dismount/Drop all:
-  - Select a token and click 'Dismount/Drop all' to drop all picked up tokens, drop all riders that have mounted it and cause all followers to stop following you.
+   - Select a token and click 'Dismount/Drop all' to drop all picked up tokens, drop all riders that have mounted it and cause all followers to stop following you.
  - Dismount/Drop Target:
-  - Select your token and target another token, click 'Dismount/Drop Target' to drop the target if you previously picked it up, it has mounted you or is following you.
+   - Select your token and target another token, click 'Dismount/Drop Target' to drop the target if you previously picked it up, it has mounted you or is following you.
  - Stop Follow:
-  - Select your token and target another token, click 'Stop Follow' to stop following the target.
+   - Select your token and target another token, click 'Stop Follow' to stop following the target.
 
 Also there are some GM only macros in the macro compendium
  - Delete Missing Links:
-  - If a prefab didn't get created correctly this will delete all broken elements. You might need to call it mutliple times.
+   - If a prefab didn't get created correctly this will delete all broken elements. You might need to call it mutliple times.
  - Toggle Quick Edit Mode:
-  - QoL macro that toggles Quick Edit Mode if you don't want to switch to the token layer every time.
+   - QoL macro that toggles Quick Edit Mode if you don't want to switch to the token layer every time.
  - Toggle hidden base+children:
-	- This toggle the hidden state on the base token and it's children(only works for tokens, tiles and drawings)
+	 - This toggle the hidden state on the base token and it's children(only works for tokens, tiles and drawings)
  - Propagate base hidden state to children:
-	- This propagates the hidden state of the base token to it's children(only works for tokens, tiles and drawings)
+	 - This propagates the hidden state of the base token to it's children(only works for tokens, tiles and drawings)
 
 Simple Macro Example:
 ```
