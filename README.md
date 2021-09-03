@@ -52,6 +52,8 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
  - tokenAttacher.setElementsLockStatus(elements, isLocked, suppressNotification = false)
  - tokenAttacher.regenerateLinks(elements)
+ - tokenAttacher.migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly)
+ - tokenAttacher.migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false)
 
 There are some example macros bundled in a macro compendium.
  - Mount Up!:
@@ -72,6 +74,10 @@ Also there are some GM only macros in the macro compendium
   - If a prefab didn't get created correctly this will delete all broken elements. You might need to call it mutliple times.
  - Toggle Quick Edit Mode:
   - QoL macro that toggles Quick Edit Mode if you don't want to switch to the token layer every time.
+ - Toggle hidden base+children:
+	- This toggle the hidden state on the base token and it's children(only works for tokens, tiles and drawings)
+ - Propagate base hidden state to children:
+	- This propagates the hidden state of the base token to it's children(only works for tokens, tiles and drawings)
 
 Simple Macro Example:
 ```
