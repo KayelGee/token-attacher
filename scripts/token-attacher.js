@@ -150,6 +150,7 @@ import {libWrapper} from './shim.js';
 				toggleAnimateStatus: TokenAttacher.toggleAnimateStatus,
 				setAnimateStatus: TokenAttacher.setAnimateStatus,
 				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
+				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -2394,6 +2395,63 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			console.log("All Token Attacher Data has been removed from scene.");
+		}
+		static async migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false){
+			return TokenAttacher.migrateAttached(base.layer.constructor.documentName, base.data, migrateFunc, elementTypes, topLevelOnly, return_data);
+		}
+
+		static async migrateAttached(type, baseData, migrateFunc, elementTypes, topLevelOnly, return_data=false){
+			const attached=getProperty(baseData, `flags.${moduleName}.attached`) || {};
+			let attachedEntities = {};
+			
+			//Get Entities
+			for (const key in attached) {
+				const layer = canvas.getLayerByEmbeddedName(key);
+				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id));
+			}
+
+			let updates = {};
+
+			//Get updates for attached elements
+			for (const key in attachedEntities) {
+				if (attachedEntities.hasOwnProperty(key)) {
+					if(elementTypes.includes(key)){
+						if(!updates.hasOwnProperty(key)) updates[key] = [];
+						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity.data)), baseData);
+						if(!updates[key]) delete updates[key];
+					}
+				}
+			}
+			//Get updates for attached bases
+			for (const key in attachedEntities) {
+				if (attachedEntities.hasOwnProperty(key)) {
+					for (let i = 0; i < attachedEntities[key].length; i++) {
+						const element = attachedEntities[key][i];
+						const elem_id = element.data._id;
+						
+						const elem_attached=getProperty(element, `data.flags.${moduleName}.attached`) || {};
+						if(Object.keys(elem_attached).length > 0){
+							const elem_update = updates[key]?.find(item => item._id === elem_id );
+							const updatedElementData = mergeObject(duplicate(element.data), elem_update);
+							const subUpdates = await TokenAttacher.migrateAttached(key, updatedElementData, migrateFunc, elementTypes, topLevelOnly, true);
+							for (const key in subUpdates) {
+								if(!updates.hasOwnProperty(key)) updates[key] = subUpdates[key];
+								else{
+									updates[key] = updates[key].concat(subUpdates[key]);
+								}
+							}
+						}
+					}
+				}
+			}
+			if(return_data) return updates;
+			
+			//Fire all updates by type
+			for (const key in updates) {
+				await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{}});
+			}
+
+			return;
 		}
 	}
 	TokenAttacher.registerHooks();
