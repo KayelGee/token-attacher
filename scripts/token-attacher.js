@@ -218,6 +218,9 @@ import {libWrapper} from './shim.js';
 				Hooks.on(`delete${type}`, (document, options, userId) => TokenAttacher.DetachAfterDelete(type, document, options, userId));
 				//Recreating an element from Undo History will leave them detached, so reattach them
 				Hooks.on(`create${type}`, (document, options, userId) => TokenAttacher.ReattachAfterUndo(type, document, options, userId));
+				//Instant Attach on create if UI is open
+				Hooks.on(`preCreate${type}`, (document, data, options, userId) => TokenAttacher.PreInstantAttach(type, document, data, options, userId));
+				Hooks.on(`create${type}`, (document,  options, userId) => TokenAttacher.InstantAttach(type, document, options, userId));
 			}
 			
 		
@@ -1363,7 +1366,7 @@ import {libWrapper} from './shim.js';
 				grid_multi.size = canvas.grid.size / grid_multi.size;
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
-			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi);
+			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi, {});
 		}
 
 		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
@@ -1538,7 +1541,8 @@ import {libWrapper} from './shim.js';
 				grid_multi.size = canvas.grid.size / grid_multi.size;
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
-				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi);
+				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options);
+				
 			}
 			return;
 		}
@@ -1565,7 +1569,7 @@ import {libWrapper} from './shim.js';
 					const element_protoAttached = getProperty(element, `flags.${moduleName}.prototypeAttached`);
 					if(element_protoAttached){
 						const toCreateElement = toCreate[key].find(item => getProperty(item , `flags.${moduleName}.pos.base_id`) === getProperty(element , `flags.${moduleName}.pos.base_id`));
-						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype(key, {data:toCreateElement}, element_protoAttached, grid_multi, true);
+						let subCreated = await TokenAttacher.regenerateAttachedFromPrototype(key, {data:toCreateElement}, element_protoAttached, grid_multi, options, true);
 						for (const subKey in subCreated) {
 							if (subCreated.hasOwnProperty(subKey)) {
 								const element = subCreated[subKey];
@@ -1578,7 +1582,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(return_data) return toCreate;
 			
-			let options = {[moduleName]:{base:{type: token.layer.constructor.documentName, data:token.data}}};
+			setProperty(options,`${moduleName}.base`, {type: token.layer.constructor.documentName, data:token.data})
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
 			if (allowed === false) {
 			  console.debug(`${moduleName} | creation of PlacableObjects prevented by preCreatePlaceableObjects hook`);
@@ -1620,7 +1624,7 @@ import {libWrapper} from './shim.js';
 		/*	RegenerateLinks on pasted objects
 			example: pasted = {'Token': [someobject....]}
 		*/
-		static async regenerateLinks(pasted){
+		static async regenerateLinks(pasted, options={}, userId=""){
 			let updates = {};
 			let afterUpdates = {};
 			const pushUpdate = (key, update, updateObj) => {
@@ -1674,6 +1678,30 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
+
+			//Instant attach?			
+			if(getProperty(options, `${moduleName}.InstantAttach.userId`) === userId){
+				
+				if(getProperty(options, `${moduleName}.base`)){				
+					const attach_base = canvas.scene.getFlag(moduleName, "attach_base");
+					const layer = canvas.getLayerByEmbeddedName(attach_base.type);
+					const element = TokenAttacher.layerGetElement(layer, attach_base.element);
+
+					const child = getProperty(options, `${moduleName}.base`);
+
+					let subUpdates = await TokenAttacher._AttachToToken(element,{type:child.type, data:[child.data._id]},true , true);
+					for (const key in subUpdates) {
+						if (subUpdates.hasOwnProperty(key)) {
+							const updateArray = subUpdates[key];
+							for (let i = 0; i < updateArray.length; i++) {
+								const upd = updateArray[i];
+								pushUpdate(key, upd, updates);								
+							}
+						}
+					}
+				}
+			}
+
 			//Fire updates
 			for (const key in updates){
 				if (updates.hasOwnProperty(key)) {
@@ -1734,7 +1762,7 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
-			await TokenAttacher.regenerateLinks(myCreatedObjs);	
+			await TokenAttacher.regenerateLinks(myCreatedObjs, options, userId);	
 			ui.notifications.info(game.i18n.format(localizedStrings.info.PostProcessingFinished));
 		}
 
@@ -2452,6 +2480,25 @@ import {libWrapper} from './shim.js';
 			}
 
 			return;
+		}
+
+		static PreInstantAttach(type, document, data, options, userId){
+			if(!window.document.getElementById("tokenAttacher")) return true;
+
+			setProperty(options, `${moduleName}.InstantAttach`, {userId:userId});
+		}
+
+		static InstantAttach(type, document,  options, userId){
+			if(!getProperty(options, `${moduleName}.InstantAttach`)) return;
+			if(!getProperty(options, `${moduleName}.InstantAttach.userId`) === userId) return;
+			if(getProperty(document.data,`flags.${moduleName}.prototypeAttached`)) return;
+			if(getProperty(options,`${moduleName}.base`)) return;
+
+			const attach_base = canvas.scene.getFlag(moduleName, "attach_base");
+			const layer = canvas.getLayerByEmbeddedName(attach_base.type);
+			const element = TokenAttacher.layerGetElement(layer, attach_base.element);
+
+			TokenAttacher._AttachToToken(element,{type:document.layer.constructor.documentName, data:[document._id]});
 		}
 	}
 	TokenAttacher.registerHooks();
