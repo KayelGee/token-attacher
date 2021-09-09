@@ -1378,7 +1378,7 @@ import {libWrapper} from './shim.js';
 			for ( let dat of objects) {
 				let data = duplicate(dat);
 				delete data._id;
-				data.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls.name, data.flags[moduleName].offset, grid_multi);
+				data.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls, data.flags[moduleName].offset, grid_multi);
 				const offset = data.flags[moduleName].offset;
 				if(data.hasOwnProperty('c')){
 					data.c = data.c.map((c, i) => {
@@ -1428,7 +1428,7 @@ import {libWrapper} from './shim.js';
 
 			if(return_data) return toCreate;
 			// Create all objects
-			const created = await canvas.scene.createEmbeddedDocuments(cls.name, toCreate);
+			const created = await canvas.scene.createEmbeddedDocuments(cls, toCreate);
 			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
 			return created;
 		}
