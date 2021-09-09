@@ -129,7 +129,7 @@ import {libWrapper} from './shim.js';
 
 	class TokenAttacher {
 		static initMacroAPI(){
-			if(getProperty(getProperty(window,'tokenAttacher'),'attachElementToToken')) return;
+			if(getProperty(window,'tokenAttacher.attachElementToToken')) return;
 			window.tokenAttacher = {
 				...window.tokenAttacher, 
 				attachElementToToken: TokenAttacher.attachElementToToken,
@@ -2009,7 +2009,8 @@ import {libWrapper} from './shim.js';
 		static DetachAfterDelete(type, document, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return; 
 			if(getProperty(options, `${moduleName}.update`)) return;
-			let objParent = getProperty(getProperty(getProperty(document, 'flags'), moduleName), 'parent') || "";
+			
+			let objParent = getProperty(document, `data.flags.${moduleName}.parent`) || "";
 			if(objParent !== ""){
 				if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(objParent, {type:type, data:[document.data._id]}, true);
 				else game.socket.emit(`module.${moduleName}`, {event: `DetachFromToken`, eventdata: [objParent, {type:type, data:[document.data._id]}, true]});
@@ -2019,7 +2020,7 @@ import {libWrapper} from './shim.js';
 		//Reattach elements that are recreated via Undo
 		static ReattachAfterUndo(type, document, options, userId){
 			if(TokenAttacher.isFirstActiveGM()) return;
-			let objParent = getProperty(getProperty(getProperty(document, 'flags'), moduleName), 'parent') || "";
+			let objParent = getProperty(document, `data.flags.${moduleName}.parent`) || "";
 			if(!objParent) return;
 			if(getProperty(options, "isUndo") === true){
 				if(getProperty(options, "mlt_bypass") === true) return;
@@ -2032,7 +2033,7 @@ import {libWrapper} from './shim.js';
 
 		//Reattach elements that are recreated via Undo or remove the attachment completly if the base doesn't exist anymore
 		static async _ReattachAfterUndo(type, parent, entity, options, userId){
-			let objParent = getProperty(getProperty(getProperty(entity, 'flags'), moduleName), 'parent') || "";
+			let objParent = getProperty(entity, `data.flags.${moduleName}.parent`) || "";
 			const parent_token = canvas.tokens.get(objParent);
 			if(parent_token){
 				TokenAttacher._AttachToToken(parent_token, {type:type, data:[entity._id]}, true);
