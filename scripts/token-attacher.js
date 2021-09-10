@@ -483,6 +483,10 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("bright")
 				||	change.hasOwnProperty("distance")
 				||	change.hasOwnProperty("hidden")
+
+				||	change.hasOwnProperty("elevation")
+				||	change.flags?.levels?.hasOwnProperty("rangeTop")
+				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
 				)){
 				return true;
 			}
@@ -506,6 +510,10 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("bright")
 				||	change.hasOwnProperty("distance")
 				||	change.hasOwnProperty("hidden")
+
+				||	change.hasOwnProperty("elevation")
+				||	change.flags?.levels?.hasOwnProperty("rangeTop")
+				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
 				)){
 				return;
 			}
@@ -608,7 +616,14 @@ import {libWrapper} from './shim.js';
 			const center = TokenAttacher.getCenter(type, data);
 			if(overrideData) data = mergeObject(data, overrideData);
 
-			pos = {base_id: getProperty(data, '_id'), xy: {x:data.x, y:data.y}, center: {x:center.x, y:center.y}, rotation:data.rotation ?? data.direction, hidden: data.hidden};
+			pos = {base_id: getProperty(data, '_id')
+				, xy: {x:data.x, y:data.y}
+				, center: {x:center.x, y:center.y}
+				, rotation:data.rotation ?? data.direction
+				, hidden: data.hidden
+				, elevation: data.elevation ?? data.flags?.levels?.rangeBottom ?? data.flags?.wallHeight?.wallHeightBottom
+			};
+
 
 			if(!return_data) return base.document.setFlag(moduleName, "pos", pos);
 
@@ -617,38 +632,60 @@ import {libWrapper} from './shim.js';
 		}
 
 		static offsetPositionOfElements(type, data, baseType, baseData, grid){
-			let baseCenter = TokenAttacher.getCenter(baseType, baseData, grid);
-			let baseRotation = getProperty(baseData, "rotation") ?? getProperty(baseData, "direction");
-			let baseSize = TokenAttacher.getSize(baseData);
+			let baseOffset = {};
+			baseOffset.center = TokenAttacher.getCenter(baseType, baseData, grid);
+			baseOffset.rotation = getProperty(baseData, "rotation") ?? getProperty(baseData, "direction");
+			baseOffset.size = TokenAttacher.getSize(baseData);
+			baseOffset.elevation = baseData.elevation ?? baseData.flags?.levels?.elevation ?? baseData.flags?.levels?.rangeBottom ?? baseData.flags?.wallHeight?.wallHeightBottom;
 			
 			if(!Array.isArray(data)) data = [data];
 
 			let updates = data.map(w => {
 				return mergeObject(
 					{_id: w._id},
-					TokenAttacher.offsetPositionOfElement(type, w, baseCenter, baseRotation, baseSize)
+					TokenAttacher.offsetPositionOfElement(type, w, baseOffset)
 					);
 			});
 			if(Object.keys(updates).length == 0)  return; 
 			return updates;		
 		}
 
-		static offsetPositionOfElement(type, data, baseCenter, baseRotation, baseSize){
+		static offsetPositionOfElement(type, data, baseOffset){
 			const offset = getProperty(data, `flags.${moduleName}.offset`);
-			const size_multi = {w: baseSize[0] / offset.size.widthBase, h: baseSize[1] / offset.size.heightBase};
+			const size_multi = {w: baseOffset.size[0] / offset.size.widthBase, h: baseOffset.size[1] / offset.size.heightBase};
+			let update = {};
+			
+			//Elevation
+			if('elevation' in data){
+				update.elevation = baseOffset.elevation + offset.elevation.elevation;
+			}
+			if(offset.elevation?.flags?.levels?.hasOwnProperty('elevation')){
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.elevation) === false) update['flags.levels.elevation'] = baseOffset.elevation + offset.elevation.flags.levels.elevation;
+			}
+			if(offset.elevation?.flags?.levels?.hasOwnProperty('rangeBottom') || offset.elevation?.flags?.levels?.hasOwnProperty('rangeTop')){
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeBottom) === false) update['flags.levels.rangeBottom'] = baseOffset.elevation + offset.elevation.flags.levels.rangeBottom;
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeTop) === false) update['flags.levels.rangeTop'] = baseOffset.elevation + offset.elevation.flags.levels.rangeTop;
+			}
+			if(offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightBottom') || offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightTop')){
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wallHeight.wallHeightBottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wallHeight.wallHeightTop'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
+			}
+
 			//Line Entities
 			if('c' in data){
 				let c = duplicate(data.c);	
 				[offset.x, offset.y] = [offset.c[0], offset.c[1]];
-				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseCenter, baseRotation, size_multi);
+				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
-				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseCenter, baseRotation, size_multi);
-				return {c: c};
+				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				update.c=c;
+				return update;
 			}
 			//Rectangle Entities
 			if('width' in data || 'distance' in data || 'dim' in data || 'radius' in data){
-				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseCenter, baseRotation, size_multi);
-				let update = {x: x, y: y}
+				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				update.x = x;
+				update.y = y;
 				if(data.hasOwnProperty("direction")) update.direction = rotation;
 				if(data.hasOwnProperty("rotation")) update.rotation = rotation;
 				
@@ -677,8 +714,10 @@ import {libWrapper} from './shim.js';
 				return update;
 			}
 			//Point Entities
-			const [x,y] = TokenAttacher.moveRotatePoint({x:data.x, y:data.y, rotation:0}, offset, baseCenter, baseRotation, size_multi);
-			return {x: x, y: y};
+			const [x,y] = TokenAttacher.moveRotatePoint({x:data.x, y:data.y, rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+			update.x = x;
+			update.y = y;
+			return update;
 		}
 
 		static computeRotatedPosition(x,y,x2,y2,rotRad, size_multi){
@@ -1278,6 +1317,30 @@ import {libWrapper} from './shim.js';
 			if(data.hasOwnProperty('radius')){
 				offset.size.radius= data.radius;
 			}
+			
+			offset.elevation = {};
+			offset.elevation.flags = {};
+			if(data.hasOwnProperty('elevation')){
+				offset.elevation.elevation= data.elevation;
+			}
+			if(data.flags['levels']?.hasOwnProperty('elevation')){
+				offset.elevation.flags['levels'] = {
+					elevation:data.flags['levels'].elevation
+				};
+			}
+			if(data.flags['levels']?.hasOwnProperty('rangeTop')){
+				offset.elevation.flags['levels'] = {
+					rangeTop:data.flags['levels'].rangeTop, 
+					rangeBottom:data.flags['levels'].rangeBottom
+				};
+			}
+			if(data.flags['wallHeight']?.hasOwnProperty('wallHeightTop')){				
+				offset.elevation.flags['wallHeight'] = {
+					wallHeightTop:data.flags['wallHeight'].wallHeightTop, 
+					wallHeightBottom:data.flags['wallHeight'].wallHeightBottom
+				};
+			}
+
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(base);
 			return offset;
 		}
