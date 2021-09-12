@@ -49,6 +49,9 @@
 	"TOKENATTACHER.button.gmMenu.ImportJSONDialog": "Open Import JSON Dialog",
 	"TOKENATTACHER.button.gmMenu.ExportActorsToJSON": "Open Export Actors to JSON Dialog",
 	"TOKENATTACHER.button.gmMenu.ResetMigration": "Reset Datamodel and force restart automatic Migration",
-	"TOKENATTACHER.button.gmMenu.PurgeTADataInScene": "Remove all Token Attacher data in Scene"
+	"TOKENATTACHER.button.gmMenu.PurgeTADataInScene": "Remove all Token Attacher data in Scene",	
+	
+	"TOKENATTACHER.setting.MLTBlockMovement": "Prevent movement by MLT/V&M on token bases",	
+	"TOKENATTACHER.setting.MLTBlockMovementHint": "When a Token has a Vehicles drawing that captures Tokens(auto or manual) somewhere attached, this setting will prevent that token from being moved by anything related to Multi Level Tokens/Vehicles & Mechanisms."
 
 }

@@ -62,6 +62,10 @@ import {libWrapper} from './shim.js';
 				ResetMigration:				"TOKENATTACHER.button.gmMenu.ResetMigration",
 				PurgeTADataInScene:			"TOKENATTACHER.button.gmMenu.PurgeTADataInScene"
 			}
+		},
+		setting : {
+			MLTBlockMovement:				"TOKENATTACHER.setting.MLTBlockMovement",
+			MLTBlockMovementHint:			"TOKENATTACHER.setting.MLTBlockMovementHint"
 		}
 	}
 	class TASettings extends FormApplication {
@@ -72,6 +76,14 @@ import {libWrapper} from './shim.js';
 			type: TASettings,
 			restricted: true
 		  });
+		game.settings.register(moduleName, 'MLTBlockMovement', {
+			name: game.i18n.localize("TOKENATTACHER.setting.MLTBlockMovement"),
+			hint: game.i18n.localize("TOKENATTACHER.setting.MLTBlockMovementHint"),
+			scope: "world",
+			config: true,
+			type: Boolean,
+			default: false
+		});
 		}
 	
 		static get defaultOptions() {
@@ -2071,8 +2083,16 @@ import {libWrapper} from './shim.js';
 				return true;
 			}
 			let attached = getProperty(document, `data.flags.${moduleName}.attached`);
-			if(!attached) return true;
+			if(!attached) return true;			
 			
+			const mlt_block_movement = game.settings.get(moduleName, 'MLTBlockMovement') || false;
+			if(mlt_block_movement){
+				if(TokenAttacher.hasVehiclesDrawing(attached)){
+					if(getProperty(options, "isUndo") === true)
+						if(getProperty(options, "mlt_bypass") === true) return false;
+				}
+			}
+
 			let animate = getProperty(document, `data.flags.${moduleName}.animate`) ?? true;
 			if(!animate) setProperty(options, `animate`, animate);
 
@@ -2083,6 +2103,34 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			return true;
+		}
+
+		static hasVehiclesDrawing(attached){
+			let result = false;
+			for (const key in attached) {
+				if (attached.hasOwnProperty(key)) {
+					let layer = TokenAttacher.getLayerOrCollection(key);
+
+					for (let i = 0; i < attached[key].length; i++) {
+						const id = attached[key][i];		
+
+						let element = TokenAttacher.layerGetElement(layer, id);
+						if(!element) continue;		
+
+						const child_attached=getProperty(element.document, `data.flags.${moduleName}.attached`) || {};
+
+						if(Object.keys(child_attached).length > 0) {
+							result = result || TokenAttacher.hasVehiclesDrawing(child_attached);
+						}		
+
+						if(key === 'Drawing'){
+							result = result || (getProperty(element.document, `data.flags.vehicles.captureTokens`) > 0);
+						}				
+					}
+				}
+			}
+			return result;
+			
 		}
 		//Attached elements are only allowed to be selected while token attacher ui is open.
 		static isAllowedToControl(object, isControlled){
