@@ -656,7 +656,7 @@ import {libWrapper} from './shim.js';
 			let update = {};
 			
 			//Elevation
-			if('elevation' in data){
+			if(offset.elevation?.hasOwnProperty('elevation')){
 				update.elevation = baseOffset.elevation + offset.elevation.elevation;
 			}
 			if(offset.elevation?.flags?.levels?.hasOwnProperty('elevation')){
