@@ -1559,14 +1559,49 @@ import {libWrapper} from './shim.js';
 			const attached=getProperty(document, `data.flags.${moduleName}.attached`) || {};
 			if(Object.keys(attached).length == 0) return true;
 
+			if(getProperty(options, `${moduleName}.update`)) return true;
 			TokenAttacher.detectGM();
+			//Combine with eventual bases
+			let deletes = TokenAttacher.getChildrenIds(attached, {});
 
+			//Fire deletes
+			for (const key in deletes) {
+				if (deletes.hasOwnProperty(key)) {
+					let layer = TokenAttacher.getLayerOrCollection(key);
+					await canvas.scene.deleteEmbeddedDocuments(layer.constructor.documentName, deletes[key], {[moduleName]:{update:true}});
+				}
+			}
+		}
+
+		static getChildrenIds(attached, all_ids){
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					let layer = TokenAttacher.getLayerOrCollection(key);
-					await canvas.scene.deleteEmbeddedDocuments(layer.constructor.documentName, attached[key], {[moduleName]:{update:true}});
+
+					if(!all_ids.hasOwnProperty(key)) all_ids[key] = [];
+
+					for (let i = 0; i < attached[key].length; i++) {
+						const id = attached[key][i];		
+
+						let element = TokenAttacher.layerGetElement(layer, id);
+						if(!element) continue;		
+
+						all_ids[key].push(id);
+						const child_attached=getProperty(element.document, `data.flags.${moduleName}.attached`) || {};
+
+						if(Object.keys(child_attached).length > 0) {
+							const child_ids = TokenAttacher.getChildrenIds(child_attached, all_ids);
+							
+							for (const key in child_ids) {
+								if(!all_ids.hasOwnProperty(key)) all_ids[key] = [];
+								all_ids[key].concat(child_ids[key]);
+							}
+						}
+						
+					}
 				}
 			}
+			return all_ids;
 		}
 
 		static preCreateBase(document, data, options, userId){
@@ -1646,6 +1681,7 @@ import {libWrapper} from './shim.js';
 			if(return_data) return toCreate;
 			
 			setProperty(options,`${moduleName}.base`, {type: token.layer.constructor.documentName, data:token.data})
+			setProperty(options,`${moduleName}.update`, true)
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
 			if (allowed === false) {
 			  console.debug(`${moduleName} | creation of PlacableObjects prevented by preCreatePlaceableObjects hook`);
