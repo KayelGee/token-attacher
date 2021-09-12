@@ -1600,7 +1600,7 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(prototypeAttached).length > 0){
 				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format(localizedStrings.error.ActorDataModelNeedsMigration));
 				
-				let grid_multi = token.document.getFlag(moduleName, "grid");
+				let grid_multi = token.document.getFlag(moduleName, "grid") || {size: canvas.grid.size, w:canvas.grid.w, h:canvas.grid.h};
 				grid_multi.size = canvas.grid.size / grid_multi.size;
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
