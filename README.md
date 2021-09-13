@@ -68,6 +68,10 @@ There are some example macros bundled in a macro compendium.
    - Select your token and target another token, click 'Dismount/Drop Target' to drop the target if you previously picked it up, it has mounted you or is following you.
  - Stop Follow:
    - Select your token and target another token, click 'Stop Follow' to stop following the target.
+ - Create Template and attach to Token:
+   - Select your token and press the macro.
+ - Remove Template from Token:
+   - Select your token and press the macro.
 
 Also there are some GM only macros in the macro compendium
  - Delete Missing Links:
