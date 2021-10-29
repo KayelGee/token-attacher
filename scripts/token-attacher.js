@@ -1329,28 +1329,37 @@ import {libWrapper} from './shim.js';
 			if(data.hasOwnProperty('radius')){
 				offset.size.radius= data.radius;
 			}
-			
+			let  base_elevation = base.elevation ?? base.flags['levels']?.elevation ?? base.flags['levels']?.rangeBottom ?? base.flags['wallHeight']?.wallHeightBottom ?? 0;
 			offset.elevation = {};
 			offset.elevation.flags = {};
 			if(data.hasOwnProperty('elevation')){
 				offset.elevation.elevation= data.elevation;
+				if([null, Infinity, -Infinity].includes(offset.elevation.elevation) === false) offset.elevation.elevation -= base_elevation;
 			}
 			if(data.flags['levels']?.hasOwnProperty('elevation')){
 				offset.elevation.flags['levels'] = {
 					elevation:data.flags['levels'].elevation
 				};
+				
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].elevation) === false) offset.elevation.flags['levels'].elevation -= base_elevation;
 			}
 			if(data.flags['levels']?.hasOwnProperty('rangeTop')){
 				offset.elevation.flags['levels'] = {
 					rangeTop:data.flags['levels'].rangeTop, 
 					rangeBottom:data.flags['levels'].rangeBottom
 				};
+				
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeTop) === false) offset.elevation.flags['levels'].rangeTop -= base_elevation;
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeBottom) === false) offset.elevation.flags['levels'].rangeBottom -= base_elevation;
 			}
 			if(data.flags['wallHeight']?.hasOwnProperty('wallHeightTop')){				
 				offset.elevation.flags['wallHeight'] = {
 					wallHeightTop:data.flags['wallHeight'].wallHeightTop, 
 					wallHeightBottom:data.flags['wallHeight'].wallHeightBottom
 				};
+				
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightTop) === false) offset.elevation.flags['wallHeight'].wallHeightTop -= base_elevation;
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightBottom) === false) offset.elevation.flags['wallHeight'].wallHeightBottom -= base_elevation;
 			}
 
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(base);
