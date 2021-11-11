@@ -18,7 +18,8 @@ import {libWrapper} from './shim.js';
 			MigrationErrorScene:			"TOKENATTACHER.error.MigrationErrorScene",
 			QuickEditNotFinished:			"TOKENATTACHER.error.QuickEditNotFinished",
 			PostProcessingNotFinished:		"TOKENATTACHER.error.PostProcessingNotFinished",
-			OnlyTokenToggleAnimate:			"TOKENATTACHER.error.OnlyTokenToggleAnimate"
+			OnlyTokenToggleAnimate:			"TOKENATTACHER.error.OnlyTokenToggleAnimate",
+			BaseDoesntExist:				"TOKENATTACHER.error.BaseDoesntExist"
 		},
 		info : {
 			ObjectsAttached:				"TOKENATTACHER.info.ObjectsAttached",
@@ -1049,10 +1050,12 @@ import {libWrapper} from './shim.js';
 				}
 			}
 		}
-
+		static isAttachmentUIOpen(){
+			return window.document.getElementById("tokenAttacher") !== null;
+		}
 		static async showTokenAttacherUI(token){
 			if(!token) return;
-			if(window.document.getElementById("tokenAttacher")) await TokenAttacher.closeTokenAttacherUI();			
+			if(TokenAttacher.isAttachmentUIOpen()) await TokenAttacher.closeTokenAttacherUI();			
 			await canvas.scene.setFlag(moduleName, "attach_base", {type:token.layer.constructor.documentName, element:token.document.data._id});
 			const locked_status = token.document.getFlag(moduleName, "locked") || false;
 			// Get the handlebars output
@@ -1060,20 +1063,38 @@ import {libWrapper} from './shim.js';
 
 			window.document.getElementById("hud").insertAdjacentHTML('afterend', myHtml);
 
-			let close_button=window.document.getElementById("tokenAttacher").getElementsByClassName("close")[0];
-			let link_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("link")[0];
-			let unlink_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlink")[0];
-			let unlinkAll_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlink-all")[0];
-			let select_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("select")[0];
-			let highlight_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("highlight")[0];
-			let copy_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("copy")[0];
-			let paste_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("paste")[0];
-			let lock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("lock")[0];
-			let unlock_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("unlock")[0];
-			let toggle_animate_tool=window.document.getElementById("tokenAttacher").getElementsByClassName("toggle-animate")[0];
+			const attachmentUI=window.document.getElementById("tokenAttacher");
 
-			$(close_button).click(()=>{TokenAttacher.closeTokenAttacherUI();});
+			let close_button=attachmentUI.getElementsByClassName("close")[0];
+			let link_tool=attachmentUI.getElementsByClassName("link")[0];
+			let unlink_tool=attachmentUI.getElementsByClassName("unlink")[0];
+			let unlinkAll_tool=attachmentUI.getElementsByClassName("unlink-all")[0];
+			let select_tool=attachmentUI.getElementsByClassName("select")[0];
+			let highlight_tool=attachmentUI.getElementsByClassName("highlight")[0];
+			let copy_tool=attachmentUI.getElementsByClassName("copy")[0];
+			let paste_tool=attachmentUI.getElementsByClassName("paste")[0];
+			let lock_tool=attachmentUI.getElementsByClassName("lock")[0];
+			let unlock_tool=attachmentUI.getElementsByClassName("unlock")[0];
+			let toggle_animate_tool=attachmentUI.getElementsByClassName("toggle-animate")[0];
+
+			const base_exists = ()=>{				
+				const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");			
+				const layer = canvas.getLayerByEmbeddedName(attachment_base.type);
+				const base = this.layerGetElement(layer, attachment_base.element);
+				if(!base){
+					TokenAttacher.closeTokenAttacherUI();
+					ui.notifications.error(game.i18n.format(localizedStrings.error.BaseDoesntExist));
+					return false;
+				}
+				return true;
+			}
+
+			$(close_button).click(()=>{
+				if(!base_exists()) return;
+				TokenAttacher.closeTokenAttacherUI();
+			});
 			$(link_tool).click(()=>{
+				if(!base_exists()) return;
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				if(current_layer.controlled.length == 1)
@@ -1083,6 +1104,7 @@ import {libWrapper} from './shim.js';
 				}
 			});
 			$(unlink_tool).click(()=>{
+				if(!base_exists()) return;
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				if(current_layer.controlled.length == 1)
@@ -1092,24 +1114,30 @@ import {libWrapper} from './shim.js';
 				}
 			});
 			$(unlinkAll_tool).click(()=>{
+				if(!base_exists()) return;
 				TokenAttacher._DetachFromToken(token);
 			});
 			$(select_tool).click(()=>{
+				if(!base_exists()) return;
 				select_tool.classList.toggle("active");				
-				if($(window.document.getElementById("tokenAttacher")).find(".control-tool.select.active").length > 0){
+				if($(attachmentUI).find(".control-tool.select.active").length > 0){
 					ui.notifications.info(game.i18n.format(localizedStrings.info.DragSelectElements));
 				}
 			});
 			$(highlight_tool).click(()=>{
+				if(!base_exists()) return;
 				TokenAttacher.highlightAttached(token, highlight_tool);
 			});
 			$(copy_tool).click(()=>{
+				if(!base_exists()) return;
 				TokenAttacher.copyAttached(token);
 			});
 			$(paste_tool).click(()=>{
+				if(!base_exists()) return;
 				TokenAttacher.pasteAttached(token);
 			});
 			$(toggle_animate_tool).click(()=>{
+				if(!base_exists()) return;
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				if(current_layer !== canvas.getLayerByEmbeddedName("Token")) return ui.notifications.error(game.i18n.format(localizedStrings.error.OnlyTokenToggleAnimate));
@@ -1117,11 +1145,13 @@ import {libWrapper} from './shim.js';
 			});
 			
 			$(lock_tool).click(()=>{
+				if(!base_exists()) return;
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, true);
 			});
 			$(unlock_tool).click(()=>{
+				if(!base_exists()) return;
 				const current_layer = canvas.activeLayer;
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, false);
@@ -2073,7 +2103,7 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(offset).length === 0) return true;
 			if(getProperty(options, `${moduleName}.update`)) return true;
 			let objParent = getProperty(document, `data.flags.${moduleName}.parent`) || "";
-			if(window.document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
+			if(TokenAttacher.isAttachmentUIOpen() && TokenAttacher.isCurrentAttachUITarget(objParent)) return true;
 			if(game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
 				if(quickEdit && canvas.scene.data._id === quickEdit.scene) {
@@ -2146,7 +2176,7 @@ import {libWrapper} from './shim.js';
 			let offset = object.document.getFlag(moduleName, 'offset') || {};
 			if(Object.keys(offset).length === 0) return;
 			let objParent = object.document.getFlag(moduleName, 'parent') || {};
-			if(window.document.getElementById("tokenAttacher") && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
+			if(TokenAttacher.isAttachmentUIOpen() && TokenAttacher.isCurrentAttachUITarget(objParent)) return;
 			let unlocked = object.document.getFlag(moduleName, 'unlocked');
 			if(unlocked) return;
 			
@@ -2640,7 +2670,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static PreInstantAttach(type, document, data, options, userId){
-			if(!window.document.getElementById("tokenAttacher")) return true;
+			if(!TokenAttacher.isAttachmentUIOpen()) return true;
 
 			setProperty(options, `${moduleName}.InstantAttach`, {userId:userId});
 		}
