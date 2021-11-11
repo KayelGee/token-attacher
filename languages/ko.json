@@ -10,6 +10,8 @@
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacher 빠른 편집 모드가 종료되지 않았으며 자동 저장도 완료되지 않았습니다. 마지막 변경 내용이 저장되지 않습니다.",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacher의 사후 처리가 완료되지 않았습니다. 이전에 씬을 전환한 경우 (TA)미싱 링크 삭제 매크로를 사용해야 합니다.",
 	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
+	"TOKENATTACHER.error.BaseDoesntExist": "The attaching UI is open for a base that doesn't exist anymore. The UI was closed. Reopen the attaching UI for an existing base!",
+	"TOKENATTACHER.error.UIisOpenOnAssign": "The attaching UI is still open for a base. There is no guarantee that your changes have been saved properly. Close the attaching UI and assign the token again!",
 
 	"TOKENATTACHER.info.ObjectsAttached": "선택된 개체가 토큰에게 부착되었습니다.",
 	"TOKENATTACHER.info.ObjectsDetached": "선택된 개체가 토큰에게 분리되었습니다.",

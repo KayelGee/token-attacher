@@ -10,6 +10,8 @@
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacherのクイック編集モードが終了せず、自動保存できませんでした。最後に変更した内容は保存されません。",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacherの後処理が完了していません。その前にシーンを切り替えた場合は「(TA)Delete missing Links」マクロを使用する必要があります。",
 	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
+	"TOKENATTACHER.error.BaseDoesntExist": "The attaching UI is open for a base that doesn't exist anymore. The UI was closed. Reopen the attaching UI for an existing base!",
+	"TOKENATTACHER.error.UIisOpenOnAssign": "The attaching UI is still open for a base. There is no guarantee that your changes have been saved properly. Close the attaching UI and assign the token again!",
 	
 	"TOKENATTACHER.info.ObjectsAttached": "選択したオブジェクトをコマに連結しました。",
 	"TOKENATTACHER.info.ObjectsDetached": "選択したオブジェクトをコマから切り離しました。",

@@ -19,7 +19,8 @@ import {libWrapper} from './shim.js';
 			QuickEditNotFinished:			"TOKENATTACHER.error.QuickEditNotFinished",
 			PostProcessingNotFinished:		"TOKENATTACHER.error.PostProcessingNotFinished",
 			OnlyTokenToggleAnimate:			"TOKENATTACHER.error.OnlyTokenToggleAnimate",
-			BaseDoesntExist:				"TOKENATTACHER.error.BaseDoesntExist"
+			BaseDoesntExist:				"TOKENATTACHER.error.BaseDoesntExist",
+			UIisOpenOnAssign:				"TOKENATTACHER.error.UIisOpenOnAssign"
 		},
 		info : {
 			ObjectsAttached:				"TOKENATTACHER.info.ObjectsAttached",
@@ -432,12 +433,9 @@ import {libWrapper} from './shim.js';
 				for (const index of packIndex) {
 					const entity = await pack.getDocument(index._id);
 					const prototypeAttached = getProperty(entity, `data.token.flags.${moduleName}.prototypeAttached`);
-					console.log(index._id);
-					console.log(entity);
 					if(prototypeAttached){
 						if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)){
 							const update = await TokenAttacher.migrateActor(entity, true);
-							console.log(update);
 							await pack.updateEntity({_id: index._id, [`token`]: update});
 						}
 					}
@@ -1555,6 +1553,11 @@ import {libWrapper} from './shim.js';
 						const attached = change.token.flags[moduleName].attached || {};
 						if(Object.keys(attached).length == 0) return;
 
+						if(TokenAttacher.isAttachmentUIOpen()){			
+							console.log("Token Attacher | " + 	game.i18n.format(localizedStrings.error.UIisOpenOnAssign));			
+							ui.notifications.error(game.i18n.format(localizedStrings.error.UIisOpenOnAssign));
+						}
+
 						let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.token, attached);
 						let deletes = {_id:change._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
 						let updates = {_id:change._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached, grid:{size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h}}};
@@ -1981,24 +1984,18 @@ import {libWrapper} from './shim.js';
 			for (let i = 0; i < allCompendiums.length; i++) {
 				const pack = allCompendiums[i];
 				const packIndex = await pack.getIndex();
-				console.log(pack);
-				console.log(packIndex);
 				for (const index of packIndex) {
 					const entity = await pack.getDocument(index._id);
-					console.log(entity);
 				}
 			}
 		}
 
 		static async exportCompendiumToJSON(pack){
 			const packIndex = await pack.getIndex();
-			console.log(pack);
-			console.log(packIndex);
 			let actors = [];
 			for (const index of packIndex) {
 				const entity = await pack.getDocument(index._id);
 				actors.push(TokenAttacher.mapActorForExport(entity));
-				console.log(entity);
 			}
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors, ['data-model']: game.settings.get(moduleName, "data-model-version")})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});

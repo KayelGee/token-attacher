@@ -10,6 +10,8 @@
 	"TOKENATTACHER.error.QuickEditNotFinished": "Token Attacher Quick Edit Mode was not ended and auto save didn't finish. Your last changes won't be saved.",
 	"TOKENATTACHER.error.PostProcessingNotFinished": "Token Attacher's Post Processing is not finished. If you switched the scene before then you need to use the (TA)Delete missing Links Macro.",
 	"TOKENATTACHER.error.OnlyTokenToggleAnimate": "Only Token Animation can be changed.",
+	"TOKENATTACHER.error.BaseDoesntExist": "The attaching UI is open for a base that doesn't exist anymore. The UI was closed. Reopen the attaching UI for an existing base!",
+	"TOKENATTACHER.error.UIisOpenOnAssign": "The attaching UI is still open for a base. There is no guarantee that your changes have been saved properly. Close the attaching UI and assign the token again!",
 
 	"TOKENATTACHER.info.ObjectsAttached": "Selected objects attached to token.",
 	"TOKENATTACHER.info.ObjectsDetached": "Selected objects detached from token.",
