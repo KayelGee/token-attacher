@@ -2682,6 +2682,12 @@ import {libWrapper} from './shim.js';
 			const layer = canvas.getLayerByEmbeddedName(attach_base.type);
 			const element = TokenAttacher.layerGetElement(layer, attach_base.element);
 
+			if(!element) {				
+				TokenAttacher.closeTokenAttacherUI();
+				ui.notifications.error(game.i18n.format(localizedStrings.error.BaseDoesntExist));
+				return;
+			}
+			
 			TokenAttacher._AttachToToken(element,{type:document.layer.constructor.documentName, data:[document._id]});
 		}
 	}
