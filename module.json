@@ -2,9 +2,9 @@
 	"name": "token-attacher",
 	"title": "Token Attacher",
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
-	"version": "4.2.1",
-	"minimumCoreVersion": "0.8.6",
-	"compatibleCoreVersion": "0.8.9",
+	"version": "4.3.0",
+	"minimumCoreVersion": "9.235",
+	"compatibleCoreVersion": "9.235",
 	"author": "KayelGee - KayelGee#5241",
 	"esmodules": [
 		"scripts/token-attacher.js"
@@ -40,6 +40,6 @@
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
   "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.2.1/v4.2.1.zip",
-  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.2.1/README.md"
+  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.3.0/v4.3.0.zip",
+  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.3.0/README.md"
 }

@@ -693,7 +693,7 @@ import {libWrapper} from './shim.js';
 				return update;
 			}
 			//Rectangle Entities
-			if('width' in data || 'distance' in data || 'dim' in data || 'radius' in data){
+			if('width' in data || 'distance' in data || 'dim' in data || (data.hasOwnProperty('config') && 'dim' in data.config) || 'radius' in data){
 				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(data, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.x = x;
 				update.y = y;
@@ -710,6 +710,11 @@ import {libWrapper} from './shim.js';
 				if(data.hasOwnProperty('dim')){
 					update.dim 		= offset.size.dim    * size_multi.w;
 					update.bright 	= offset.size.bright * size_multi.w;
+				}
+				if(data.hasOwnProperty('config') && data.config.hasOwnProperty('dim')){
+					update.config = {};
+					update.config.dim 		= (offset.size.config?.dim ?? offset.size.dim)   * size_multi.w;
+					update.config.bright 	= (offset.size.config?.bright ?? offset.size.bright) * size_multi.w;
 				}
 				if(data.hasOwnProperty('radius')){
 					update.radius 	= offset.size.radius * size_multi.w;
@@ -1354,6 +1359,11 @@ import {libWrapper} from './shim.js';
 				offset.size.dim= data.dim;
 				offset.size.bright= data.bright;
 			}
+			if(data.hasOwnProperty('config') && data.config.hasOwnProperty('dim')){
+				offset.size.config = {};
+				offset.size.config.dim 		= data.config.dim;
+				offset.size.config.bright 	= data.config.bright;
+			}
 			if(data.hasOwnProperty('radius')){
 				offset.size.radius= data.radius;
 			}
@@ -1422,8 +1432,8 @@ import {libWrapper} from './shim.js';
 
 		static getElementSize(element){
 			let size = {};
-			size.width 	= element.data.width 	?? element.data.distance ?? element.data.dim ?? element.data.radius;
-			size.height = element.data.height 	?? element.data.distance ?? element.data.dim ?? element.data.radius;
+			size.width 	= element.data.width 	?? element.data.distance ?? element.data.config?.dim ?? element.data.dim ?? element.data.radius;
+			size.height = element.data.height 	?? element.data.distance ?? element.data.config?.dim ?? element.data.dim ?? element.data.radius;
 			return size;
 		}
 
@@ -1527,6 +1537,12 @@ import {libWrapper} from './shim.js';
 					mergeObject(data, {
 						dim : offset.size.dim,
 						bright: offset.size.bright
+					});
+				}
+				if(data.hasOwnProperty('config') && data.config.hasOwnProperty('dim')){
+					mergeObject(data.config, {
+						dim : offset.size.config?.dim ?? offset.size.dim,
+						bright: offset.size.config?.bright ?? offset.size.bright
 					});
 				}
 				if(data.hasOwnProperty('radius')){
@@ -2049,7 +2065,7 @@ import {libWrapper} from './shim.js';
 			}
 			await Promise.all(allPromises);
 			actors.forEach(async actor => {
-				await Actor.create({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token, flags: actor.flags});
+				await Actor.create({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token, flags: actor.flags});
 			});
 		}
 
@@ -2062,10 +2078,10 @@ import {libWrapper} from './shim.js';
 			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
 			 
 			const parentMap = {null:{value:null}};
-			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name, entity:"Actor"});
+			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name, type:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
-				creates.push({type: game.system.entityTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
+				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
 			});
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
@@ -2332,8 +2348,12 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getSize(data){
-			return [data.width ?? data.radius  ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright),
-			data.height ?? data.radius ?? data.distance ?? (data.dim > data.bright ? data.dim: data.bright)];
+			return [data.width ?? data.radius  ?? data.distance 
+				?? (data.config?.dim > data.config?.bright ? data.config?.dim: data.config?.bright) 
+				?? (data.dim > data.bright ? data.dim: data.bright),
+			data.height ?? data.radius ?? data.distance 
+			?? (data.config?.dim > data.config?.bright ? data.config?.dim: data.config?.bright) 
+			?? (data.dim > data.bright ? data.dim: data.bright)];
 
 		}
 		//Update z in elements_data and return elements_data
