@@ -2563,7 +2563,7 @@ import {libWrapper} from './shim.js';
 					const prototypeAttached = getProperty(entity, `data.token.flags.${moduleName}.prototypeAttached`);
 					if(prototypeAttached){
 						const updateElement = migrateFunc;
-						const updateBase = (base) =>{
+						const updateBase = (base, type, base_entity) =>{
 							const children = getProperty(base, `flags.${moduleName}.prototypeAttached`) ?? getProperty(base, `flags.${moduleName}.attached`);
 							if(!children) return;
 							for (let i = 0; i < elementTypes.length; i++) {
@@ -2572,7 +2572,7 @@ import {libWrapper} from './shim.js';
 								if(children.hasOwnProperty(type)){
 									for (let i = 0; i < children[type].length; i++) {
 										const elem = children[type][i];
-										updateElement(elem, type);
+										updateElement(elem, type, base_entity);
 									}
 								}
 							}
@@ -2581,14 +2581,18 @@ import {libWrapper} from './shim.js';
 								if (children.hasOwnProperty(key)) {
 									for (let i = 0; i < children[key].length; i++) {
 										const element = children[key][i];
-										updateBase(element, key);
+										if(typeof element === 'string' || element instanceof String){
+											console.error(`Token Attacher - Migration Error, attached child is not an object. Base Token and Actor: `, base_entity.data.name, base, base_entity);
+											continue;
+										}
+										updateBase(element, key, base_entity);
 									}
 								}
 							}
 						}
 						let new_token = duplicate(getProperty(entity, `data.token`));
-						if(elementTypes.includes("Token")) updateElement(new_token, "Token");
-						if(!topLevelOnly) updateBase(new_token);
+						if(elementTypes.includes("Token")) updateElement(new_token, "Token", entity);
+						if(!topLevelOnly) updateBase(new_token, 'Token', entity);
 						elementCount++;
 						await entity.update({token: new_token}, options);
 					}
