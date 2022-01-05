@@ -2078,7 +2078,7 @@ import {libWrapper} from './shim.js';
 			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
 			 
 			const parentMap = {null:{value:null}};
-			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name, type:"Actor"});
+			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name.slugify({strict: true}), type:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
 				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
