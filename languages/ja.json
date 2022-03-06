@@ -27,6 +27,8 @@
 	"TOKENATTACHER.info.PastedAndAttached": "貼り付けられた要素です。後処理が終わるまでお待ちください……。",
 	"TOKENATTACHER.info.ObjectsUnlocked": "選択した要素がアンロックされました",
 	"TOKENATTACHER.info.ObjectsLocked": "選択した要素がロックされました。",
+	"TOKENATTACHER.info.ObjectsCanNotMoveConstrained": "Elements can move inside parent.",
+	"TOKENATTACHER.info.ObjectsCanMoveConstrained": "Elements can't move inside parent.",
 	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
 
 	"TOKENATTACHER.button.AttachToToken": "コマに選択範囲を連結する",

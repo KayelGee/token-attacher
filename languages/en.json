@@ -27,6 +27,8 @@
 	"TOKENATTACHER.info.PastedAndAttached": "Pasted elements. Please wait for post processing to finish...",
 	"TOKENATTACHER.info.ObjectsUnlocked": "Selection for elements unlocked.",
 	"TOKENATTACHER.info.ObjectsLocked": "Selection for elements locked.",
+	"TOKENATTACHER.info.ObjectsCanNotMoveConstrained": "Elements can move inside parent.",
+	"TOKENATTACHER.info.ObjectsCanMoveConstrained": "Elements can't move inside parent.",
 	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
 
 	"TOKENATTACHER.button.AttachToToken": "Attach selection to token",

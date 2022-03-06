@@ -37,6 +37,8 @@ import {libWrapper} from './shim.js';
 			PastedAndAttached:				"TOKENATTACHER.info.PastedAndAttached",
 			ObjectsUnlocked:				"TOKENATTACHER.info.ObjectsUnlocked",
 			ObjectsLocked:					"TOKENATTACHER.info.ObjectsLocked",
+			ObjectsCanNotMoveConstrained:	"TOKENATTACHER.info.ObjectsCanNotMoveConstrained",
+			ObjectsCanMoveConstrained:		"TOKENATTACHER.info.ObjectsCanMoveConstrained",
 			AnimationToggled:				"TOKENATTACHER.info.AnimationToggled"
 		},
 		button : {
@@ -159,6 +161,7 @@ import {libWrapper} from './shim.js';
 				importFromJSONDialog: TokenAttacher.importFromJSONDialog,
 				importFromJSON: TokenAttacher.importFromJSON,
 				setElementsLockStatus: TokenAttacher.setElementsLockStatus,
+				setElementsMoveConstrainedStatus: TokenAttacher.setElementsMoveConstrainedStatus,
 				regenerateLinks: TokenAttacher.regenerateLinks,
 				toggleQuickEditMode: TokenAttacher.toggleQuickEditMode,
 				deleteMissingLinks: TokenAttacher.deleteMissingLinks,
@@ -225,9 +228,9 @@ import {libWrapper} from './shim.js';
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
 				//Attached elements are not allowed to be moved by anything other then Token Attacher
 				Hooks.on(`update${type}`, (document, change, options, userId) => TokenAttacher.updateOffset(type, document, change, options, userId));
-				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.isAllowedToMove(document, change, options, userId));
+				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.isAllowedToMove(type, document, change, options, userId));
 				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.handleBaseMoved(document, change, options, userId));
-				Hooks.on(`preDelete${type}`, (document, options, userId) => TokenAttacher.isAllowedToMove(document, {}, options, userId));
+				Hooks.on(`preDelete${type}`, (document, options, userId) => TokenAttacher.isAllowedToMove(type, document, {}, options, userId));
 				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled)); //Check hook signature
 				//Deleting attached elements should detach them
 				Hooks.on(`delete${type}`, (document, options, userId) => TokenAttacher.DetachAfterDelete(type, document, options, userId));
@@ -1160,6 +1163,45 @@ import {libWrapper} from './shim.js';
 				if(current_layer.controlled.length <= 0) return ui.notifications.error(game.i18n.format(localizedStrings.error.NothingSelected));
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, false);
 			});
+		}
+		static async setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification = false){
+			let selected = {}
+			if(!Array.isArray(elements)) elements=[elements];
+			for (const element of elements) {
+				const type = element.layer.constructor.documentName;
+				if(!selected.hasOwnProperty(type)) selected[type] = [];
+				selected[type].push(element.data._id);
+			}
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._setElementsMoveConstrainedStatus(selected, canMoveConstrained, suppressNotification);
+			else game.socket.emit(`module.${moduleName}`, {event: `setElementsMoveConstrainedStatus`, eventdata: [selected, canMoveConstrained,  suppressNotification]});
+
+		}
+
+		static async _setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification){
+			let updates = {};
+			for (const key in elements) {
+				if (elements.hasOwnProperty(key)) {
+					const layer = canvas.getLayerByEmbeddedName(key);
+					for (let i = 0; i < elements[key].length; i++) {
+						const element = TokenAttacher.layerGetElement(layer, elements[key][i]);
+						if(getProperty(element, `data.flags.${moduleName}.parent`)){
+							if(!updates.hasOwnProperty(key)) updates[key] = [];
+							if(canMoveConstrained) updates[key].push({_id:element.data._id, [`flags.${moduleName}.canMoveConstrained`]:true});
+							else updates[key].push({_id:element.data._id, [`flags.${moduleName}.-=canMoveConstrained`]:null});
+						}
+					}
+				}
+			}
+			//Fire Updates
+			for (const key in updates) {
+				if (updates.hasOwnProperty(key)) {
+					if(updates[key].length > 0) await canvas.scene.updateEmbeddedDocuments(key, updates[key], {[moduleName]:{update:true}});	
+				}
+			}
+			if(!suppressNotification) {
+				if(!canMoveConstrained) ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsCanMoveConstrained));
+				else ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsCanNotMoveConstrained));
+			}
 		}
 
 		static async setElementsLockStatus(elements, isLocked, suppressNotification = false){
@@ -2094,7 +2136,7 @@ import {libWrapper} from './shim.js';
 		}
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
-		static isAllowedToMove(document, change, options, userId){
+		static isAllowedToMove(type, document, change, options, userId){
 			if(	(		change.hasOwnProperty("x")
 					||	change.hasOwnProperty("y")
 					||	change.hasOwnProperty("c")
@@ -2128,7 +2170,27 @@ import {libWrapper} from './shim.js';
 					return true;
 				}
 			}
+			if(!getProperty(options, `${moduleName}.update`)
+			&& getProperty(document, `data.flags.${moduleName}.canMoveConstrained`)) {
+				const parent_token = canvas.tokens.get(objParent);
+				
+				const updatedDocumentData= mergeObject(duplicate(document.data), change);
+				if(type === "Token" 
+				&& TokenAttacher.isMovingInParent(updatedDocumentData, parent_token.document.data)){
+					const base_type = "Token";
+					const new_offset = TokenAttacher.getElementOffset(type, updatedDocumentData, base_type, parent_token.document.data, {});
+					setProperty(change, `flags.${moduleName}.offset`, new_offset);
+					return true;
+				}
+			}
 			return false;
+		}
+		
+		static isMovingInParent(child, base) {
+			return Number.between(child.x, base.x, base.x + (base.width * canvas.grid.w)) 
+			&& Number.between(child.y, base.y, base.y + (base.height * canvas.grid.h))
+			&& Number.between(child.x + (child.width * canvas.grid.w), base.x, base.x + (base.width * canvas.grid.w)) 
+			&& Number.between(child.y + (child.height * canvas.grid.h), base.y, base.y + (base.height * canvas.grid.h));;
 		}
 
 		static handleBaseMoved(document, change, options, userId){
