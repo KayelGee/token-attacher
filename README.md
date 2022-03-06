@@ -190,7 +190,7 @@ Auto resizing when the grid size differs from what the prefab was saved with.
 ![](gifs/auto_resize.gif)
 
 ### Allow movement in base token area
-Enable canMoveConstrained flag with API call to `setElementsMoveConstrainedStatus`, then move the token freely within the area of the base token.
+Enable canMoveConstrained flag with API call to `setElementsMoveConstrainedStatus`(see Mount Up! macro), then move the token freely within the area of the base token.
 
 ![](gifs/move_constrained.gif)
 
