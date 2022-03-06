@@ -505,6 +505,8 @@ import {libWrapper} from './shim.js';
 				)){
 				return true;
 			}
+			if(!document.getFlag(moduleName, "attached")) return true;
+
 			let baseData = duplicate(document.data);
 			mergeObject(baseData, change);
 			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
