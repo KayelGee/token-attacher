@@ -4,9 +4,9 @@
 ![GitHub Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/latest/total?style=for-the-badge) 
 ![GitHub All Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/total?style=for-the-badge&label=Downloads+total)  
 
-**[Compatibility]**: *FoundryVTT* 0.7.0+  
+**[Compatibility]**: *FoundryVTT* v9+ 
 **[Systems]**: *any*  
-**[Languages]**: *English*  
+**[Languages]**: *English*, *Korean*, *Japanese*    
 
 Attach anything(even other tokens and their attached elements aswell) to tokens, so that they move when the token moves and rotate/move when the token rotates.
 Resizing the base token will also resize all attached elements.
@@ -21,25 +21,27 @@ When dragging an prefab to the canvas the attached tiles will be sorted to the t
 To be able to attach measure templates, lights, sounds and journals you need the select-tool-everywhere module, as of writing this there is no select tool in those controls.
 You can also attach those by using the new all layer select tool in combination with a select tool on a layer like the token layer.
 
-## Infos for updating from Token Attacher 3.2.x to 4.0:
- - Backup your world!
- - All Scenes in your world get auto migrated, so that tokens on them will work right away(but it might take some time as every Scene will be loaded)
- 	- If you have many scenes in your world then at some point you might encounter and error 'You are using a Scene background texture with dimensons x by y...' and 'Background can't be loaded', which don't cause any issues by themselves. You can safely ignore those. If you want to make sure the migration finished properly look in your browser console for  'Token Attacher | Data migration finished. New data model version: 3'. When this message is there then the migration ended succesfully.
- - To migrate the Actor Directory:
- 	- open a Scene, set the grid size to what you used to create your tokens
- 	- Go to Game Settings/Configure Settings/Module Settings/Token Attacher GM Menu and press "Migrate Sidebar Actors"
- 	- This can take a while depending on the amount of actors in your world
- 	- After it's done it should put out a message and your actors are good to go
- 	- Only actors with attached elements in their prototype token will be touched
- - To migrate a Compendium
- 	- Unlock the compendium(Only unlocked compendiums will be migrated)
- 	- Optionally Lock all other Actor compendiums to speed up the process
- 	- open a Scene, set the grid size to what you used to create your tokens in your compendium
- 	- Go to Game Settings/Configure Settings/Module Settings/Token Attacher GM Menu and press "Migrate all Actor Compendiums that have attached Elements"
- 	- This can take a while depending on the amount of actors in your compendiums
- 	- After it's done it should put out a message and your compendiums are good to go
- 	- Only actors with attached elements in their prototype token will be touched
-	
+## Table of Contents
+ - [Macros](#macros)
+ - [Known Issues](#known-issues)
+ - [Installation](#installation)
+ - [Usage](#usage)
+	- [Open attach UI](#open-attach-ui)
+	- [Attach or detach element](#attach-or-detach-element)
+	- [Attach with multi layer selection tool](#attach-with-multi-layer-selection-tool)
+	- [Detach all elements](#detach-all-elements)
+	- [Enable selection of attached element](#enable-selection-of-attached-element)
+	- [Highlight attached elements](#highlight-attached-elements)
+	- [Copy and paste attached elements from one base to another](#copy-and-paste-attached-elements-from-one-base-to-another)
+	- [Quickly reposition attached element with Quick Edit Mode](#quickly-reposition-attached-element-with-quick-edit-mode)
+	- [Make a prefab](#make-a-prefab)
+	- [Export compendiums with prefabs](#export-compendiums-with-prefabs)
+	- [Resize base and children](#resize-base-and-children)
+	- [Automatic resizing on different grid size](#automatic-resizing-on-different-grid-size)
+	- [Allow movement in base token area](#allow-movement-in-base-token-area)
+ - [Contact](#contact)
+ - [Credits](#credits)
+
 ## Macros
 
 A public interface for usage in macros can be accessed via tokenAttacher, following functions can be called:
@@ -51,6 +53,7 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.getAllAttachedElementsOfToken(target_token, suppressNotification=false)
  - tokenAttacher.getAllAttachedElementsByTypeOfToken(target_token, type, suppressNotification=false)
  - tokenAttacher.setElementsLockStatus(elements, isLocked, suppressNotification = false)
+ - tokenAttacher.setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification = false)
  - tokenAttacher.regenerateLinks(elements)
  - tokenAttacher.migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly)
  - tokenAttacher.migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false)
@@ -110,55 +113,86 @@ console.log(canvas.tiles.get(all_attached_tiles[0]));
 2. While loaded in World, enable **_Token Attacher_** module.
 
 ## Usage
+ - [Open attach UI](#open-attach-ui)
+ - [Attach or detach element](#attach-or-detach-element)
+ - [Attach with multi layer selection tool](#attach-with-multi-layer-selection-tool)
+ - [Detach all elements](#detach-all-elements)
+ - [Enable selection of attached element](#enable-selection-of-attached-element)
+ - [Highlight attached elements](#highlight-attached-elements)
+ - [Copy and paste attached elements from one base to another](#copy-and-paste-attached-elements-from-one-base-to-another)
+ - [Quickly reposition attached element with Quick Edit Mode](#quickly-reposition-attached-element-with-quick-edit-mode)
+ - [Make a prefab](#make-a-prefab)
+ - [Export compendiums with prefabs](#export-compendiums-with-prefabs)
+ - [Resize base and children](#resize-base-and-children)
+ - [Automatic resizing on different grid size](#automatic-resizing-on-different-grid-size)
+ - [Allow movement in base token area](#allow-movement-in-base-token-area)
 
+
+### Open attach UI
 Select a token and open the attaching UI.
 
 ![](gifs/open_close_ui.gif)
 
+### Attach or detach element
 Attach or detach an element by selecting it and pressing the attach or detach button.
 
 ![](gifs/attach_detach.gif)
 
+### Attach with multi layer selection tool
 Attach elements on multiple layer with the rectangle select tool.
 
 ![](gifs/rectangle_select.gif)
 
+### Detach all elements
 Detach all elements by clicking the detach all button.
 
 ![](gifs/detach_all.gif)
 
+### Enable selection of attached element
 Enable selection of an attached element by selecting the element and then pressing the unlock button. To prevent the selection again use the lock button.
 
 ![](gifs/unlock.gif)
 
+### Highlight attached elements
 Highlight your attached elements by pressing the highlight button.
 
 ![](gifs/highlight.gif)
 
+### Copy and paste attached elements from one base to another
 Copy and paste all attached elements by pressing the copy button on the source token and the paste button on the target token.
 
 ![](gifs/copy_paste.gif)
 
+### Quickly reposition attached element with Quick Edit Mode
 Quickly reposition attached elements without opening the attachment ui by clicking the Quick Edit Button, move attachments and then finish by clicking the Quick Edit Button again.
 
 ![](gifs/quick_edit.gif)
 
+### Make a prefab
 Make a prefab by adding a token with attached elements to the prototype Token of an Actor.
 The grid size of the current scene will be saved to the prefab, so when you drag the prefab out on a scene with a different grid size it will resize accordingly.
 
 ![](gifs/prefab.gif)
 
+### Export compendiums with prefabs
 Export compendiums with prefabs. Copy the resulting json into a .json file. To see how to auto import compendiums(so that this works between systems) in your module see my example module: https://github.com/KayelGee/token-attacher-compendium-example
 
 ![](gifs/compendium_export.gif)
 
+### Resize base and children
 Resize the whole chain by resizing the base token.
 
 ![](gifs/resize.gif)
 
-Auto resizing when the grid size differs.
+### Automatic resizing on different grid size
+Auto resizing when the grid size differs from what the prefab was saved with.
 
 ![](gifs/auto_resize.gif)
+
+### Allow movement in base token area
+Enable canMoveConstrained flag with API call to `setElementsMoveConstrainedStatus`, then move the token freely within the area of the base token.
+
+![](gifs/move_constrained.gif)
 
 ## Contact
 
