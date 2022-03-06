@@ -4,7 +4,6 @@
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
 	"version": "4.3.1",
 	"minimumCoreVersion": "9.235",
-	"compatibleCoreVersion": "9.235",
 	"compatibleCoreVersion": "9",
 	"author": "KayelGee - KayelGee#5241",
 	"esmodules": [
