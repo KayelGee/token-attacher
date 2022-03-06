@@ -4,7 +4,13 @@
 	left: 120px;
 	padding: 0;
 	z-index: 30;
+	pointer-events: none;
 }
+
+#tokenAttacher * {
+	pointer-events: auto;
+}
+
 #tokenAttacher .image {
 	height: 142px;
 	min-width: 142px;
