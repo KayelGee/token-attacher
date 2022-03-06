@@ -949,7 +949,7 @@ import {libWrapper} from './shim.js';
 							const arr = attached[key];
 							let deletes = [];
 							for (let i = 0; i < arr.length; i++) {
-								deletes.push({_id: arr[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
+								deletes.push({_id: arr[i], [`flags.-=${moduleName}`]: null});
 							}	
 							if(deletes.length > 0)	await canvas.scene.updateEmbeddedDocuments(key, deletes, {[moduleName]:{update:true}});						
 						}
@@ -969,7 +969,7 @@ import {libWrapper} from './shim.js';
 								
 				let deletes = [];
 				for (let i = 0; i < elements.data.length; i++) {
-					deletes.push({_id: elements.data[i], [`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null});
+					deletes.push({_id: elements.data[i], [`flags.-=${moduleName}`]: null});
 				}
 				if(deletes.length > 0 && !options.skip_update) await canvas.scene.updateEmbeddedDocuments(elements.type, deletes, {[moduleName]:{update:true}});	
 				await token.document.setFlag(moduleName, `attached.${elements.type}`, attached);
@@ -2309,7 +2309,7 @@ import {libWrapper} from './shim.js';
 				let layer = TokenAttacher.getLayerOrCollection(type);
 				const element = TokenAttacher.layerGetElement(layer, entity._id);
 				
-				const deletes ={[`flags.${moduleName}.-=parent`]: null, [`flags.${moduleName}.-=offset`]: null, [`flags.${moduleName}.-=unlocked`]: null};
+				const deletes ={[`flags.-=${moduleName}`]: null};
 				await element.update(deletes);
 			}
 		}
