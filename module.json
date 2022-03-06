@@ -16,7 +16,7 @@
           "name": "example-macros",
           "label": "Example Macros",
           "path": "packs/example-macros.db",
-          "entity": "Macro",
+          "type": "Macro",
           "package": "token-attacher"
       }
 			],
