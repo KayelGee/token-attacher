@@ -5,6 +5,7 @@
 	"version": "4.3.1",
 	"minimumCoreVersion": "9.235",
 	"compatibleCoreVersion": "9.235",
+	"compatibleCoreVersion": "9",
 	"author": "KayelGee - KayelGee#5241",
 	"esmodules": [
 		"scripts/token-attacher.js"
