@@ -50,6 +50,7 @@ import {libWrapper} from './shim.js';
 			unlink:							"TOKENATTACHER.button.unlink",
 			'unlink-all':					"TOKENATTACHER.button.unlink-all",
 			lock:							"TOKENATTACHER.button.lock",
+			unlock:							"TOKENATTACHER.button.unlock",
 			highlight:						"TOKENATTACHER.button.highlight",
 			copy:							"TOKENATTACHER.button.copy",
 			paste:							"TOKENATTACHER.button.paste",

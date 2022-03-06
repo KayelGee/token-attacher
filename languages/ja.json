@@ -39,6 +39,7 @@
 	"TOKENATTACHER.button.unlink": "選択要素の連結解除",
 	"TOKENATTACHER.button.unlink-all": "すべての連結を解除",
 	"TOKENATTACHER.button.lock": "連結をロック",
+	"TOKENATTACHER.button.unlock": "Unlock attached elements",
 	"TOKENATTACHER.button.highlight": "連結要素を強調",
 	"TOKENATTACHER.button.copy": "連結をコピー",
 	"TOKENATTACHER.button.paste": "貼り付けて連結",

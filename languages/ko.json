@@ -39,6 +39,7 @@
 	"TOKENATTACHER.button.unlink": "선택 요소 분리",
 	"TOKENATTACHER.button.unlink-all": "모든 요소 분리",
 	"TOKENATTACHER.button.lock": "부착된 요소 잠금",
+	"TOKENATTACHER.button.unlock": "Unlock attached elements",
 	"TOKENATTACHER.button.highlight": "부착된 요소 강조 표시",
 	"TOKENATTACHER.button.copy": "부착된 요소 복사",
 	"TOKENATTACHER.button.paste": "부착된 요소 붙여넣기",

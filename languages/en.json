@@ -39,6 +39,7 @@
 	"TOKENATTACHER.button.unlink": "Detach selected elements",
 	"TOKENATTACHER.button.unlink-all": "Detach all elements",
 	"TOKENATTACHER.button.lock": "Lock attached elements",
+	"TOKENATTACHER.button.unlock": "Unlock attached elements",
 	"TOKENATTACHER.button.highlight": "Highlight attached elements",
 	"TOKENATTACHER.button.copy": "Copy attached elements",
 	"TOKENATTACHER.button.paste": "Paste and attach elements",
