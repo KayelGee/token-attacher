@@ -2119,7 +2119,7 @@ import {libWrapper} from './shim.js';
 			const actors = imported.actors;
 			let name = compendium.name;
 			let label = compendium.label;
-			if(options.hasOwnProperty("module")) name = options.module + "." + name;
+			if(options.hasOwnProperty("module")) name = options.module + "-" + name;
 			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
 			let slugified_name = name.slugify({strict:true});
 			if(name !== slugified_name){
