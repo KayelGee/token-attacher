@@ -2076,9 +2076,12 @@ import {libWrapper} from './shim.js';
 			let label = compendium.label;
 			if(options.hasOwnProperty("module")) name = options.module + "." + name;
 			if(options.hasOwnProperty("module-label")) label = "("+options["module-label"] + ")" + label;
-			 
+			let slugified_name = name.slugify({strict:true});
+			if(name !== slugified_name){
+				console.error("Token Attacher - Importing a JSON Compendium where the name is not slugified, contact the author to slugify the name: ", label, name);
+			} 
 			const parentMap = {null:{value:null}};
-			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: name, type:"Actor"});
+			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
 				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
