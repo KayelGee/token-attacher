@@ -39,7 +39,9 @@ import {libWrapper} from './shim.js';
 			ObjectsLocked:					"TOKENATTACHER.info.ObjectsLocked",
 			ObjectsCanNotMoveConstrained:	"TOKENATTACHER.info.ObjectsCanNotMoveConstrained",
 			ObjectsCanMoveConstrained:		"TOKENATTACHER.info.ObjectsCanMoveConstrained",
-			AnimationToggled:				"TOKENATTACHER.info.AnimationToggled"
+			AnimationToggled:				"TOKENATTACHER.info.AnimationToggled",
+			ImportingJSONStart:				"TOKENATTACHER.info.ImportingJSONStart",
+			ImportingJSONFinished:			"TOKENATTACHER.info.ImportingJSONFinished"
 		},
 		button : {
 			AttachToToken:					"TOKENATTACHER.button.AttachToToken",
@@ -2102,9 +2104,15 @@ import {libWrapper} from './shim.js';
 		}
 		static async importFromJSON(json, options={}){
 			const imported = JSON.parse(json);
+			const name = imported.folder || imported.compendium?.label;
+			console.log("Token Attacher - Starting JSON Import for " + name);
+			ui.notifications.info(game.i18n.format(localizedStrings.info.ImportingJSONStart, {name: name}));
 			if(imported.folder)	await TokenAttacher.importFromJSONWithFolders(imported, options);
 			if(imported.compendium)	await TokenAttacher.importFromJSONWithCompendium(imported, options);
+			console.log("Token Attacher - Finished JSON Import for " + name);
+			ui.notifications.info(game.i18n.format(localizedStrings.info.ImportingJSONFinished, {name: imported.folder || imported.compendium?.name}));
 		}
+
 		static async importFromJSONWithFolders(imported, options={}){
 			const folders = imported.folder;
 			const actors = imported.actors;

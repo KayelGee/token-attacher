@@ -30,6 +30,8 @@
 	"TOKENATTACHER.info.ObjectsCanNotMoveConstrained": "Elements can move inside parent.",
 	"TOKENATTACHER.info.ObjectsCanMoveConstrained": "Elements can't move inside parent.",
 	"TOKENATTACHER.info.AnimationToggled": "Animation changed on {count} Tokens",
+	"TOKENATTACHER.info.ImportingJSONStart": "Token Attacher - Starting JSON Import for {name}. Please be patient and wait for the finish message.",
+	"TOKENATTACHER.info.ImportingJSONFinished": "Token Attacher - Finished JSON Import for {name}. If you're not seeing the imported compendium press F5.",
 
 	"TOKENATTACHER.button.AttachToToken": "Attach selection to token",
 	"TOKENATTACHER.button.DetachFromToken": "Detach all from token",
