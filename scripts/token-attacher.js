@@ -181,6 +181,10 @@ import {libWrapper} from './shim.js';
 
 			window.tokenAttacher = {};
 			window.tokenAttacher.selected = {};
+			window.tokenAttacher.listenQueue = {
+				worker: {},
+				queue: []
+			};
 			
 			TokenAttacher.initMacroAPI();
 
@@ -813,40 +817,58 @@ import {libWrapper} from './shim.js';
 		/**
 		 * Listen to custom socket events, so players can move elements indirectly through the gm
 		 */
-		static listen(data){
+		static listen(data){					
+			window.tokenAttacher.listenQueue.queue.push(data);
+			TokenAttacher.workListenQueue();
+		}
+
+		static async workListenQueue(){
+			let resolver;
+			await window.tokenAttacher.listenQueue.worker;
+			window.tokenAttacher.listenQueue.worker = new Promise((resolve)=>{
+				resolver = () =>{resolve()};
+			});
+			let result;
+			let data = window.tokenAttacher.listenQueue.queue.shift();
 			switch (data.event) {
 				case "createPlaceableObjects":
 					{
 						let [parent, createdObjs, options, userId] = data.eventdata;
 						parent = game.scenes.get(parent._id);
-						Hooks.callAll("createPlaceableObjects", parent, createdObjs, options, userId);
+						result = Hooks.callAll("createPlaceableObjects", parent, createdObjs, options, userId);
 					}
 					break;
 				case "AttachToToken":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._AttachToToken(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._AttachToToken(...data.eventdata);
 					break;
 				case "DetachFromToken":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._DetachFromToken(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._DetachFromToken(...data.eventdata);
 					break;
 				case "attachElementsToToken":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._attachElementsToToken(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._attachElementsToToken(...data.eventdata);
 					break;
 				case "detachElementsFromToken":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._detachElementsFromToken(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._detachElementsFromToken(...data.eventdata);
 					break;
 				case "ReattachAfterUndo":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._ReattachAfterUndo(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._ReattachAfterUndo(...data.eventdata);
 					break;
 				case "UpdateAttachedOfBase":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._UpdateAttachedOfBase(...data.eventdata);
 					break;
 				case "setElementsLockStatus":
-					if(TokenAttacher.isFirstActiveGM())	TokenAttacher._setElementsLockStatus(...data.eventdata);
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._setElementsLockStatus(...data.eventdata);
+					break;
+				case "setElementsMoveConstrainedStatus":
+					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._setElementsMoveConstrainedStatus(...data.eventdata);
 					break;
 				default:
 					console.log("Token Attacher| wtf did I just read?");
 					break;
 			}
+
+			await result;
+			resolver();
 		}
 
 		/**
