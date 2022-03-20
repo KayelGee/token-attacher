@@ -147,6 +147,11 @@ import {libWrapper} from './shim.js';
 	}
 
 	class TokenAttacher {
+		static CONSTRAINED_TYPE = {
+			TOKEN_CONSTRAINED: 0,
+			UNCONSTRAINED: 1,
+		}
+
 		static initMacroAPI(){
 			if(getProperty(window,'tokenAttacher.attachElementToToken')) return;
 			window.tokenAttacher = {
@@ -171,6 +176,8 @@ import {libWrapper} from './shim.js';
 				setAnimateStatus: TokenAttacher.setAnimateStatus,
 				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
+
+				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
 			Hooks.callAll(`${moduleName}.macroAPILoaded`);
 		}
@@ -1190,20 +1197,26 @@ import {libWrapper} from './shim.js';
 				TokenAttacher.setElementsLockStatus(current_layer.controlled, false);
 			});
 		}
-		static async setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification = false){
-			let selected = {}
+		static async setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification = false, options={}){
+			options = foundry.utils.mergeObject({type: TokenAttacher.CONSTRAINED_TYPE.TOKEN_CONSTRAINED}, options, {
+				insertKeys: true,
+				insertValues: true,
+				overwrite: true,
+				inplace: false
+			});
+			let selected = {};
 			if(!Array.isArray(elements)) elements=[elements];
 			for (const element of elements) {
 				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
 				selected[type].push(element.data._id);
 			}
-			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._setElementsMoveConstrainedStatus(selected, canMoveConstrained, suppressNotification);
-			else game.socket.emit(`module.${moduleName}`, {event: `setElementsMoveConstrainedStatus`, eventdata: [selected, canMoveConstrained,  suppressNotification]});
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._setElementsMoveConstrainedStatus(selected, canMoveConstrained, suppressNotification, options);
+			else game.socket.emit(`module.${moduleName}`, {event: `setElementsMoveConstrainedStatus`, eventdata: [selected, canMoveConstrained,  suppressNotification, options]});
 
 		}
 
-		static async _setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification){
+		static async _setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification, options){
 			let updates = {};
 			for (const key in elements) {
 				if (elements.hasOwnProperty(key)) {
@@ -1212,7 +1225,7 @@ import {libWrapper} from './shim.js';
 						const element = TokenAttacher.layerGetElement(layer, elements[key][i]);
 						if(getProperty(element, `data.flags.${moduleName}.parent`)){
 							if(!updates.hasOwnProperty(key)) updates[key] = [];
-							if(canMoveConstrained) updates[key].push({_id:element.data._id, [`flags.${moduleName}.canMoveConstrained`]:true});
+							if(canMoveConstrained) updates[key].push({_id:element.data._id, [`flags.${moduleName}.canMoveConstrained`]:options});
 							else updates[key].push({_id:element.data._id, [`flags.${moduleName}.-=canMoveConstrained`]:null});
 						}
 					}
@@ -2205,10 +2218,23 @@ import {libWrapper} from './shim.js';
 			if(!getProperty(options, `${moduleName}.update`)
 			&& getProperty(document, `data.flags.${moduleName}.canMoveConstrained`)) {
 				const parent_token = canvas.tokens.get(objParent);
+				const canMoveConstrained = getProperty(document, `data.flags.${moduleName}.canMoveConstrained`);
 				
 				const updatedDocumentData= mergeObject(duplicate(document.data), change);
-				if(type === "Token" 
-				&& TokenAttacher.isMovingInParent(updatedDocumentData, parent_token.document.data)){
+
+				let isAllowed = false;
+				switch(canMoveConstrained.type){
+					case TokenAttacher.CONSTRAINED_TYPE.TOKEN_CONSTRAINED:
+						isAllowed = (type === "Token" && TokenAttacher.isMovingInParent(updatedDocumentData, parent_token.document.data));
+						break;
+					case TokenAttacher.CONSTRAINED_TYPE.UNCONSTRAINED:
+						isAllowed = (type === "Token");
+						break;
+					default:
+						isAllowed = (type === "Token" && TokenAttacher.isMovingInParent(updatedDocumentData, parent_token.document.data));
+						break;
+				}
+				if(isAllowed){
 					const base_type = "Token";
 					const new_offset = TokenAttacher.getElementOffset(type, updatedDocumentData, base_type, parent_token.document.data, {});
 					setProperty(change, `flags.${moduleName}.offset`, new_offset);
