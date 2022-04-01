@@ -264,7 +264,7 @@ import {libWrapper} from './shim.js';
 					  icon: '<i class="fas fa-file-export"></i>',
 					  callback: target => {
 						let pack = game.packs.get(target.data("pack"));
-						if(pack.metadata.entity !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
+						if(pack.metadata.documentName !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
 						TokenAttacher.exportCompendiumToJSON(pack);
 					  }
 					  
@@ -438,7 +438,7 @@ import {libWrapper} from './shim.js';
 		static async migrateAllActorCompendiums(){
 			const allCompendiums = [...game.packs].filter(pack =>{
 				if(pack.locked) return false;
-				if(pack.metadata.entity !== "Actor") return false;
+				if(pack.metadata.documentName !== "Actor") return false;
 				return true;
 			});
 			
@@ -705,7 +705,7 @@ import {libWrapper} from './shim.js';
 					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wallHeight.wallHeightBottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
 					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wallHeight.wallHeightTop'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
 				}else{
-					console.warning("Token Attacher | WallHeight flags.wallHeight is deprecated. Please use the macro 'Migrate Actors for Wall Height' and if this came from a compendium unlock the compendiums and run 'Migrate Compendiums for Wall Height!'");
+					console.warn("Token Attacher | WallHeight flags.wallHeight is deprecated. Please use the macro 'Migrate Actors for Wall Height' and if this came from a compendium unlock the compendiums and run 'Migrate Compendiums for Wall Height!'");
 					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wall-height.bottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
 					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wall-height.top'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
 				}
@@ -2098,7 +2098,7 @@ import {libWrapper} from './shim.js';
 		static async getActorsWithPrototypeInCompendiums(){
 			const folders = {};
 			const allCompendiums = [...game.packs].filter(pack =>{
-				if(pack.metadata.entity !== "Actor") return false;
+				if(pack.metadata.documentName !== "Actor") return false;
 				return true;
 			});
 			
@@ -2696,7 +2696,7 @@ import {libWrapper} from './shim.js';
 		static async migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly){
 			const allCompendiums = [...game.packs].filter(pack =>{
 				if(pack.locked) return false;
-				if(pack.metadata.entity !== "Actor") return false;
+				if(pack.metadata.documentName !== "Actor") return false;
 				return true;
 			});
 			let elementCount = 0;
@@ -2749,7 +2749,7 @@ import {libWrapper} from './shim.js';
 			console.log(`Token Attacher - Done migrating ${elementCount} Elements in ${allCompendiums.length} Compendiums!`);
 		}
 
-		static async migrateElementsOfActor(actor, migrateFunc, elementTypes, topLevelOnly){
+		static async migrateElementsOfActor(actor, migrateFunc, elementTypes, topLevelOnly, options={}){
 			const prototypeAttached = getProperty(actor, `data.token.flags.${moduleName}.prototypeAttached`);
 			if(prototypeAttached){
 				const updateElement = migrateFunc;
@@ -2780,11 +2780,10 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				}
-				let new_token = duplicate(getProperty(entity, `data.token`));
-				if(elementTypes.includes("Token")) updateElement(new_token, "Token", entity);
-				if(!topLevelOnly) updateBase(new_token, 'Token', entity);
-				elementCount++;
-				await entity.update({token: new_token}, options);
+				let new_token = duplicate(getProperty(actor, `data.token`));
+				if(elementTypes.includes("Token")) updateElement(new_token, "Token", actor);
+				if(!topLevelOnly) updateBase(new_token, 'Token', actor);
+				await actor.update({token: new_token}, options);
 			}
 		}
 
