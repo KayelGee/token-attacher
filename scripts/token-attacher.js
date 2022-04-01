@@ -176,6 +176,7 @@ import {libWrapper} from './shim.js';
 				setAnimateStatus: TokenAttacher.setAnimateStatus,
 				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
+				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
@@ -515,6 +516,7 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("elevation")
 				||	change.flags?.levels?.hasOwnProperty("rangeTop")
 				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
+				||	change.flags?.['wall-height']?.hasOwnProperty("top")
 				)){
 				return true;
 			}
@@ -544,6 +546,7 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("elevation")
 				||	change.flags?.levels?.hasOwnProperty("rangeTop")
 				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
+				||	change.flags?.['wall-height']?.hasOwnProperty("top")
 				)){
 				return;
 			}
@@ -651,7 +654,7 @@ import {libWrapper} from './shim.js';
 				, center: {x:center.x, y:center.y}
 				, rotation:data.rotation ?? data.direction
 				, hidden: data.hidden
-				, elevation: data.elevation ?? data.flags?.levels?.rangeBottom ?? data.flags?.wallHeight?.wallHeightBottom
+				, elevation: data.elevation ?? data.flags?.levels?.rangeBottom ?? data.flags?.wallHeight?.wallHeightBottom ?? data.flags?.['wall-height']?.bottom
 			};
 
 
@@ -666,7 +669,7 @@ import {libWrapper} from './shim.js';
 			baseOffset.center = TokenAttacher.getCenter(baseType, baseData, grid);
 			baseOffset.rotation = getProperty(baseData, "rotation") ?? getProperty(baseData, "direction");
 			baseOffset.size = TokenAttacher.getSize(baseData);
-			baseOffset.elevation = baseData.elevation ?? baseData.flags?.levels?.elevation ?? baseData.flags?.levels?.rangeBottom ?? baseData.flags?.wallHeight?.wallHeightBottom;
+			baseOffset.elevation = baseData.elevation ?? baseData.flags?.levels?.elevation ?? baseData.flags?.levels?.rangeBottom ?? baseData.flags?.wallHeight?.wallHeightBottom ?? baseData.flags?.['wall-height']?.bottom;
 			
 			if(!Array.isArray(data)) data = [data];
 
@@ -697,8 +700,19 @@ import {libWrapper} from './shim.js';
 				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeTop) === false) update['flags.levels.rangeTop'] = baseOffset.elevation + offset.elevation.flags.levels.rangeTop;
 			}
 			if(offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightBottom') || offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightTop')){
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wallHeight.wallHeightBottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wallHeight.wallHeightTop'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
+				const wallHeightModule = game.modules.get('wall-height') ?? {data:{version:0}};
+				if(isNewerVersion("4.0", wallHeightModule.data.version)){
+					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wallHeight.wallHeightBottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
+					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wallHeight.wallHeightTop'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
+				}else{
+					console.warning("Token Attacher | WallHeight flags.wallHeight is deprecated. Please use the macro 'Migrate Actors for Wall Height' and if this came from a compendium unlock the compendiums and run 'Migrate Compendiums for Wall Height!'");
+					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wall-height.bottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
+					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wall-height.top'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
+				}
+			}
+			if(offset.elevation?.flags?.['wall-height']?.hasOwnProperty('bottom') || offset.elevation?.flags?.['wall-height']?.hasOwnProperty('top')){
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.['wall-height']?.bottom) === false) update['flags.wall-height.bottom'] = baseOffset.elevation + offset.elevation.flags['wall-height'].bottom;
+				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.['wall-height']?.top) === false) update['flags.wall-height.top'] = baseOffset.elevation + offset.elevation.flags['wall-height'].top;
 			}
 
 			//Line Entities
@@ -872,7 +886,7 @@ import {libWrapper} from './shim.js';
 					if(TokenAttacher.isFirstActiveGM())	result = TokenAttacher._setElementsMoveConstrainedStatus(...data.eventdata);
 					break;
 				default:
-					console.log("Token Attacher| wtf did I just read?");
+					console.log("Token Attacher | wtf did I just read?");
 					break;
 			}
 
@@ -1449,7 +1463,7 @@ import {libWrapper} from './shim.js';
 			if(data.hasOwnProperty('radius')){
 				offset.size.radius= data.radius;
 			}
-			let  base_elevation = base.elevation ?? base.flags['levels']?.elevation ?? base.flags['levels']?.rangeBottom ?? base.flags['wallHeight']?.wallHeightBottom ?? 0;
+			let  base_elevation = base.elevation ?? base.flags['levels']?.elevation ?? base.flags['levels']?.rangeBottom ?? base.flags['wallHeight']?.wallHeightBottom ?? base.flags?.['wall-height'].bottom ?? 0;
 			offset.elevation = {};
 			offset.elevation.flags = {};
 			if(data.hasOwnProperty('elevation')){
@@ -1480,6 +1494,15 @@ import {libWrapper} from './shim.js';
 				
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightTop) === false) offset.elevation.flags['wallHeight'].wallHeightTop -= base_elevation;
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightBottom) === false) offset.elevation.flags['wallHeight'].wallHeightBottom -= base_elevation;
+			}
+			if(data.flags['wall-height']?.hasOwnProperty('top')){				
+				offset.elevation.flags['wall-height'] = {
+					top:data.flags['wall-height'].top, 
+					bottom:data.flags['wall-height'].bottom
+				};
+				
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wall-height'].top) === false) offset.elevation.flags['wall-height'].top -= base_elevation;
+				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wall-height'].bottom) === false) offset.elevation.flags['wall-height'].bottom -= base_elevation;
 			}
 
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(base);
@@ -2726,6 +2749,45 @@ import {libWrapper} from './shim.js';
 			console.log(`Token Attacher - Done migrating ${elementCount} Elements in ${allCompendiums.length} Compendiums!`);
 		}
 
+		static async migrateElementsOfActor(actor, migrateFunc, elementTypes, topLevelOnly){
+			const prototypeAttached = getProperty(actor, `data.token.flags.${moduleName}.prototypeAttached`);
+			if(prototypeAttached){
+				const updateElement = migrateFunc;
+				const updateBase = (base, type, base_entity) =>{
+					const children = getProperty(base, `flags.${moduleName}.prototypeAttached`) ?? getProperty(base, `flags.${moduleName}.attached`);
+					if(!children) return;
+					for (let i = 0; i < elementTypes.length; i++) {
+						const type = elementTypes[i];
+						
+						if(children.hasOwnProperty(type)){
+							for (let i = 0; i < children[type].length; i++) {
+								const elem = children[type][i];
+								updateElement(elem, type, base_entity);
+							}
+						}
+					}
+					
+					for (const key in children) {
+						if (children.hasOwnProperty(key)) {
+							for (let i = 0; i < children[key].length; i++) {
+								const element = children[key][i];
+								if(typeof element === 'string' || element instanceof String){
+									console.error(`Token Attacher - Migration Error, attached child is not an object. Base Token and Actor: `, base_entity.data.name, base, base_entity);
+									continue;
+								}
+								updateBase(element, key, base_entity);
+							}
+						}
+					}
+				}
+				let new_token = duplicate(getProperty(entity, `data.token`));
+				if(elementTypes.includes("Token")) updateElement(new_token, "Token", entity);
+				if(!topLevelOnly) updateBase(new_token, 'Token', entity);
+				elementCount++;
+				await entity.update({token: new_token}, options);
+			}
+		}
+
 		static async purgeTAData(){		
 			const base_layer = 	canvas.getLayerByEmbeddedName("Token");
 			const moduleName = 'token-attacher';
@@ -2756,6 +2818,7 @@ import {libWrapper} from './shim.js';
 			}
 			console.log("All Token Attacher Data has been removed from scene.");
 		}
+		
 		static async migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false){
 			return TokenAttacher.migrateAttached(base.layer.constructor.documentName, base.data, migrateFunc, elementTypes, topLevelOnly, return_data);
 		}
