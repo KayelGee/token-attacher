@@ -264,7 +264,7 @@ import {libWrapper} from './shim.js';
 					  icon: '<i class="fas fa-file-export"></i>',
 					  callback: target => {
 						let pack = game.packs.get(target.data("pack"));
-						if(pack.metadata.documentName !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
+						if(pack.documentName !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
 						TokenAttacher.exportCompendiumToJSON(pack);
 					  }
 					  
@@ -438,7 +438,7 @@ import {libWrapper} from './shim.js';
 		static async migrateAllActorCompendiums(){
 			const allCompendiums = [...game.packs].filter(pack =>{
 				if(pack.locked) return false;
-				if(pack.metadata.documentName !== "Actor") return false;
+				if(pack.documentName !== "Actor") return false;
 				return true;
 			});
 			
@@ -2098,7 +2098,7 @@ import {libWrapper} from './shim.js';
 		static async getActorsWithPrototypeInCompendiums(){
 			const folders = {};
 			const allCompendiums = [...game.packs].filter(pack =>{
-				if(pack.metadata.documentName !== "Actor") return false;
+				if(pack.documentName !== "Actor") return false;
 				return true;
 			});
 			
@@ -2696,7 +2696,7 @@ import {libWrapper} from './shim.js';
 		static async migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly){
 			const allCompendiums = [...game.packs].filter(pack =>{
 				if(pack.locked) return false;
-				if(pack.metadata.documentName !== "Actor") return false;
+				if(pack.documentName !== "Actor") return false;
 				return true;
 			});
 			let elementCount = 0;
