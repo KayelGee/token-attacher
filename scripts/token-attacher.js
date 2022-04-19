@@ -1132,9 +1132,14 @@ import {libWrapper} from './shim.js';
 			let toggle_animate_tool=attachmentUI.getElementsByClassName("toggle-animate")[0];
 
 			const base_exists = ()=>{				
-				const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");			
-				const layer = canvas.getLayerByEmbeddedName(attachment_base.type);
-				const base = this.layerGetElement(layer, attachment_base.element);
+				const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");
+				let layer;
+				let base;
+				if(attachment_base){
+					layer = canvas.getLayerByEmbeddedName(attachment_base.type);
+					if(layer)
+						base = this.layerGetElement(layer, attachment_base.element);
+				}			
 				if(!base){
 					TokenAttacher.closeTokenAttacherUI();
 					ui.notifications.error(game.i18n.format(localizedStrings.error.BaseDoesntExist));
@@ -1351,9 +1356,14 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async closeTokenAttacherUI(){
-			const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");			
-			const layer = canvas.getLayerByEmbeddedName(attachment_base.type);
-			const base = this.layerGetElement(layer, attachment_base.element);
+			const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");
+			let layer;
+			let base;	
+			if(attachment_base){
+				layer = canvas.getLayerByEmbeddedName(attachment_base.type);
+				if(layer)
+					base = this.layerGetElement(layer, attachment_base.element);
+			}		
 			if(base) TokenAttacher._updateAttachedOffsets(attachment_base);
 			window.document.getElementById("tokenAttacher").remove();
 			return await canvas.scene.unsetFlag(moduleName, "attach_base");		
@@ -2889,8 +2899,13 @@ import {libWrapper} from './shim.js';
 			if(getProperty(options,`${moduleName}.base`)) return;
 
 			const attach_base = canvas.scene.getFlag(moduleName, "attach_base");
-			const layer = canvas.getLayerByEmbeddedName(attach_base.type);
-			const element = TokenAttacher.layerGetElement(layer, attach_base.element);
+			let layer;
+			let element;
+			if(attachment_base){
+				layer = canvas.getLayerByEmbeddedName(attach_base.type);
+				if(layer)
+				element = TokenAttacher.layerGetElement(layer, attach_base.element);
+			}		
 
 			if(!element) {				
 				TokenAttacher.closeTokenAttacherUI();
