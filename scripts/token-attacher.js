@@ -2021,7 +2021,7 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				deleteLinks(layer);
-				if(type === "Tile"){
+				if(type === "Tile" && canvas.foreground){
 					deleteLinks(canvas.foreground);
 				}
 			}
@@ -2437,7 +2437,7 @@ import {libWrapper} from './shim.js';
 					//}
 					}
 				selectAll(layer);
-				if(type === "Tile"){
+				if(type === "Tile" && canvas.foreground){
 					selectAll(canvas.foreground);
 				}
 			}
@@ -2516,7 +2516,7 @@ import {libWrapper} from './shim.js';
 		//Update z in elements_data and return elements_data
 		static zSort(up, type, elements_data) {	
 			const layer = canvas.getLayerByEmbeddedName(type);
-			const overhead_layer = canvas.foreground;
+			const overhead_layer = canvas.foreground ?? layer;
 			const siblings = layer.placeables;	
 			const overhead_siblings = overhead_layer.placeables;	
 			// Determine target sort index
@@ -2699,7 +2699,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static layerGetElement(layer, id){
-			const foreground = canvas.foreground;
+			const foreground = canvas.foreground ?? layer;
 			return layer.get(id) ?? foreground.get(id);
 		}
 
@@ -2815,7 +2815,7 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				deleteLinks(layer);
-				if(type === "Tile"){
+				if(type === "Tile" && canvas.foreground){
 					deleteLinks(canvas.foreground);
 				}
 			}
