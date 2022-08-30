@@ -1880,7 +1880,7 @@ import {libWrapper} from './shim.js';
 						let promises = [];
 						for (let i = 0; i < toCreate[key].length; i++) {
 							const element = toCreate[key][i];
-							promises.push(loadTexture(element.img, {fallback: 'icons/svg/hazard.svg'}));
+							promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
 					}
@@ -1888,7 +1888,7 @@ import {libWrapper} from './shim.js';
 						let promises = [];
 						for (let i = 0; i < toCreate[key].length; i++) {
 							const element = toCreate[key][i];
-							if(element.texture !== "" && element.texture !== null) promises.push(loadTexture(element.texture, {fallback: 'icons/svg/hazard.svg'}));
+							if(element.texture?.src !== "" && element.texture?.src !== null) promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
 					}
