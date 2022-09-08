@@ -573,7 +573,7 @@ import {libWrapper} from './shim.js';
 
 			TokenAttacher.detectGM();
 
-			const eventdata = [type, mergeObject(duplicate(base), change)];
+			const eventdata = [type, mergeObject(duplicate(base.document), change)];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...eventdata);
 			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: eventdata});
 		}
@@ -594,7 +594,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attachedEntities) {
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
-					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity)), type, baseData, {});
+					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity.document)), type, baseData, {});
 					if(!updates[key]) delete updates[key];
 				}
 			}
@@ -644,7 +644,7 @@ import {libWrapper} from './shim.js';
 		//base can be an PlacableObject but also plain data if return_data is true. This isn't true for v10 anymore
 		static async saveBasePositon(type, base, return_data=false, overrideData){
 			let pos;
-			let objData = base;
+			let objData = base.document ?? base;
 			objData = duplicate(objData);
 			const center = TokenAttacher.getCenter(type, objData);
 			if(overrideData) objData = mergeObject(objData, overrideData);
@@ -1585,7 +1585,7 @@ import {libWrapper} from './shim.js';
 			for (const elementid of idArray) {
 				const element = TokenAttacher.layerGetElement(layer, elementid);
 				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
-				let dup_data = duplicate(element);
+				let dup_data = duplicate(element.document);
 				delete dup_data._id;
 				setProperty(dup_data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, dup_data, base_type, mergeObject(duplicate(base_data), getProperty(base_data, `flags.${moduleName}.pos.xy`)), {}));
 				if(Object.keys(elem_attached).length > 0){
@@ -2892,7 +2892,7 @@ import {libWrapper} from './shim.js';
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(elementTypes.includes(key)){
 						if(!updates.hasOwnProperty(key)) updates[key] = [];
-						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity)), baseData);
+						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity.document)), baseData);
 						if(!updates[key]) delete updates[key];
 					}
 				}
@@ -2907,7 +2907,7 @@ import {libWrapper} from './shim.js';
 						const elem_attached=getProperty(element, `flags.${moduleName}.attached`) || {};
 						if(Object.keys(elem_attached).length > 0){
 							const elem_update = updates[key]?.find(item => item._id === elem_id );
-							const updatedElementData = mergeObject(duplicate(element), elem_update);
+							const updatedElementData = mergeObject(duplicate(element.document), elem_update);
 							const subUpdates = await TokenAttacher.migrateAttached(key, updatedElementData, migrateFunc, elementTypes, topLevelOnly, true);
 							for (const key in subUpdates) {
 								if(!updates.hasOwnProperty(key)) updates[key] = subUpdates[key];
