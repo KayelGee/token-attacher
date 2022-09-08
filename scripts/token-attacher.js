@@ -368,7 +368,7 @@ import {libWrapper} from './shim.js';
 		static migrateAllPrototypeActors(){
 			const folders = {};
 			const allActors = [...game.actors].filter(actor =>{
-				const attached = getProperty(actor, `token.flags.${moduleName}.prototypeAttached`) || {};
+				const attached = getProperty(actor, `prototypeToken.flags.${moduleName}.prototypeAttached`) || {};
 				if(Object.keys(attached).length > 0) return true;
 				return false;
 			});
@@ -379,9 +379,9 @@ import {libWrapper} from './shim.js';
 		}
 		
 		static async migrateActor(actor, return_data = false){
-			let tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `token`)), "Token");
+			let tokenData = await TokenAttacher.migrateElement(null, null, duplicate(getProperty(actor, `prototypeToken`)), "Token");
 			setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h});
-			if(!return_data) await actor.update({token: tokenData});
+			if(!return_data) await actor.update({prototypeToken: tokenData});
 			return tokenData;
 		}
 
@@ -450,11 +450,11 @@ import {libWrapper} from './shim.js';
 				
 				for (const index of packIndex) {
 					const entity = await pack.getDocument(index._id);
-					const prototypeAttached = getProperty(entity, `token.flags.${moduleName}.prototypeAttached`);
+					const prototypeAttached = getProperty(entity, `prototypeToken.flags.${moduleName}.prototypeAttached`);
 					if(prototypeAttached){
 						if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)){
 							const update = await TokenAttacher.migrateActor(entity, true);
-							await pack.updateEntity({_id: index._id, [`token`]: update});
+							await pack.updateEntity({_id: index._id, prototypeToken: update});
 						}
 					}
 				}
@@ -1678,10 +1678,10 @@ import {libWrapper} from './shim.js';
 
 		static async updateAttachedPrototype(document, change, options, userId){
 			if(!TokenAttacher.isFirstActiveGM()) return;
-			if(change.hasOwnProperty("token")){
-				if(change.token.hasOwnProperty("flags")){
-					if(change.token.flags.hasOwnProperty(moduleName)){
-						const attached = change.token.flags[moduleName].attached || {};
+			if(change.hasOwnProperty("prototypeToken")){
+				if(change.prototypeToken.hasOwnProperty("flags")){
+					if(change.prototypeToken.flags.hasOwnProperty(moduleName)){
+						const attached = change.prototypeToken.flags[moduleName].attached || {};
 						if(Object.keys(attached).length == 0) return;
 
 						if(TokenAttacher.isAttachmentUIOpen()){			
@@ -1689,9 +1689,9 @@ import {libWrapper} from './shim.js';
 							ui.notifications.error(game.i18n.format(localizedStrings.error.UIisOpenOnAssign));
 						}
 
-						let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.token, attached);
-						let deletes = {_id:change._id, [`token.flags.${moduleName}.-=attached`]: null, [`token.flags.${moduleName}.-=prototypeAttached`]: null};
-						let updates = {_id:change._id, [`token.flags.${moduleName}`]: {prototypeAttached: prototypeAttached, grid:{size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h}}};
+						let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken, attached);
+						let deletes = {_id:change._id, [`prototypeToken.flags.${moduleName}.-=attached`]: null, [`prototypeToken.flags.${moduleName}.-=prototypeAttached`]: null};
+						let updates = {_id:change._id, [`prototypeToken.flags.${moduleName}`]: {prototypeAttached: prototypeAttached, grid:{size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h}}};
 						await document.update(deletes);
 						await document.update(updates);
 					}
@@ -2074,13 +2074,13 @@ import {libWrapper} from './shim.js';
 		}
 
 		static mapActorForExport(actor){
-			return {img:actor.img, name:actor.name, folder:actor.folder || null, token: actor.prototypeToken, flags: actor.flags};
+			return {img:actor.img, name:actor.name, folder:actor.folder || null, prototypeToken: actor.prototypeToken, flags: actor.flags};
 		}
 
 		static async getActorsWithPrototype(){
 			const folders = {};
 			const allActors = [...game.actors].filter(actor =>{
-				const attached = getProperty(actor, `token.flags.${moduleName}.prototypeAttached`) || {};
+				const attached = getProperty(actor, `prototypeToken.flags.${moduleName}.prototypeAttached`) || {};
 				if(Object.keys(attached).length > 0) return true;
 				return false;
 			});
@@ -2186,7 +2186,7 @@ import {libWrapper} from './shim.js';
 			}
 			await Promise.all(allPromises);
 			actors.forEach(async actor => {
-				await Actor.create({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, token: actor.token, flags: actor.flags});
+				await Actor.create({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
 		}
 
@@ -2205,7 +2205,7 @@ import {libWrapper} from './shim.js';
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
 			let creates = [];
 			actors.forEach(async actor => {
-				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, token: actor.token, flags: actor.flags});
+				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
@@ -2717,7 +2717,7 @@ import {libWrapper} from './shim.js';
 				options.pack = pack;
 				for (const index of packIndex) {
 					const entity = await pack.getDocument(index._id);				
-					const prototypeAttached = getProperty(entity, `token.flags.${moduleName}.prototypeAttached`);
+					const prototypeAttached = getProperty(entity, `prototypeToken.flags.${moduleName}.prototypeAttached`);
 					if(prototypeAttached){
 						const updateElement = migrateFunc;
 						const updateBase = (base, type, base_entity) =>{
@@ -2747,11 +2747,11 @@ import {libWrapper} from './shim.js';
 								}
 							}
 						}
-						let new_token = duplicate(getProperty(entity, `token`));
+						let new_token = duplicate(getProperty(entity, `prototypeToken`));
 						if(elementTypes.includes("Token")) updateElement(new_token, "Token", entity);
 						if(!topLevelOnly) updateBase(new_token, 'Token', entity);
 						elementCount++;
-						await entity.update({token: new_token}, options);
+						await entity.update({prototypeToken: new_token}, options);
 					}
 				}
 				console.log("Token Attacher - Done migrating Elements in " + pack.metadata.label);
@@ -2760,7 +2760,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async migrateElementsOfActor(actor, migrateFunc, elementTypes, topLevelOnly, options={}){
-			const prototypeAttached = getProperty(actor, `token.flags.${moduleName}.prototypeAttached`);
+			const prototypeAttached = getProperty(actor, `prototypeToken.flags.${moduleName}.prototypeAttached`);
 			if(prototypeAttached){
 				const updateElement = migrateFunc;
 				const updateBase = (base, type, base_entity) =>{
@@ -2790,10 +2790,10 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				}
-				let new_token = duplicate(getProperty(actor, `token`));
+				let new_token = duplicate(getProperty(actor, `prototypeToken`));
 				if(elementTypes.includes("Token")) updateElement(new_token, "Token", actor);
 				if(!topLevelOnly) updateBase(new_token, 'Token', actor);
-				await actor.update({token: new_token}, options);
+				await actor.update({prototypeToken: new_token}, options);
 			}
 		}
 
