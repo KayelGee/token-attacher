@@ -726,7 +726,7 @@ import {libWrapper} from './shim.js';
 				return update;
 			}
 			//Rectangle Entities
-			if('width' in objData || 'distance' in objData || 'dim' in objData || (objData.hasOwnProperty('config') && 'dim' in objData.config) || 'radius' in objData){
+			if(('shape' in objData && 'width' in objData.shape) || 'width' in objData || 'distance' in objData || 'dim' in objData || (objData.hasOwnProperty('config') && 'dim' in objData.config) || 'radius' in objData){
 				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(objData, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.x = x;
 				update.y = y;
@@ -736,6 +736,10 @@ import {libWrapper} from './shim.js';
 				if(objData.hasOwnProperty('width')){
 					update.width 	= offset.size.width  * size_multi.w;
 					update.height 	= offset.size.height * size_multi.h;
+				}
+				if(objData.shape?.hasOwnProperty('width')){
+					update.shape.width 	= offset.size.width  * size_multi.w;
+					update.shape.height 	= offset.size.height * size_multi.h;
 				}
 				if(objData.hasOwnProperty('distance')){
 					update.distance = offset.size.distance * size_multi.w;
@@ -759,6 +763,15 @@ import {libWrapper} from './shim.js';
 						points[i][1] = offset.points[i][1] * size_multi.h;					
 					}
 					update.points = points;
+				}
+				if(objData.shape?.hasOwnProperty('points')){
+					let points = duplicate(objData.points);
+					for (let i = 0; i < points.length; i++) {
+						points[i][0] = offset.points[i][0] * size_multi.w;
+						points[i][1] = offset.points[i][1] * size_multi.h;					
+					}
+					update.shape = {};
+					update.shape.points = points;
 				}
 				return update;
 			}
@@ -1445,6 +1458,16 @@ import {libWrapper} from './shim.js';
 					offset.points[i][1] = objData.points[i][1];			
 				}
 			}
+
+			if(objData.shape?.hasOwnProperty('points')){
+				offset.points = [];
+				for (let i = 0; i < objData.shape.points.length; i++) {
+					offset.points[i] = [];
+					offset.points[i][0] = objData.shape.points[i][0];
+					offset.points[i][1] = objData.shape.points[i][1];			
+				}
+			}
+
 			offset.x -= center.x; 
 			offset.y -= center.y;
 			offset.centerX -= center.x;
@@ -1457,6 +1480,10 @@ import {libWrapper} from './shim.js';
 			if(objData.hasOwnProperty('width')){
 				offset.size.width  	= objData.width;
 				offset.size.height	= objData.height;
+			}
+			if(objData.shape?.hasOwnProperty('width')){
+				offset.size.width  	= objData.shape.width;
+				offset.size.height	= objData.shape.height;
 			}
 			if(objData.hasOwnProperty('distance')){
 				offset.size.distance= objData.distance;
@@ -1636,6 +1663,12 @@ import {libWrapper} from './shim.js';
 						return [offset.points[i][0], offset.points[i][1]];
 					});
 				}
+
+				if(objData.shape?.hasOwnProperty('points')){
+					objData.shape.points = objData.shape.points.map((c, i) => {
+						return [offset.points[i][0], offset.points[i][1]];
+					});
+				}
 				
 				if(objData.hasOwnProperty('width')){
 					mergeObject(objData, {
@@ -1643,6 +1676,16 @@ import {libWrapper} from './shim.js';
 						height: offset.size.height
 					});
 				}
+
+				if(objData.shape?.hasOwnProperty('width')){
+					mergeObject(objData, {
+						shape:{
+							width : offset.size.width,
+							height: offset.size.height
+						}
+					});
+				}
+
 				if(objData.hasOwnProperty('distance')){
 					mergeObject(objData, {
 						distance : offset.size.distance
