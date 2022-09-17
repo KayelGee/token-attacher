@@ -2011,9 +2011,6 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				deleteLinks(layer);
-				if(type === "Tile"){
-					deleteLinks(canvas.foreground);
-				}
 			}
 			//Fire deletes
 			for (const key in deletes){
@@ -2427,9 +2424,6 @@ import {libWrapper} from './shim.js';
 					//}
 					}
 				selectAll(layer);
-				if(type === "Tile"){
-					selectAll(canvas.foreground);
-				}
 			}
 			if(selected.length === 0) return;
 			TokenAttacher._attachElementsToToken(selected, token, false);
@@ -2506,21 +2500,16 @@ import {libWrapper} from './shim.js';
 		//Update z in elements_data and return elements_data
 		static zSort(up, type, elements_data) {	
 			const layer = canvas.getLayerByEmbeddedName(type);
-			const overhead_layer = canvas.foreground;
 			const siblings = layer.placeables;	
-			const overhead_siblings = overhead_layer.placeables;	
 			// Determine target sort index
 			let z_background = 0;
-			let z_foreround = 0;
 			if ( up ) {
 				elements_data.sort((a, b) => a.z - b.z);
 			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.data.z)) + 1 : 1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.data.z)) + 1 : 1;
 			}
 			else {
 				elements_data.sort((a, b) => b.z - a.z);
 			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.data.z)) - 1 : -1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.data.z)) + 1 : 1;
 			}
 		
 			// Update all controlled objects
@@ -2814,9 +2803,6 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				deleteLinks(layer);
-				if(type === "Tile"){
-					deleteLinks(canvas.foreground);
-				}
 			}
 			//Fire updates
 			for (const key in updates){
