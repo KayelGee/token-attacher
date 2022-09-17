@@ -1881,7 +1881,7 @@ import {libWrapper} from './shim.js';
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
 					let layer = TokenAttacher.getLayerOrCollection(key);
 
-					let pos = TokenAttacher.getCenter(type, token);
+					let pos = TokenAttacher.getCenter(type, token.document);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
 					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, grid_multi, {}, true);
 					if(!toCreate[key]) delete toCreate[key];					
@@ -1908,7 +1908,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(return_data) return toCreate;
 			
-			setProperty(options,`${moduleName}.base`, {type: token.layer.constructor.documentName, obj:token})
+			setProperty(options,`${moduleName}.base`, {type: token.layer.constructor.documentName, obj:token.document})
 			setProperty(options,`${moduleName}.update`, true)
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
 			if (allowed === false) {
@@ -1923,6 +1923,10 @@ import {libWrapper} from './shim.js';
 						let promises = [];
 						for (let i = 0; i < toCreate[key].length; i++) {
 							const element = toCreate[key][i];
+							if(element.img){
+								element.texture = {src: element.img};
+								delete element.img;
+							}
 							promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
@@ -1931,6 +1935,10 @@ import {libWrapper} from './shim.js';
 						let promises = [];
 						for (let i = 0; i < toCreate[key].length; i++) {
 							const element = toCreate[key][i];
+							if(element.img){
+								element.texture = {src: element.img};
+								delete element.img;
+							}
 							if(element.texture?.src !== "" && element.texture?.src !== null) promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
@@ -2567,13 +2575,13 @@ import {libWrapper} from './shim.js';
 			let z_foreround = 0;
 			if ( up ) {
 				elements_data.sort((a, b) => a.z - b.z);
-			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.z)) + 1 : 1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.z)) + 1 : 1;
+			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.document.z)) + 1 : 1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.z)) + 1 : 1;
 			}
 			else {
 				elements_data.sort((a, b) => b.z - a.z);
-			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.z)) - 1 : -1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.z)) + 1 : 1;
+			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.document.z)) - 1 : -1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.z)) + 1 : 1;
 			}
 		
 			// Update all controlled objects
