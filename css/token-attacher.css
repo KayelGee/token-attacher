@@ -122,10 +122,10 @@
 	width: 128px;
 	opacity: 0.5;
 	border: none;
-	-webkit-animation: rotation 5s infinite linear;
+	--fa-animation-duration: 5s;
 }
 
-#tokenAttacherQuickEdit h3{
+#tokenAttacherQuickEdit figcaption{
 	margin: 0;
 	font-size: 2em;
 	font-weight: normal;
