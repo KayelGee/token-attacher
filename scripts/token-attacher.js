@@ -263,8 +263,8 @@ import {libWrapper} from './shim.js';
 					  condition: game.user.isGM,
 					  icon: '<i class="fas fa-file-export"></i>',
 					  callback: target => {
-						let pack = game.packs.get(target.pack);
-						if(pack.documentName !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
+						let pack = game.packs.get(target[0].dataset.pack);
+						if(pack.metadata.type !== "Actor") return ui.notifications.error(game.i18n.format(localizedStrings.error.ExportAllowsOnlyActor));
 						TokenAttacher.exportCompendiumToJSON(pack);
 					  }
 					  
@@ -2208,7 +2208,7 @@ import {libWrapper} from './shim.js';
 			callback: html => {
 				const form = html.find("#ta-import-export-dialog");
 				const fd = new FormDataExtended(form[0]);
-				const formDataObj = fd.toObject();
+				const formDataObj = fd.object;
 				if ( !formDataObj.JSONContent ) {
 				  const err = new Error(game.i18n.format(localizedStrings.error.NoValidJSONProvided));
 				  return ui.notifications.warn(err.message);
