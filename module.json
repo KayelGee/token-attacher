@@ -1,11 +1,27 @@
 {
-	"name": "token-attacher",
+	"id": "token-attacher",
 	"title": "Token Attacher",
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
-	"version": "4.4.5",
-	"minimumCoreVersion": "9.235",
-	"compatibleCoreVersion": "9",
-	"author": "KayelGee - KayelGee#5241",
+	"version": "4.5.0",
+	"compatibility" :{
+		"minimum": 10,	
+		"verified": "10.285",
+		"maximum": 10	
+	},
+	"authors": [
+		{
+			"name": "KayelGee",
+			"url": "https://github.com/KayelGee",
+			"discord": "KayelGee#5241"
+		}
+	],
+	"relationships":{
+		"requires": [{
+      "id": "lib-wrapper",
+      "type": "module",
+      "manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
+    }]
+	},
 	"esmodules": [
 		"scripts/token-attacher.js"
 	],
@@ -14,12 +30,12 @@
 	"packs": [
       {
           "name": "example-macros",
-          "label": "Example Macros",
+          "label": "(TA)Example Macros",
           "path": "packs/example-macros.db",
           "type": "Macro",
           "package": "token-attacher"
       }
-			],
+	],
 	"languages": [
 		{
 			"lang": "en",
@@ -40,6 +56,6 @@
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
   "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.4.5/v4.4.5.zip",
-  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.4.5/README.md"
+  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.5.0/v4.5.0.zip",
+  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.5.0/README.md"
 }
