@@ -657,6 +657,22 @@ import {libWrapper} from './shim.js';
 				, elevation: objData.elevation ?? objData.flags?.levels?.rangeBottom ?? objData.flags?.wallHeight?.wallHeightBottom ?? objData.flags?.['wall-height']?.bottom
 			};
 
+			let objSizeData = duplicate(base.document ?? base);
+			let validKeys = [
+				'width', 'radius', 'distance', 'config','height'
+				];
+			Object.keys(objSizeData).forEach((key) =>{
+				validKeys.includes(key) || delete objSizeData[key];
+			});
+			if(objSizeData.config){
+				validKeys = [
+					'dim', 'bright'
+					];
+				Object.keys(objSizeData.config).forEach((key) =>{
+					validKeys.includes(key) || delete objSizeData.config[key];
+				});
+			}
+			pos = mergeObject(pos, objSizeData);
 
 			if(!return_data) return base.document.setFlag(moduleName, "pos", pos);
 
