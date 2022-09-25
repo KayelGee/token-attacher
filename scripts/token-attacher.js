@@ -2906,8 +2906,8 @@ import {libWrapper} from './shim.js';
 			return TokenAttacher.migrateAttached(base.layer.constructor.documentName, base, migrateFunc, elementTypes, topLevelOnly, return_data);
 		}
 
-		static async migrateAttached(type, baseData, migrateFunc, elementTypes, topLevelOnly, return_data=false){
-			const attached=getProperty(baseData, `flags.${moduleName}.attached`) || {};
+		static async migrateAttached(type, baseElement, migrateFunc, elementTypes, topLevelOnly, return_data=false){
+			const attached=getProperty(baseElement.document, `flags.${moduleName}.attached`) || {};
 			let attachedEntities = {};
 			
 			//Get Entities
@@ -2923,7 +2923,7 @@ import {libWrapper} from './shim.js';
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(elementTypes.includes(key)){
 						if(!updates.hasOwnProperty(key)) updates[key] = [];
-						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity.document)), baseData);
+						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity.document)), baseElement.document);
 						if(!updates[key]) delete updates[key];
 					}
 				}
