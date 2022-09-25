@@ -754,6 +754,7 @@ import {libWrapper} from './shim.js';
 					update.height 	= offset.size.height * size_multi.h;
 				}
 				if(objData.shape?.hasOwnProperty('width')){
+					if(!update.shape) update.shape = {};
 					update.shape.width 	= offset.size.width  * size_multi.w;
 					update.shape.height 	= offset.size.height * size_multi.h;
 				}
@@ -786,7 +787,7 @@ import {libWrapper} from './shim.js';
 						points[i][0] = offset.points[i][0] * size_multi.w;
 						points[i][1] = offset.points[i][1] * size_multi.h;					
 					}
-					update.shape = {};
+					if(!update.shape) update.shape = {};
 					update.shape.points = points;
 				}
 				return update;
@@ -1477,11 +1478,13 @@ import {libWrapper} from './shim.js';
 
 			if(objData.shape?.hasOwnProperty('points')){
 				offset.points = [];
+				if(!offset.shape) offset.shape = {};
 				for (let i = 0; i < objData.shape.points.length; i++) {
 					offset.points[i] = [];
 					offset.points[i][0] = objData.shape.points[i][0];
 					offset.points[i][1] = objData.shape.points[i][1];			
 				}
+				offset.shape.points = offset.points;
 			}
 
 			offset.x -= center.x; 
@@ -1957,7 +1960,7 @@ import {libWrapper} from './shim.js';
 								element.texture = {src: element.img};
 								delete element.img;
 							}
-							if(element.texture?.src !== "" && element.texture?.src !== null) promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
+							if(element.texture?.src && element.texture?.src !== "" && element.texture?.src !== null) promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
 					}
