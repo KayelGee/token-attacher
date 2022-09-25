@@ -782,10 +782,10 @@ import {libWrapper} from './shim.js';
 					update.points = points;
 				}
 				if(objData.shape?.hasOwnProperty('points')){
-					let points = duplicate(objData.points);
-					for (let i = 0; i < points.length; i++) {
-						points[i][0] = offset.points[i][0] * size_multi.w;
-						points[i][1] = offset.points[i][1] * size_multi.h;					
+					let points = duplicate(objData.shape.points);
+					for (let i = 0; i < points.length/2; i+=2) {
+						points[i] = offset.points[i][0] * size_multi.w;
+						points[i+1] = offset.points[i][1] * size_multi.h;					
 					}
 					if(!update.shape) update.shape = {};
 					update.shape.points = points;
@@ -1479,10 +1479,10 @@ import {libWrapper} from './shim.js';
 			if(objData.shape?.hasOwnProperty('points')){
 				offset.points = [];
 				if(!offset.shape) offset.shape = {};
-				for (let i = 0; i < objData.shape.points.length; i++) {
+				for (let i = 0; i < objData.shape.points.length/2; i+=2) {
 					offset.points[i] = [];
-					offset.points[i][0] = objData.shape.points[i][0];
-					offset.points[i][1] = objData.shape.points[i][1];			
+					offset.points[i][0] = objData.shape.points[i];
+					offset.points[i][1] = objData.shape.points[i+1];			
 				}
 				offset.shape.points = offset.points;
 			}
