@@ -1,45 +1,61 @@
 {
-	"name": "token-attacher",
-	"title": "Token Attacher",
-	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
-	"version": "4.4.5",
-	"minimumCoreVersion": "9.235",
-	"compatibleCoreVersion": "9",
-	"author": "KayelGee - KayelGee#5241",
-	"esmodules": [
-		"scripts/token-attacher.js"
-	],
-	"styles": [
-		"./css/token-attacher.css"],
-	"packs": [
-      {
-          "name": "example-macros",
-          "label": "Example Macros",
-          "path": "packs/example-macros.db",
-          "type": "Macro",
-          "package": "token-attacher"
-      }
-			],
-	"languages": [
-		{
-			"lang": "en",
-			"name": "English",
-			"path": "languages/en.json"
-		},
-		{
-			"lang": "ko",
-			"name": "Korean",
-			"path": "languages/ko.json"
-		},
-		{
-			"lang": "ja",
-			"name": "日本語",
-			"path": "languages/ja.json"
+  "id": "token-attacher",
+  "title": "Token Attacher",
+  "description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
+  "version": "4.4.6",
+  "authors": [
+    {
+      "name": "KayelGee - KayelGee#5241",
+      "flags": {}
+    },
+    {
+      "name": "IHaveThatPower - IHaveThatPower#5851",
+      "flags": {}
     }
-	],
-	"socket": true,
-	"url": "https://github.com/KayelGee/token-attacher",
-  "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.4.5/v4.4.5.zip",
-  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.4.5/README.md"
+  ],
+  "compatibility": {
+    "minimum": "10",
+    "confirmed": "10.284"
+  },
+  "esmodules": [
+    "scripts/token-attacher.js"
+  ],
+  "styles": [
+    "css/token-attacher.css"
+  ],
+  "packs": [
+    {
+      "name": "example-macros",
+      "label": "Example Macros",
+      "path": "packs/example-macros.db",
+      "type": "Macro",
+      "private": false,
+      "flags": {}
+    }
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json",
+      "flags": {}
+    },
+    {
+      "lang": "ko",
+      "name": "Korean",
+      "path": "languages/ko.json",
+      "flags": {}
+    },
+    {
+      "lang": "ja",
+      "name": "日本語",
+      "path": "languages/ja.json",
+      "flags": {}
+    }
+  ],
+  "socket": true,
+  "url": "https://github.com/IHaveThatPower/token-attacher",
+  "manifest": "https://raw.githubusercontent.com/IHaveThatPower/token-attacher/master/module.json",
+  "download": "https://github.com/IHaveThatPower/token-attacher/releases/download/v4.4.5/v4.4.5.zip",
+  "readme": "https://github.com/IHaveThatPower/token-attacher/blob/v4.4.5/README.md"
 }
