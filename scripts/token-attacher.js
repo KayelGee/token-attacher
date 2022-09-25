@@ -2677,10 +2677,12 @@ import {libWrapper} from './shim.js';
 				const layer = canvas.getLayerByEmbeddedName(key);
 				updates[key] = quickEdit.elements[key].map(elem =>{
 					let element = TokenAttacher.layerGetElement(layer, elem._id);
+					if(!element) return {_id:"undefined"};
 					//unset offset locally because I've set it locally so the user see's the effects immediatly
 					setProperty(element, `flags.${moduleName}.offset`, {});
 					return {_id:elem._id, [`flags.${moduleName}.offset`]: elem.offset};
 				});
+				updates[key].filter(elem=> elem._id != "undefined");
 			}
 			//Fire all updates by type
 			for (const key in updates) { 
