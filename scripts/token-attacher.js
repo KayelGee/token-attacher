@@ -1081,7 +1081,7 @@ import {libWrapper} from './shim.js';
 
 		static async attachElementToToken(element, target_token, suppressNotification=false){
 			const type = element.layer.constructor.documentName;
-			const selected = [element.document._id];
+			const selected = [element.document?._id ?? element._id];
 			
 			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._AttachToToken(target_token, {type:type, ids:selected}, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `AttachToToken`, eventdata: [target_token.document._id, {type:type, ids:selected}, suppressNotification]});
@@ -1093,7 +1093,7 @@ import {libWrapper} from './shim.js';
 			for (const element of element_array) {
 				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
-				selected[type].push(element.document._id);
+				selected[type].push(element.document?._id ?? element._id);
 			}
 			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._attachElementsToToken(selected, target_token, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `attachElementsToToken`, eventdata: [selected, target_token.document._id, suppressNotification]});
@@ -1106,7 +1106,7 @@ import {libWrapper} from './shim.js';
 			for (const key in selected) {
 				if (selected.hasOwnProperty(key)) {
 					let newUpdates =await TokenAttacher._AttachToToken(target_token, {type:key, ids:selected[key]}, suppressNotification, true);
-					if(Object.keys(updates).length <= 0) updates = newUpdates;
+					if(Object.keys(updates).length <= 0 && newUpdates) updates = newUpdates;
 					else{
 						for (const key in newUpdates) {
 							if (newUpdates.hasOwnProperty(key)) {
@@ -1757,10 +1757,12 @@ import {libWrapper} from './shim.js';
 			}
 
 			let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken, attached);
-			let deletes = {_id:change._id, [`prototypeToken.flags.${moduleName}.-=attached`]: null, [`prototypeToken.flags.${moduleName}.-=prototypeAttached`]: null};
-			let updates = {_id:change._id, [`prototypeToken.flags.${moduleName}`]: {prototypeAttached: prototypeAttached, grid:{size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h}}};
-			await document.update(deletes);
-			await document.update(updates);
+			let newToken = duplicate(change.prototypeToken);
+			delete newToken.flags[`${moduleName}`].attached;			
+			delete newToken.flags[`${moduleName}`].prototypeAttached;
+			newToken[`flags.${moduleName}.prototypeAttached`] = prototypeAttached;
+			newToken[`flags.${moduleName}.grid`] = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
+			await document.update({prototypeToken: newToken}, {diff:false});
 		}
 
 		static generatePrototypeAttached(token_data, attached){
