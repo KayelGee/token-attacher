@@ -1,12 +1,12 @@
 'use strict';
 
 (async () => {
-	const moduleName = "token-attacher";
+	const moduleNameTA = "token-attacher";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleName}.attachmentsNeedUpdate`)) return;
+		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
-		if(change.z) setProperty(options, `${moduleName}.attachmentsNeedUpdate`, true);
+		if(change.z) setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
 	}
 
 	const myLayer = "SomeLayerName"
@@ -17,6 +17,7 @@
 		//result.element = someobject.get(id);
 	}
 	
-	Hooks.on(`${moduleName}.doAttachmentsNeedUpdate`, doAttachmentsNeedUpdate);
+	Hooks.on(`${moduleNameTA}.doAttachmentsNeedUpdate`, doAttachmentsNeedUpdate);
+	Hooks.on(`${moduleNameTA}.layerGetElement`, doAttachmentsNeedUpdate);
 	TokenAttacher.registerHooks();
 })();
