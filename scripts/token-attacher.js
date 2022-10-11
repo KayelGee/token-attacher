@@ -683,14 +683,14 @@ import {libWrapper} from './shim.js';
 			let updates = objData.map(w => {
 				return mergeObject(
 					{_id: w._id},
-					TokenAttacher.offsetPositionOfElement(type, w, baseOffset)
+					TokenAttacher.offsetPositionOfElement(type, w, baseType, baseData, baseOffset)
 					);
 			});
 			if(Object.keys(updates).length == 0)  return; 
 			return updates;		
 		}
 
-		static offsetPositionOfElement(type, objData, baseOffset){
+		static offsetPositionOfElement(type, objData, baseType, baseData, baseOffset){
 			const offset = getProperty(objData, `flags.${moduleName}.offset`);
 			const size_multi = {w: baseOffset.size[0] / offset.size.widthBase, h: baseOffset.size[1] / offset.size.heightBase};
 			let update = {};
@@ -705,21 +705,6 @@ import {libWrapper} from './shim.js';
 			if(offset.elevation?.flags?.levels?.hasOwnProperty('rangeBottom') || offset.elevation?.flags?.levels?.hasOwnProperty('rangeTop')){
 				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeBottom) === false) update['flags.levels.rangeBottom'] = baseOffset.elevation + offset.elevation.flags.levels.rangeBottom;
 				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeTop) === false) update['flags.levels.rangeTop'] = baseOffset.elevation + offset.elevation.flags.levels.rangeTop;
-			}
-			if(offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightBottom') || offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightTop')){
-				const wallHeightModule = game.modules.get('wall-height') ?? {version:0};
-				if(isNewerVersion("4.0", wallHeightModule.version)){
-					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wallHeight.wallHeightBottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
-					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wallHeight.wallHeightTop'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
-				}else{
-					console.warn("Token Attacher | WallHeight flags.wallHeight is deprecated. Please use the macro 'Migrate Actors for Wall Height' and if this came from a compendium unlock the compendiums and run 'Migrate Compendiums for Wall Height!'");
-					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightBottom) === false) update['flags.wall-height.bottom'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightBottom;
-					if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.wallHeight?.wallHeightTop) === false) update['flags.wall-height.top'] = baseOffset.elevation + offset.elevation.flags.wallHeight.wallHeightTop;
-				}
-			}
-			if(offset.elevation?.flags?.['wall-height']?.hasOwnProperty('bottom') || offset.elevation?.flags?.['wall-height']?.hasOwnProperty('top')){
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.['wall-height']?.bottom) === false) update['flags.wall-height.bottom'] = baseOffset.elevation + offset.elevation.flags['wall-height'].bottom;
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.['wall-height']?.top) === false) update['flags.wall-height.top'] = baseOffset.elevation + offset.elevation.flags['wall-height'].top;
 			}
 
 			//Line Entities
@@ -787,6 +772,10 @@ import {libWrapper} from './shim.js';
 			const [x,y] = TokenAttacher.moveRotatePoint({x:objData.x, y:objData.y, rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
 			update.x = x;
 			update.y = y;
+
+			//Other Modules
+			Hooks.callAll(`${moduleName}.offsetPositionOfElement`, type, objData, baseType, baseData, baseOffset, update);
+
 			return update;
 		}
 
@@ -1536,17 +1525,9 @@ import {libWrapper} from './shim.js';
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightTop) === false) offset.elevation.flags['wallHeight'].wallHeightTop -= base_elevation;
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightBottom) === false) offset.elevation.flags['wallHeight'].wallHeightBottom -= base_elevation;
 			}
-			if(objData.flags['wall-height']?.hasOwnProperty('top')){				
-				offset.elevation.flags['wall-height'] = {
-					top:objData.flags['wall-height'].top, 
-					bottom:objData.flags['wall-height'].bottom
-				};
-				
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wall-height'].top) === false) offset.elevation.flags['wall-height'].top -= base_elevation;
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wall-height'].bottom) === false) offset.elevation.flags['wall-height'].bottom -= base_elevation;
-			}
-
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(baseDoc);
+			
+			Hooks.callAll(`${moduleName}.getElementOffset`, type, objData, base_type, baseDoc, grid, offset);
 			return offset;
 		}
 
@@ -2428,8 +2409,6 @@ import {libWrapper} from './shim.js';
 
 				||	change.hasOwnProperty("elevation")
 				||	change.flags?.levels?.hasOwnProperty("rangeTop")
-				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
-				||	change.flags?.['wall-height']?.hasOwnProperty("top")
 				)){
 				needUpdate = false;
 			}
