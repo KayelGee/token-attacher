@@ -749,11 +749,11 @@ import {libWrapper} from './shim.js';
 				if(objData.hasOwnProperty("direction")) update.direction = rotation;
 				if(objData.hasOwnProperty("rotation")) update.rotation = rotation;
 				
-				if(objData.hasOwnProperty('width')){
+				if(objData.hasOwnProperty('width') && objData.width != null){
 					update.width 	= offset.size.width  * size_multi.w;
 					update.height 	= offset.size.height * size_multi.h;
 				}
-				if(objData.shape?.hasOwnProperty('width')){
+				if(objData.shape?.hasOwnProperty('width') && objData.shape.width != null){
 					if(!update.shape) update.shape = {};
 					update.shape.width 	= offset.size.width  * size_multi.w;
 					update.shape.height 	= offset.size.height * size_multi.h;
@@ -1496,11 +1496,11 @@ import {libWrapper} from './shim.js';
 			offset.offRot %= 360;
 
 			offset.size = {};
-			if(objData.hasOwnProperty('width')){
+			if(objData.hasOwnProperty('width') && objData.width != null){
 				offset.size.width  	= objData.width;
 				offset.size.height	= objData.height;
 			}
-			if(objData.shape?.hasOwnProperty('width')){
+			if(objData.shape?.hasOwnProperty('width') && objData.shape.width != null){
 				offset.size.width  	= objData.shape.width;
 				offset.size.height	= objData.shape.height;
 			}
@@ -1695,14 +1695,14 @@ import {libWrapper} from './shim.js';
 					});
 				}
 				
-				if(objData.hasOwnProperty('width')){
+				if(objData.hasOwnProperty('width') && objData.width != null){
 					mergeObject(objData, {
 						width : offset.size.width,
 						height: offset.size.height
 					});
 				}
 
-				if(objData.shape?.hasOwnProperty('width')){
+				if(objData.shape?.hasOwnProperty('width') && objData.shape.width != null){
 					mergeObject(objData, {
 						shape:{
 							width : offset.size.width,
@@ -1950,7 +1950,7 @@ import {libWrapper} from './shim.js';
 								element.texture = {src: element.img};
 								delete element.img;
 							}
-							promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
+							if(element.texture?.src && element.texture?.src !== "" && element.texture?.src !== null) promises.push(loadTexture(element.texture?.src, {fallback: 'icons/svg/hazard.svg'}));
 						}
 						await Promise.all(promises);
 					}
@@ -2565,7 +2565,7 @@ import {libWrapper} from './shim.js';
 			const [x,y] = [objData.x, objData.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
-			if ( "width" in objData && "height" in objData ) {
+			if (objData.width && objData.height && objData.width != null) {
 				let [width, height] = [objData.width, objData.height];
 				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
