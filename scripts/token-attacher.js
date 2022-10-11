@@ -699,13 +699,6 @@ import {libWrapper} from './shim.js';
 			if(offset.elevation?.hasOwnProperty('elevation')){
 				update.elevation = baseOffset.elevation + offset.elevation.elevation;
 			}
-			if(offset.elevation?.flags?.levels?.hasOwnProperty('elevation')){
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.elevation) === false) update['flags.levels.elevation'] = baseOffset.elevation + offset.elevation.flags.levels.elevation;
-			}
-			if(offset.elevation?.flags?.levels?.hasOwnProperty('rangeBottom') || offset.elevation?.flags?.levels?.hasOwnProperty('rangeTop')){
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeBottom) === false) update['flags.levels.rangeBottom'] = baseOffset.elevation + offset.elevation.flags.levels.rangeBottom;
-				if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.levels?.rangeTop) === false) update['flags.levels.rangeTop'] = baseOffset.elevation + offset.elevation.flags.levels.rangeTop;
-			}
 
 			//Line Entities
 			if('c' in objData){
@@ -1499,22 +1492,6 @@ import {libWrapper} from './shim.js';
 			if(objData.hasOwnProperty('elevation')){
 				offset.elevation.elevation= objData.elevation;
 				if([null, Infinity, -Infinity].includes(offset.elevation.elevation) === false) offset.elevation.elevation -= base_elevation;
-			}
-			if(objData.flags['levels']?.hasOwnProperty('elevation')){
-				offset.elevation.flags['levels'] = {
-					elevation:objData.flags['levels'].elevation
-				};
-				
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].elevation) === false) offset.elevation.flags['levels'].elevation -= base_elevation;
-			}
-			if(objData.flags['levels']?.hasOwnProperty('rangeTop') || objData.flags['levels']?.hasOwnProperty('rangeBottom')){
-				offset.elevation.flags['levels'] = {
-					rangeTop:objData.flags['levels'].rangeTop ?? null, 
-					rangeBottom:objData.flags['levels'].rangeBottom ?? null
-				};
-				
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeTop) === false) offset.elevation.flags['levels'].rangeTop -= base_elevation;
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeBottom) === false) offset.elevation.flags['levels'].rangeBottom -= base_elevation;
 			}
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(baseDoc);
 			
@@ -2399,7 +2376,6 @@ import {libWrapper} from './shim.js';
 				||	change.hasOwnProperty("hidden")
 
 				||	change.hasOwnProperty("elevation")
-				||	change.flags?.levels?.hasOwnProperty("rangeTop")
 				)){
 				needUpdate = false;
 			}
