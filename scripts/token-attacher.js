@@ -245,6 +245,7 @@ import {libWrapper} from './shim.js';
 				Hooks.on(`update${type}`, (document, change, options, userId) => TokenAttacher.updateOffset(type, document, change, options, userId));
 				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.isAllowedToMove(type, document, change, options, userId));
 				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.handleBaseMoved(document, change, options, userId));
+				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.doAttachmentsNeedUpdate(document, change, options, userId));
 				Hooks.on(`preDelete${type}`, (document, options, userId) => TokenAttacher.isAllowedToMove(type, document, {}, options, userId));
 				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled)); //Check hook signature
 				//Deleting attached elements should detach them
@@ -534,29 +535,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
-			//Ignore anything from anyone not in your scene
-			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
-
-			if(!(	change.hasOwnProperty("x")
-				||	change.hasOwnProperty("y")
-				||	change.hasOwnProperty("c")
-				||	change.hasOwnProperty("rotation")
-				||	change.hasOwnProperty("direction")
-				||	change.hasOwnProperty("width")
-				||	change.hasOwnProperty("height")
-				||	change.hasOwnProperty("radius")
-				||	change.hasOwnProperty("dim")
-				||	change.hasOwnProperty("bright")
-				||	change.hasOwnProperty("distance")
-				||	change.hasOwnProperty("hidden")
-
-				||	change.hasOwnProperty("elevation")
-				||	change.flags?.levels?.hasOwnProperty("rangeTop")
-				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
-				||	change.flags?.['wall-height']?.hasOwnProperty("top")
-				)){
-				return;
-			}
+			if(!getProperty(options, `${moduleName}.AttachmentsNeedUpdate`)) return;
 
 			const layer = canvas.getLayerByEmbeddedName(type);
 			let base = TokenAttacher.layerGetElement(layer, document._id);
@@ -2447,6 +2426,40 @@ import {libWrapper} from './shim.js';
 			return true;
 		}
 
+		static doAttachmentsNeedUpdate(document, change, options, userId){
+			const attached=document.getFlag(moduleName, "attached") || {};
+			if(Object.keys(attached).length == 0) return true;
+			
+			let needUpdate = true;
+			if(!(	change.hasOwnProperty("x")
+				||	change.hasOwnProperty("y")
+				||	change.hasOwnProperty("c")
+				||	change.hasOwnProperty("rotation")
+				||	change.hasOwnProperty("direction")
+				||	change.hasOwnProperty("width")
+				||	change.hasOwnProperty("height")
+				||	change.hasOwnProperty("radius")
+				||	change.hasOwnProperty("dim")
+				||	change.hasOwnProperty("bright")
+				||	change.hasOwnProperty("distance")
+				||	change.hasOwnProperty("hidden")
+
+				||	change.hasOwnProperty("elevation")
+				||	change.flags?.levels?.hasOwnProperty("rangeTop")
+				||	change.flags?.wallHeight?.hasOwnProperty("wallHeightTop")
+				||	change.flags?.['wall-height']?.hasOwnProperty("top")
+				)){
+				needUpdate = false;
+			}
+
+			if(getProperty(options, `${moduleName}.QuickEdit`)) needUpdate = false;
+
+			if(getProperty(options, `${moduleName}.update`)) needUpdate = false;			
+
+			setProperty(options, `${moduleName}.attachmentsNeedUpdate`, needUpdate);
+			Hooks.callAll(`${moduleName}.doAttachmentsNeedUpdate`, document, change, options, userId);
+			return true;
+		}
 		static hasVehiclesDrawing(attached){
 			let result = false;
 			for (const key in attached) {
