@@ -1516,15 +1516,6 @@ import {libWrapper} from './shim.js';
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeTop) === false) offset.elevation.flags['levels'].rangeTop -= base_elevation;
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeBottom) === false) offset.elevation.flags['levels'].rangeBottom -= base_elevation;
 			}
-			if(objData.flags['wallHeight']?.hasOwnProperty('wallHeightTop')){				
-				offset.elevation.flags['wallHeight'] = {
-					wallHeightTop:objData.flags['wallHeight'].wallHeightTop, 
-					wallHeightBottom:objData.flags['wallHeight'].wallHeightBottom
-				};
-				
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightTop) === false) offset.elevation.flags['wallHeight'].wallHeightTop -= base_elevation;
-				if([null, Infinity, -Infinity].includes(offset.elevation.flags['wallHeight'].wallHeightBottom) === false) offset.elevation.flags['wallHeight'].wallHeightBottom -= base_elevation;
-			}
 			[offset.size.widthBase, offset.size.heightBase] = TokenAttacher.getSize(baseDoc);
 			
 			Hooks.callAll(`${moduleName}.getElementOffset`, type, objData, base_type, baseDoc, grid, offset);
