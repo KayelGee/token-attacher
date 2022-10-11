@@ -1761,6 +1761,7 @@ import {libWrapper} from './shim.js';
 			let newToken = duplicate(change.prototypeToken);
 			delete newToken.flags[`${moduleName}`].attached;			
 			delete newToken.flags[`${moduleName}`].prototypeAttached;
+			newToken[`flags.${moduleName}.-=attached`] = null;
 			newToken[`flags.${moduleName}.prototypeAttached`] = prototypeAttached;
 			newToken[`flags.${moduleName}.grid`] = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
 			await document.update({prototypeToken: newToken}, {diff:false});
@@ -2567,6 +2568,12 @@ import {libWrapper} from './shim.js';
 			let center = {x:x, y:y};
 			//Tokens, Tiles
 			if (objData.width && objData.height && objData.width != null) {
+				let [width, height] = [objData.width, objData.height];
+				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
+				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
+			}
+			//Drawings
+			if (objData.shape?.width && objData.shape?.height && objData.shape?.width != null) {
 				let [width, height] = [objData.width, objData.height];
 				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
