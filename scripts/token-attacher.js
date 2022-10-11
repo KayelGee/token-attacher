@@ -178,6 +178,7 @@ import {libWrapper} from './shim.js';
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
 				generatePrototypeAttached: TokenAttacher.generatePrototypeAttached,
+				_registerLayerByDocumentName: TokenAttacher._registerLayerByDocumentName,
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
@@ -201,6 +202,26 @@ import {libWrapper} from './shim.js';
 
 			TokenAttacher.updatedLockedAttached();
 
+		}
+
+		static registeredLayers = [];
+
+		static _registerLayerByDocumentName(type){
+			TokenAttacher.registeredLayers.push(type);
+			//Attached elements are not allowed to be moved by anything other then Token Attacher
+			Hooks.on(`update${type}`, (document, change, options, userId) => TokenAttacher.updateOffset(type, document, change, options, userId));
+			Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.isAllowedToMove(type, document, change, options, userId));
+			Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.handleBaseMoved(document, change, options, userId));
+			Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.doAttachmentsNeedUpdate(document, change, options, userId));
+			Hooks.on(`preDelete${type}`, (document, options, userId) => TokenAttacher.isAllowedToMove(type, document, {}, options, userId));
+			Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled)); //Check hook signature
+			//Deleting attached elements should detach them
+			Hooks.on(`delete${type}`, (document, options, userId) => TokenAttacher.DetachAfterDelete(type, document, options, userId));
+			//Recreating an element from Undo History will leave them detached, so reattach them
+			Hooks.on(`create${type}`, (document, options, userId) => TokenAttacher.ReattachAfterUndo(type, document, options, userId));
+			//Instant Attach on create if UI is open
+			Hooks.on(`preCreate${type}`, (document, data, options, userId) => TokenAttacher.PreInstantAttach(type, document, data, options, userId));
+			Hooks.on(`create${type}`, (document,  options, userId) => TokenAttacher.InstantAttach(type, document, options, userId));
 		}
 
 		static registerHooks(){
@@ -241,20 +262,7 @@ import {libWrapper} from './shim.js';
 			Hooks.on("createPlaceableObjects", (parent, createdObjs, options, userId) => TokenAttacher.batchPostProcess(parent, createdObjs, options, userId));
 
 			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
-				//Attached elements are not allowed to be moved by anything other then Token Attacher
-				Hooks.on(`update${type}`, (document, change, options, userId) => TokenAttacher.updateOffset(type, document, change, options, userId));
-				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.isAllowedToMove(type, document, change, options, userId));
-				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.handleBaseMoved(document, change, options, userId));
-				Hooks.on(`preUpdate${type}`, (document, change, options, userId) => TokenAttacher.doAttachmentsNeedUpdate(document, change, options, userId));
-				Hooks.on(`preDelete${type}`, (document, options, userId) => TokenAttacher.isAllowedToMove(type, document, {}, options, userId));
-				Hooks.on(`control${type}`, (object, isControlled) => TokenAttacher.isAllowedToControl(object, isControlled)); //Check hook signature
-				//Deleting attached elements should detach them
-				Hooks.on(`delete${type}`, (document, options, userId) => TokenAttacher.DetachAfterDelete(type, document, options, userId));
-				//Recreating an element from Undo History will leave them detached, so reattach them
-				Hooks.on(`create${type}`, (document, options, userId) => TokenAttacher.ReattachAfterUndo(type, document, options, userId));
-				//Instant Attach on create if UI is open
-				Hooks.on(`preCreate${type}`, (document, data, options, userId) => TokenAttacher.PreInstantAttach(type, document, data, options, userId));
-				Hooks.on(`create${type}`, (document,  options, userId) => TokenAttacher.InstantAttach(type, document, options, userId));
+				TokenAttacher._registerLayerByDocumentName(type);
 			}
 			
 		
@@ -534,7 +542,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
-			if(!getProperty(options, `${moduleName}.AttachmentsNeedUpdate`)) return;
+			if(!getProperty(options, `${moduleName}.attachmentsNeedUpdate`)) return;
 
 			let base = TokenAttacher.layerGetElement(type, document._id);
 			const attached=base.document.getFlag(moduleName, "attached") || {};
@@ -708,10 +716,10 @@ import {libWrapper} from './shim.js';
 				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
 				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.c=c;
-				return update;
+				//return update;
 			}
 			//Rectangle Entities
-			if(('shape' in objData && 'width' in objData.shape) || 'width' in objData || 'distance' in objData || 'dim' in objData || (objData.hasOwnProperty('config') && 'dim' in objData.config) || 'radius' in objData){
+			else if(('shape' in objData && 'width' in objData.shape) || 'width' in objData || 'distance' in objData || 'dim' in objData || (objData.hasOwnProperty('config') && 'dim' in objData.config) || 'radius' in objData){
 				const [x,y,rotation] =TokenAttacher.moveRotateRectangle(objData, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.x = x;
 				update.y = y;
@@ -759,13 +767,14 @@ import {libWrapper} from './shim.js';
 					if(!update.shape) update.shape = {};
 					update.shape.points = points;
 				}
-				return update;
+				//return update;
 			}
 			//Point Entities
-			const [x,y] = TokenAttacher.moveRotatePoint({x:objData.x, y:objData.y, rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
-			update.x = x;
-			update.y = y;
-
+			else{
+				const [x,y] = TokenAttacher.moveRotatePoint({x:objData.x, y:objData.y, rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				update.x = x;
+				update.y = y;
+			}
 			//Other Modules
 			Hooks.callAll(`${moduleName}.offsetPositionOfElement`, type, objData, baseType, baseData, baseOffset, update);
 
@@ -2032,8 +2041,8 @@ import {libWrapper} from './shim.js';
 				const dupIndex = updateObj[key].findIndex(item => update=== item);
 				if(dupIndex === -1) updateObj[key].push(update);
 			};
-			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
-				const layer = canvas.getLayerByEmbeddedName(type);
+			for (const type of TokenAttacher.registeredLayers) {
+				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 				const deleteLinks = (layer) => {
 						for (let i = 0; i < layer.placeables.length; i++) {
 							const element = layer.placeables[i];
@@ -2493,8 +2502,8 @@ import {libWrapper} from './shim.js';
 			let selected = {};	
 			const baseId= canvas.scene.getFlag(moduleName, "attach_base").element;		
 			const token = canvas.tokens.get(baseId);
-			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
-				const layer = canvas.getLayerByEmbeddedName(type);
+			for (const type of TokenAttacher.registeredLayers) {
+				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 				const selectAll = (layer) => {
 					//if (layer.options.controllableObjects) {
 						// Identify controllable objects
@@ -2598,7 +2607,7 @@ import {libWrapper} from './shim.js';
 		}
 		//Update z in elements_data and return elements_data
 		static zSort(up, type, elements_data) {	
-			const layer = canvas.getLayerByEmbeddedName(type);
+			const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 			const overhead_layer = canvas.foreground ?? layer;
 			const siblings = layer.placeables;	
 			const overhead_siblings = overhead_layer.placeables;	
@@ -2763,7 +2772,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getLayerOrCollection(key){
-			return canvas.getLayerByEmbeddedName(key) ?? game.collections.get(key);
+			return canvas.getLayerByEmbeddedName(key) ?? TokenAttacher.getLayerByEmbeddedName(key) ?? game.collections.get(key);
 		}
 
 		static async setAnimateStatus(tokens, animate, suppressNotification=false){			
@@ -2783,7 +2792,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static layerGetElement(layer, id){
-			const layerObj = canvas.getLayerByEmbeddedName(layer);
+			const layerObj = canvas.getLayerByEmbeddedName(layer) ?? TokenAttacher.getLayerByEmbeddedName(layer);
 			const foreground = canvas.foreground ?? layerObj;
 			let result = {element:null};
 			result.element = layerObj.get(id) ?? foreground.get(id);
@@ -2894,8 +2903,8 @@ import {libWrapper} from './shim.js';
 				const dupIndex = updateObj[key].findIndex(item => update._id=== item._id);
 				if(dupIndex === -1) updateObj[key].push(update);
 			};
-			for (const type of ["AmbientLight", "AmbientSound", "Drawing", "MeasuredTemplate", "Note", "Tile", "Token", "Wall"]) {
-				const layer = canvas.getLayerByEmbeddedName(type);
+			for (const type of TokenAttacher.registeredLayers) {
+				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 				const deleteLinks = (layer) => {
 						for (let i = 0; i < layer.placeables.length; i++) {
 							const element = layer.placeables[i];
@@ -2999,6 +3008,10 @@ import {libWrapper} from './shim.js';
 			}
 			
 			TokenAttacher._AttachToToken(element,{type:document.layer.constructor.documentName, ids:[document._id]});
+		}
+
+		static getLayerByEmbeddedName(type){
+			return canvas.layers.find(l => l.constructor.documentName === type);
 		}
 	}
 	TokenAttacher.registerHooks();

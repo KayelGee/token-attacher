@@ -63,5 +63,4 @@
 	//Hooks.on(`${moduleNameTA}.layerGetElement`, layerGetElement);
 	Hooks.on(`${moduleNameTA}.getElementOffset`, getElementOffset);
 	Hooks.on(`${moduleNameTA}.offsetPositionOfElement`, offsetPositionOfElement);
-	TokenAttacher.registerHooks();
 })();

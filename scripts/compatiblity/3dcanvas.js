@@ -19,5 +19,4 @@
 	
 	Hooks.on(`${moduleNameTA}.doAttachmentsNeedUpdate`, doAttachmentsNeedUpdate);
 	Hooks.on(`${moduleNameTA}.layerGetElement`, layerGetElement);
-	TokenAttacher.registerHooks();
 })();
