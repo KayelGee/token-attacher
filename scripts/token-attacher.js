@@ -1072,7 +1072,8 @@ import {libWrapper} from './shim.js';
 						icon: "fas fa-feather-alt",
 						visible: game.user.isGM,
 						onClick: () => TokenAttacher.toggleQuickEditMode(),
-						button: true
+						toggle: true,
+						active: getProperty(window, 'tokenAttacher.quickEdit') ?? false,
 					});
 				}
 			}
