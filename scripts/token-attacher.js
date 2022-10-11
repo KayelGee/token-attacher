@@ -555,7 +555,7 @@ import {libWrapper} from './shim.js';
 			const attached=base.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return true;
 
-			if(game.user._id === userId && game.user.isGM){
+			if(game.userId === userId && game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
 				if(quickEdit && canvas.scene._id === quickEdit.scene){
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
@@ -2656,7 +2656,7 @@ import {libWrapper} from './shim.js';
 					clearTimeout(window.tokenAttacher.quickEdit.timer);
 					window.tokenAttacher.quickEdit.timer = null;
 					const quickEdit = duplicate(window.tokenAttacher.quickEdit);
-					delete quickEdit[game.user._id];
+					delete quickEdit[game.userId];
 					delete window.tokenAttacher.quickEdit;
 					await TokenAttacher.saveAllQuickEditOffsets(quickEdit);
 					
@@ -2698,7 +2698,7 @@ import {libWrapper} from './shim.js';
 			if(!offset) return;
 			if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 
-			if(game.user._id === userId && game.user.isGM){
+			if(game.userId === userId && game.user.isGM){
 				let quickEdit = getProperty(window, 'tokenAttacher.quickEdit');
 				if(quickEdit && canvas.scene._id === quickEdit.scene){					
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
