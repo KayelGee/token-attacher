@@ -474,9 +474,8 @@ import {libWrapper} from './shim.js';
 				if(isLocked)
 					for (const key in attached) {
 						if (attached.hasOwnProperty(key) && key !== "unknown") {
-							let layer = TokenAttacher.getLayerOrCollection(key);
 							for (const elementid of attached[key]) {
-								let element = TokenAttacher.layerGetElement(layer, elementid);
+								let element = TokenAttacher.layerGetElement(key, elementid);
 								TokenAttacher.lockElement(key, element, false);
 							}
 						}
@@ -537,8 +536,7 @@ import {libWrapper} from './shim.js';
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
 			if(!getProperty(options, `${moduleName}.AttachmentsNeedUpdate`)) return;
 
-			const layer = canvas.getLayerByEmbeddedName(type);
-			let base = TokenAttacher.layerGetElement(layer, document._id);
+			let base = TokenAttacher.layerGetElement(type, document._id);
 			const attached=base.document.getFlag(moduleName, "attached") || {};
 			if(Object.keys(attached).length == 0) return true;
 
@@ -571,8 +569,7 @@ import {libWrapper} from './shim.js';
 			
 			//Get Entities
 			for (const key in attached) {
-				const layer = canvas.getLayerByEmbeddedName(key);
-				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id));
+				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(key, id));
 			}
 
 			let updates = {};
@@ -932,10 +929,9 @@ import {libWrapper} from './shim.js';
 			let updates = {};
 			let attached=duplicate(token.document.getFlag(moduleName, `attached.${elements.type}`) || []);
 			
-			const layer = TokenAttacher.getLayerOrCollection(elements.type);
 			attached = attached.concat(elements.ids.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
-			attached = attached.filter((item) => TokenAttacher.layerGetElement(layer, item));
+			attached = attached.filter((item) => TokenAttacher.layerGetElement(elements.type, item));
 			let all_attached=duplicate(token.document.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
@@ -956,7 +952,7 @@ import {libWrapper} from './shim.js';
 			if(!updates.hasOwnProperty(elements.type)) updates[elements.type] = [];
 
 			for (let i = 0; i < attached.length; i++) {
-				const element = layer.get(attached[i]);
+				const element = TokenAttacher.layerGetElement(elements.type, attached[i]);
 				updates[elements.type].push({_id:attached[i], 
 					[`flags.${moduleName}.parent`]: token.document._id, 
 					[`flags.${moduleName}.offset`]: TokenAttacher.getElementOffset(elements.type, element.document, token.layer.constructor.documentName, token.document, {})});
@@ -994,11 +990,10 @@ import {libWrapper} from './shim.js';
 					}
 				}
 			}
-			const layer = canvas.getLayerByEmbeddedName(type);
-			if(typeof element === 'string' || element instanceof String) element = TokenAttacher.layerGetElement(layer, element);
+			if(typeof element === 'string' || element instanceof String) element = TokenAttacher.layerGetElement(type, element);
 			if(Array.isArray(element)){
 				for (let i = 0; i < element.length; i++) {
-					const elem = TokenAttacher.layerGetElement(layer, element[i]);
+					const elem = TokenAttacher.layerGetElement(type, element[i]);
 					await updateFunc(elem);
 				}
 			}
@@ -1161,12 +1156,9 @@ import {libWrapper} from './shim.js';
 
 			const base_exists = ()=>{				
 				const attachment_base = canvas.scene.getFlag(moduleName, "attach_base");
-				let layer;
 				let base;
 				if(attachment_base){
-					layer = canvas.getLayerByEmbeddedName(attachment_base.type);
-					if(layer)
-						base = this.layerGetElement(layer, attachment_base.element);
+					base = this.layerGetElement(attachment_base.type, attachment_base.element);
 				}			
 				if(!base){
 					TokenAttacher.closeTokenAttacherUI();
@@ -1267,9 +1259,8 @@ import {libWrapper} from './shim.js';
 			let updates = {};
 			for (const key in elements) {
 				if (elements.hasOwnProperty(key)) {
-					const layer = canvas.getLayerByEmbeddedName(key);
 					for (let i = 0; i < elements[key].length; i++) {
-						const element = TokenAttacher.layerGetElement(layer, elements[key][i]);
+						const element = TokenAttacher.layerGetElement(key, elements[key][i]);
 						if(getProperty(element.document, `flags.${moduleName}.parent`)){
 							if(!updates.hasOwnProperty(key)) updates[key] = [];
 							if(canMoveConstrained) updates[key].push({_id:element.document._id, [`flags.${moduleName}.canMoveConstrained`]:options});
@@ -1307,9 +1298,8 @@ import {libWrapper} from './shim.js';
 			let updates = {};
 			for (const key in elements) {
 				if (elements.hasOwnProperty(key)) {
-					const layer = canvas.getLayerByEmbeddedName(key);
 					for (let i = 0; i < elements[key].length; i++) {
-						const element = TokenAttacher.layerGetElement(layer, elements[key][i]);
+						const element = TokenAttacher.layerGetElement(key, elements[key][i]);
 						if(getProperty(element.document, `flags.${moduleName}.parent`)){
 							if(!updates.hasOwnProperty(key)) updates[key] = [];
 							if(!isLocked) updates[key].push({_id:element.document._id, [`flags.${moduleName}.unlocked`]:true});
@@ -1338,9 +1328,8 @@ import {libWrapper} from './shim.js';
 			
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = TokenAttacher.layerGetElement(layer, elementid);
+						let element = TokenAttacher.layerGetElement(key, elementid);
 						if(!isLocked) TokenAttacher.lockElement(key, element, false);
 						else TokenAttacher.lockElement(key, element, true);
 					}
@@ -1365,9 +1354,8 @@ import {libWrapper} from './shim.js';
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = TokenAttacher.layerGetElement(layer, elementid);
+						let element = TokenAttacher.layerGetElement(key, elementid);
 						if(!isHighlighted) element.alpha = 0.5;
 						else element.alpha = 1;
 					}
@@ -1388,9 +1376,8 @@ import {libWrapper} from './shim.js';
 			let layer;
 			let base;	
 			if(attachment_base){
-				layer = canvas.getLayerByEmbeddedName(attachment_base.type);
 				if(layer)
-					base = this.layerGetElement(layer, attachment_base.element);
+					base = this.layerGetElement(attachment_base.type, attachment_base.element);
 			}		
 			if(base) TokenAttacher._updateAttachedOffsets(attachment_base);
 			window.document.getElementById("tokenAttacher").remove();
@@ -1597,10 +1584,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getObjectsFromIds(base_type, base_data, type, idArray){
-			let layer = TokenAttacher.getLayerOrCollection(type);
 			let copyArray = [];
 			for (const elementid of idArray) {
-				const element = TokenAttacher.layerGetElement(layer, elementid);
+				const element = TokenAttacher.layerGetElement(type, elementid);
 				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
 				let dup_data = duplicate(element.document);
 				delete dup_data._id;
@@ -1832,14 +1818,12 @@ import {libWrapper} from './shim.js';
 		static getChildrenIds(attached, all_ids){
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					let layer = TokenAttacher.getLayerOrCollection(key);
-
 					if(!all_ids.hasOwnProperty(key)) all_ids[key] = [];
 
 					for (let i = 0; i < attached[key].length; i++) {
 						const id = attached[key][i];		
 
-						let element = TokenAttacher.layerGetElement(layer, id);
+						let element = TokenAttacher.layerGetElement(key, id);
 						if(!element) continue;		
 
 						all_ids[key].push(id);
@@ -2019,7 +2003,6 @@ import {libWrapper} from './shim.js';
 							let current_attached = duplicate(getProperty(baseDoc , `flags.${moduleName}.attached`) ?? {});
 							let new_attached = {}; 
 							for (const type in createdDocs) {
-								const layer = canvas.getLayerByEmbeddedName(type);
 								if (createdDocs.hasOwnProperty(type)) {
 									new_attached[type] = createdDocs[type].filter(doc => getProperty(doc , `flags.${moduleName}.parent`) === old_base_id);
 									for (let j = 0; j < new_attached[type].length; j++) {
@@ -2030,7 +2013,7 @@ import {libWrapper} from './shim.js';
 									}
 									new_attached[type] = new_attached[type].map(doc => doc._id);
 									if(current_attached && current_attached.hasOwnProperty(type)){
-										current_attached[type] = current_attached[type].filter(item => getProperty(TokenAttacher.layerGetElement(layer, item).document , `flags.${moduleName}.parent`) === baseDoc._id);
+										current_attached[type] = current_attached[type].filter(item => getProperty(TokenAttacher.layerGetElement(type, item).document , `flags.${moduleName}.parent`) === baseDoc._id);
 										new_attached[type] = [...new Set(new_attached[type].concat(current_attached[type]))];
 									}
 									if(new_attached[type].length <= 0) delete new_attached[type];
@@ -2061,8 +2044,7 @@ import {libWrapper} from './shim.js';
 				
 				if(getProperty(options, `${moduleName}.base`)){				
 					const attach_base = canvas.scene.getFlag(moduleName, "attach_base");
-					const layer = canvas.getLayerByEmbeddedName(attach_base.type);
-					const element = TokenAttacher.layerGetElement(layer, attach_base.element);
+					const element = TokenAttacher.layerGetElement(attach_base.type, attach_base.element);
 
 					const child = getProperty(options, `${moduleName}.base`);
 
@@ -2460,16 +2442,15 @@ import {libWrapper} from './shim.js';
 			Hooks.callAll(`${moduleName}.doAttachmentsNeedUpdate`, document, change, options, userId);
 			return true;
 		}
+
 		static hasVehiclesDrawing(attached){
 			let result = false;
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
-					let layer = TokenAttacher.getLayerOrCollection(key);
-
 					for (let i = 0; i < attached[key].length; i++) {
 						const id = attached[key][i];		
 
-						let element = TokenAttacher.layerGetElement(layer, id);
+						let element = TokenAttacher.layerGetElement(key, id);
 						if(!element) continue;		
 
 						const child_attached=getProperty(element.document, `flags.${moduleName}.attached`) || {};
@@ -2547,8 +2528,7 @@ import {libWrapper} from './shim.js';
 				TokenAttacher._AttachToToken(parent_token, {type:type, ids:[entity._id]}, true);
 			}
 			else{
-				let layer = TokenAttacher.getLayerOrCollection(type);
-				const element = TokenAttacher.layerGetElement(layer, entity._id);
+				const element = TokenAttacher.layerGetElement(type, entity._id);
 				
 				const deletes ={[`flags.-=${moduleName}`]: null};
 				await element.update(deletes);
@@ -2621,9 +2601,8 @@ import {libWrapper} from './shim.js';
 
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = TokenAttacher.getLayerOrCollection(key);
 					for (const elementid of attached[key]) {
-						let element = TokenAttacher.layerGetElement(layer, elementid);
+						let element = TokenAttacher.layerGetElement(key, elementid);
 						if(element){
 							const elementAttached = element.document.getFlag(moduleName, "attached") || {};
 							if(Object.keys(elementAttached).length > 0){
@@ -2760,9 +2739,8 @@ import {libWrapper} from './shim.js';
 
 			let updates = {};
 			for (const key in quickEdit.elements) {
-				const layer = canvas.getLayerByEmbeddedName(key);
 				updates[key] = quickEdit.elements[key].map(elem =>{
-					let element = TokenAttacher.layerGetElement(layer, elem._id);
+					let element = TokenAttacher.layerGetElement(key, elem._id);
 					if(!element) return {_id:"undefined"};
 					//unset offset locally because I've set it locally so the user see's the effects immediatly
 					setProperty(element, `flags.${moduleName}.offset`, {});
@@ -2791,9 +2769,8 @@ import {libWrapper} from './shim.js';
 					if(!getProperty(options, `${moduleName}.QuickEdit`)) return;
 					clearTimeout(quickEdit.timer);
 					const parent_type = "Token";
-					const parent_layer = canvas.getLayerByEmbeddedName(parent_type);
 					const parent_id = getProperty(document, `flags.${moduleName}.parent`);
-					let parent = TokenAttacher.layerGetElement(parent_layer, parent_id);
+					let parent = TokenAttacher.layerGetElement(parent_type, parent_id);
 					TokenAttacher.updateOffsetOfElement(quickEdit, parent_type, parent.document, type, document._id);
 					quickEdit.timer = setTimeout(TokenAttacher.saveAllQuickEditOffsets, 1000);
 				}
@@ -2801,8 +2778,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static updateOffsetOfElement(quickEdit, base_type, base_data, type, element_id){
-			const layer = canvas.getLayerByEmbeddedName(type);
-			let element = TokenAttacher.layerGetElement(layer, element_id);
+			let element = TokenAttacher.layerGetElement(type, element_id);
 			const new_offset = TokenAttacher.getElementOffset(type, element.document, base_type, base_data, {});
 			//set offset locally only so the user see's the effects immediatly
 			setProperty(element.document, `flags.${moduleName}.offset`, new_offset);
@@ -2816,10 +2792,9 @@ import {libWrapper} from './shim.js';
 		static _quickEditUpdateOffsetsOfBase(quickEdit, type, base_data){
 			let attached = getProperty(base_data, `flags.${moduleName}.attached`);
 			for (const key in attached) { 
-				const layer = canvas.getLayerByEmbeddedName(key);
 				for (let i = 0; i < attached[key].length; i++) {
 					const element_id = attached[key][i];
-					let element =TokenAttacher.layerGetElement(layer, element_id);
+					let element =TokenAttacher.layerGetElement(key, element_id);
 					TokenAttacher.updateOffsetOfElement(quickEdit, type, base_data, key, element_id);
 					if(element.document.getFlag(moduleName, 'attached')){
 						TokenAttacher._quickEditUpdateOffsetsOfBase(key, element);
@@ -2862,8 +2837,12 @@ import {libWrapper} from './shim.js';
 		}
 
 		static layerGetElement(layer, id){
-			const foreground = canvas.foreground ?? layer;
-			return layer.get(id) ?? foreground.get(id);
+			const layerObj = canvas.getLayerByEmbeddedName(layer);
+			const foreground = canvas.foreground ?? layerObj;
+			let result = {element:null};
+			result.element = layerObj.get(id) ?? foreground.get(id);
+			if(!result.element) Hooks.callAll(`${moduleName}.layerGetElement`, layer, id, result);
+			return result.element;
 		}
 
 		static async migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly){
@@ -3001,8 +2980,7 @@ import {libWrapper} from './shim.js';
 			
 			//Get Entities
 			for (const key in attached) {
-				const layer = canvas.getLayerByEmbeddedName(key);
-				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id));
+				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(key, id));
 			}
 
 			let updates = {};
@@ -3065,9 +3043,7 @@ import {libWrapper} from './shim.js';
 			let layer;
 			let element;
 			if(attachment_base){
-				layer = canvas.getLayerByEmbeddedName(attach_base.type);
-				if(layer)
-				element = TokenAttacher.layerGetElement(layer, attach_base.element);
+				element = TokenAttacher.layerGetElement(attach_base.type, attach_base.element);
 			}		
 
 			if(!element) {				
