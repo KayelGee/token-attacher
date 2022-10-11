@@ -23,7 +23,10 @@
     }]
 	},
 	"esmodules": [
-		"scripts/token-attacher.js"
+		"scripts/token-attacher.js",
+		"scripts/compatiblity/levels.js",
+		"scripts/compatiblity/wall-height.js",
+		"scripts/compatiblity/enhanced-terrain-layer.js"
 	],
 	"styles": [
 		"./css/token-attacher.css"],
