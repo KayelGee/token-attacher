@@ -2574,7 +2574,7 @@ import {libWrapper} from './shim.js';
 			}
 			//Drawings
 			if (objData.shape?.width && objData.shape?.height && objData.shape?.width != null) {
-				let [width, height] = [objData.width, objData.height];
+				let [width, height] = [objData.shape.width, objData.shape.height];
 				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
 				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
 			}
