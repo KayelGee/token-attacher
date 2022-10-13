@@ -2044,7 +2044,8 @@ import {libWrapper} from './shim.js';
 							};
 							let afterUpdate = {
 								_id: baseDoc._id, 
-								[`flags.${moduleName}.-=needsPostProcessing`]: null
+								[`flags.${moduleName}.-=needsPostProcessing`]: null,
+								[`flags.${moduleName}.pos`]: TokenAttacher.getBasePositon('Token', baseDoc)
 							};
 							pushUpdate(key, update, updates);
 							pushUpdate(key, afterUpdate, afterUpdates);
