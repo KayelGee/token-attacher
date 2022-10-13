@@ -642,7 +642,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		//base can be an PlacableObject but also plain data if return_data is true
-		static async saveBasePositon(type, base, return_data=false, overrideData){
+		static getBasePositon(type, base, overrideData){
 			let pos;
 			let objData = base.document ?? base;
 			objData = duplicate(objData);
@@ -674,6 +674,13 @@ import {libWrapper} from './shim.js';
 			}
 			pos = mergeObject(pos, objSizeData);
 
+			return pos;
+		}
+
+		//base can be an PlacableObject but also plain data if return_data is true
+		static async saveBasePositon(type, base, return_data=false, overrideData){
+			let objData = base.document ?? base;
+			const pos = TokenAttacher.getBasePositon(type, base, overrideData);
 			if(!return_data) return base.document.setFlag(moduleName, "pos", pos);
 
 			return {_id:objData._id, 
@@ -1858,9 +1865,16 @@ import {libWrapper} from './shim.js';
 		}
 
 		static preCreateBase(document, objData, options, userId){
-			if(getProperty(objData,`flags.${moduleName}.prototypeAttached`)){
-				setProperty(objData, `flags.${moduleName}.needsPostProcessing`, true);
+			let updates = {};
+			if(getProperty(document,`flags.${moduleName}.prototypeAttached`)){				
+				setProperty(updates, `flags.${moduleName}.needsPostProcessing`, true);
 			}
+			if(getProperty(document,`flags.${moduleName}.pos`) && !document.flags[moduleName].pos.width){
+				let pos = TokenAttacher.getBasePositon('Token', document);
+				setProperty(updates, `flags.${moduleName}.pos`, mergeObject(pos, document.flags[moduleName].pos));
+			}
+			if(Object.keys(updates).length> 0) document.updateSource(updates);
+			return true;
 		}
 
 		static async updateAttachedCreatedToken(type, document, options, userId){
