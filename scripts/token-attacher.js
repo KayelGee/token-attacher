@@ -2276,8 +2276,12 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			await Promise.all(allPromises);
+			let actorType;
+			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
+			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
+			if(!actorType) actorType = game.system.documentTypes.Actor[0];
 			actors.forEach(async actor => {
-				await Actor.create({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
+				await Actor.create({type: actorType, img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
 		}
 
@@ -2295,8 +2299,12 @@ import {libWrapper} from './shim.js';
 			const parentMap = {null:{value:null}};
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
 			let creates = [];
+			let actorType;
+			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
+			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
+			if(!actorType) actorType = game.system.documentTypes.Actor[0];
 			actors.forEach(async actor => {
-				creates.push({type: game.system.documentTypes.Actor[0], img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
+				creates.push({type: actorType, img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
