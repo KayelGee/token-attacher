@@ -1766,7 +1766,7 @@ import {libWrapper} from './shim.js';
 
 			let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken, attached);
 			let newToken = duplicate(change.prototypeToken);
-			delete newToken.flags[`${moduleName}`].attached;			
+			//delete newToken.flags[`${moduleName}`].attached;			
 			delete newToken.flags[`${moduleName}`].prototypeAttached;
 			newToken[`flags.${moduleName}.-=attached`] = null;
 			newToken[`flags.${moduleName}.prototypeAttached`] = prototypeAttached;
