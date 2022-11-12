@@ -35,13 +35,19 @@
 		const offset = getProperty(objData, `flags.${moduleNameTA}.offset`);
 	}
 
-	function _registerLayerByDocumentName(){
-		window.tokenAttacher._registerLayerByDocumentName("Terrain");
+	function isGridSpace(type){
+		if(type == "Terrain") return false;
+		return true;
+	}
+
+	function initCompatibility(){
+		window.tokenAttacher._compatiblity.registerLayerByDocumentName("Terrain");
 	}
 	
 	Hooks.on(`${moduleNameTA}.doAttachmentsNeedUpdate`, doAttachmentsNeedUpdate);
 	//Hooks.on(`${moduleNameTA}.layerGetElement`, layerGetElement);
 	Hooks.on(`${moduleNameTA}.getElementOffset`, getElementOffset);
 	Hooks.on(`${moduleNameTA}.offsetPositionOfElement`, offsetPositionOfElement);
-	Hooks.once(`${moduleNameTA}.macroAPILoaded`, _registerLayerByDocumentName);
+	Hooks.on(`${moduleNameTA}.isGridSpace`, isGridSpace);
+	Hooks.once(`${moduleNameTA}.macroAPILoaded`, initCompatibility);
 })();
