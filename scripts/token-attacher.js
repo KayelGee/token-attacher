@@ -178,7 +178,19 @@ import {libWrapper} from './shim.js';
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
 				generatePrototypeAttached: TokenAttacher.generatePrototypeAttached,
-				_registerLayerByDocumentName: TokenAttacher._registerLayerByDocumentName,
+				_compatiblity: {
+					registerLayerByDocumentName: TokenAttacher._registerLayerByDocumentName,
+					updateOffset : TokenAttacher.updateOffset,
+					isAllowedToMove : TokenAttacher.isAllowedToMove,
+					handleBaseMoved : TokenAttacher.handleBaseMoved,
+					doAttachmentsNeedUpdate : TokenAttacher.doAttachmentsNeedUpdate,
+					isAllowedToControl : TokenAttacher.isAllowedToControl,
+					DetachAfterDelete : TokenAttacher.DetachAfterDelete,
+					ReattachAfterUndo : TokenAttacher.ReattachAfterUndo,
+					PreInstantAttach : TokenAttacher.PreInstantAttach,
+					InstantAttach : TokenAttacher.InstantAttach,
+					updateOffset : TokenAttacher.updateOffset,
+				},
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
@@ -2642,7 +2654,9 @@ import {libWrapper} from './shim.js';
 		static isGridSpace(type){
 			if(type === "Tile") return false;
 			if(type === "Drawing") return false;
-			return true;
+			let additionalTypes = Hooks.call(`${moduleName}.isGridSpace`, type);
+
+			return true && additionalTypes;
 		}
 		static toggleQuickEditMode(){
 			if(!game.user.isGM) return;
