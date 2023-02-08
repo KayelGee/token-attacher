@@ -328,7 +328,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async _migrateScene(){
-			TokenAttacher.migrateSceneHook([game.scenes.active._id]);
+			TokenAttacher.migrateSceneHook([game.scenes.active?._id]);
 		}
 
 		static async migrateSceneHook(remaining_scenes){
@@ -501,7 +501,7 @@ import {libWrapper} from './shim.js';
 		}
 		static async UpdateBasePosition(type, document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
@@ -534,7 +534,7 @@ import {libWrapper} from './shim.js';
 
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
@@ -864,7 +864,7 @@ import {libWrapper} from './shim.js';
 		 * Only the first active GM has to do the work
 		 */
 		static isFirstActiveGM(){
-			const currentScene = game.scenes.active?._id;
+			const currentScene = game.user.viewedScene;
 			if(!currentScene) return false;
 			const firstGm = game.users.find((u) => u.isGM && u.active && u.viewedScene === currentScene);
 			if (firstGm && game.user === firstGm) {
@@ -877,7 +877,7 @@ import {libWrapper} from './shim.js';
 		 * Warn the player if a token was moved that has attached parts
 		 */
 		static detectGM(){
-			const currentScene = game.scenes.active?._id;
+			const currentScene = game.user.viewedScene;
 			const firstGm = game.users.find((u) => u.isGM && u.active && u.viewedScene === currentScene);
 			if(!firstGm){
 				return ui.notifications.error(game.i18n.format(localizedStrings.error.NoActiveGMFound));
@@ -1764,7 +1764,7 @@ import {libWrapper} from './shim.js';
 
 		static async updateAttachedPrototype(document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(!change.prototypeToken?.flags?.[moduleName]) return;
@@ -1829,7 +1829,7 @@ import {libWrapper} from './shim.js';
 
 		static async deleteToken(document, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const attached=getProperty(document, `flags.${moduleName}.attached`) || {};
@@ -1882,7 +1882,7 @@ import {libWrapper} from './shim.js';
 
 		static preCreateBase(document, objData, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			let updates = {};
 			if(getProperty(document,`flags.${moduleName}.prototypeAttached`)){				
@@ -1898,7 +1898,7 @@ import {libWrapper} from './shim.js';
 
 		static async updateAttachedCreatedToken(type, document, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const token = canvas.tokens.get(document._id);
@@ -2148,7 +2148,7 @@ import {libWrapper} from './shim.js';
 		
 		static async batchPostProcess(parent, createdDocs, options, userId){	
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 					
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			let myCreatedDocs = createdDocs;
@@ -2340,7 +2340,7 @@ import {libWrapper} from './shim.js';
 		//Attached elements are only allowed to be moved by token attacher functions.
 		static isAllowedToMove(type, document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(	(		change.hasOwnProperty("x")
 					||	change.hasOwnProperty("y")
@@ -2413,7 +2413,7 @@ import {libWrapper} from './shim.js';
 
 		static handleBaseMoved(document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
@@ -2494,7 +2494,7 @@ import {libWrapper} from './shim.js';
 		//Detach Elements when they get deleted
 		static DetachAfterDelete(type, document, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(!TokenAttacher.isFirstActiveGM()) return; 
 			if(getProperty(options, `${moduleName}.update`)) return;
@@ -2509,7 +2509,7 @@ import {libWrapper} from './shim.js';
 		//Reattach elements that are recreated via Undo
 		static ReattachAfterUndo(type, document, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			if(TokenAttacher.isFirstActiveGM()) return;
 			let objParent = getProperty(document, `flags.${moduleName}.parent`) || "";
@@ -2762,7 +2762,7 @@ import {libWrapper} from './shim.js';
 
 		static updateOffset(type, document, change, options, userId){
 			//Ignore anything from anyone not in your scene
-			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 			
 			//Only attached need to do anything
 			let offset = getProperty(document, `flags.${moduleName}.offset`);
