@@ -500,6 +500,9 @@ import {libWrapper} from './shim.js';
 			}
 		}
 		static async UpdateBasePosition(type, document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
 				||	change.hasOwnProperty("c")
@@ -530,6 +533,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async UpdateAttachedOfToken(type, document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
 				||	change.hasOwnProperty("c")
@@ -550,6 +556,7 @@ import {libWrapper} from './shim.js';
 				)){
 				return;
 			}
+
 			const layer = canvas.getLayerByEmbeddedName(type);
 			let base = TokenAttacher.layerGetElement(layer, document._id);
 			const attached=base.document.getFlag(moduleName, "attached") || {};
@@ -857,7 +864,9 @@ import {libWrapper} from './shim.js';
 		 * Only the first active GM has to do the work
 		 */
 		static isFirstActiveGM(){
-			const firstGm = game.users.find((u) => u.isGM && u.active);
+			const currentScene = game.scenes.active?._id;
+			if(!currentScene) return false;
+			const firstGm = game.users.find((u) => u.isGM && u.active && u.viewedScene === currentScene);
 			if (firstGm && game.user === firstGm) {
 				return true;
 			}
@@ -868,7 +877,8 @@ import {libWrapper} from './shim.js';
 		 * Warn the player if a token was moved that has attached parts
 		 */
 		static detectGM(){
-			const firstGm = game.users.find((u) => u.isGM && u.active);
+			const currentScene = game.scenes.active?._id;
+			const firstGm = game.users.find((u) => u.isGM && u.active && u.viewedScene === currentScene);
 			if(!firstGm){
 				return ui.notifications.error(game.i18n.format(localizedStrings.error.NoActiveGMFound));
 			}
@@ -1753,6 +1763,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async updateAttachedPrototype(document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(!change.prototypeToken?.flags?.[moduleName]) return;
 
@@ -1815,6 +1828,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async deleteToken(document, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const attached=getProperty(document, `flags.${moduleName}.attached`) || {};
 			if(Object.keys(attached).length == 0) return true;
@@ -1865,6 +1881,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static preCreateBase(document, objData, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			let updates = {};
 			if(getProperty(document,`flags.${moduleName}.prototypeAttached`)){				
 				setProperty(updates, `flags.${moduleName}.needsPostProcessing`, true);
@@ -1878,6 +1897,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async updateAttachedCreatedToken(type, document, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			const token = canvas.tokens.get(document._id);
 			if(!token) return;
@@ -2124,7 +2146,10 @@ import {libWrapper} from './shim.js';
 			}
 		}
 		
-		static async batchPostProcess(parent, createdDocs, options, userId){			
+		static async batchPostProcess(parent, createdDocs, options, userId){	
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+					
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			let myCreatedDocs = createdDocs;
 			if(getProperty(options, `${moduleName}.base`)){
@@ -2314,6 +2339,9 @@ import {libWrapper} from './shim.js';
 		
 		//Attached elements are only allowed to be moved by token attacher functions.
 		static isAllowedToMove(type, document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(	(		change.hasOwnProperty("x")
 					||	change.hasOwnProperty("y")
 					||	change.hasOwnProperty("c")
@@ -2384,6 +2412,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static handleBaseMoved(document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(!(	change.hasOwnProperty("x")
 				||	change.hasOwnProperty("y")
 				||	change.hasOwnProperty("c")
@@ -2462,6 +2493,9 @@ import {libWrapper} from './shim.js';
 
 		//Detach Elements when they get deleted
 		static DetachAfterDelete(type, document, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(!TokenAttacher.isFirstActiveGM()) return; 
 			if(getProperty(options, `${moduleName}.update`)) return;
 			
@@ -2474,6 +2508,9 @@ import {libWrapper} from './shim.js';
 
 		//Reattach elements that are recreated via Undo
 		static ReattachAfterUndo(type, document, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			if(TokenAttacher.isFirstActiveGM()) return;
 			let objParent = getProperty(document, `flags.${moduleName}.parent`) || "";
 			if(!objParent) return;
@@ -2724,6 +2761,9 @@ import {libWrapper} from './shim.js';
 		}
 
 		static updateOffset(type, document, change, options, userId){
+			//Ignore anything from anyone not in your scene
+			if(game.users[userId].viewedScene != game.scenes.active._id) return;
+			
 			//Only attached need to do anything
 			let offset = getProperty(document, `flags.${moduleName}.offset`);
 			if(!offset) return;
