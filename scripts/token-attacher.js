@@ -1551,10 +1551,10 @@ import {libWrapper} from './shim.js';
 				
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].elevation) === false) offset.elevation.flags['levels'].elevation -= base_elevation;
 			}
-			if(objData.flags['levels']?.hasOwnProperty('rangeTop')){
+			if(objData.flags['levels']?.hasOwnProperty('rangeTop') || objData.flags['levels']?.hasOwnProperty('rangeBottom')){
 				offset.elevation.flags['levels'] = {
-					rangeTop:objData.flags['levels'].rangeTop, 
-					rangeBottom:objData.flags['levels'].rangeBottom
+					rangeTop:objData.flags['levels'].rangeTop ?? null, 
+					rangeBottom:objData.flags['levels'].rangeBottom ?? null
 				};
 				
 				if([null, Infinity, -Infinity].includes(offset.elevation.flags['levels'].rangeTop) === false) offset.elevation.flags['levels'].rangeTop -= base_elevation;
@@ -2303,6 +2303,7 @@ import {libWrapper} from './shim.js';
 			await Promise.all(allPromises);
 			let actorType;
 			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
+			if(game.system.id == 'wfrp4e') actorType = game.system.documentTypes.Actor.find(a => a == 'character');
 			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
 			if(!actorType) actorType = game.system.documentTypes.Actor[0];
 			actors.forEach(async actor => {
@@ -2326,6 +2327,7 @@ import {libWrapper} from './shim.js';
 			let creates = [];
 			let actorType;
 			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
+			if(game.system.id == 'wfrp4e') actorType = game.system.documentTypes.Actor.find(a => a == 'character');
 			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
 			if(!actorType) actorType = game.system.documentTypes.Actor[0];
 			actors.forEach(async actor => {
