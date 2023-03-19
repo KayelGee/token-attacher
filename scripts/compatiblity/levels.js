@@ -34,10 +34,10 @@
 			
 			if([null, Infinity, -Infinity].includes(offset.elevation.flags[moduleName].elevation) === false) offset.elevation.flags[moduleName].elevation -= base_elevation;
 		}
-		if(objData.flags[moduleName]?.hasOwnProperty('rangeTop')){
+		if(objData.flags[moduleName]?.hasOwnProperty('rangeTop') || objData.flags[moduleName]?.hasOwnProperty('rangeBottom')){
 			offset.elevation.flags[moduleName] = {
-				rangeTop:objData.flags[moduleName].rangeTop, 
-				rangeBottom:objData.flags[moduleName].rangeBottom
+				rangeTop:objData.flags[moduleName].rangeTop ?? null, 
+				rangeBottom:objData.flags[moduleName].rangeBottom ?? null
 			};
 			
 			if([null, Infinity, -Infinity].includes(offset.elevation.flags[moduleName].rangeTop) === false) offset.elevation.flags[moduleName].rangeTop -= base_elevation;
