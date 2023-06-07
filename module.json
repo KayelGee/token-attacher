@@ -4,9 +4,9 @@
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
 	"version": "4.5.12",
 	"compatibility" :{
-		"minimum": 10,	
-		"verified": "10.291",
-		"maximum": 10	
+		"minimum": 11,	
+		"verified": 11,
+		"maximum": 11	
 	},
 	"authors": [
 		{
