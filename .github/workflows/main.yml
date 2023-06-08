@@ -21,10 +21,11 @@ jobs:
         version: ${{github.event.release.tag_name}}
         url: https://github.com/${{github.repository}}
         manifest: https://github.com/${{github.repository}}/releases/latest/download/module.json
-        download: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name}}/module.zip
+        download: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name}}/token-attacher.zip
+        readme: https://github.com/${{github.repository}}/blob/${{github.event.release.tag_name}}/README.md
 
     # Create a zip file with all files required by the module to add to the release
-    - run: zip -r ./module.zip module.json LICENSE css/ scripts/ packs/ languages/ templates/
+    - run: zip -r ./token-attacher.zip module.json README.md LICENSE css/ scripts/ packs/ languages/ templates/
 
     # Create a release for this specific version
     - name: Update Release with Files
@@ -36,6 +37,6 @@ jobs:
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: './module.json, ./module.zip'
+        artifacts: './module.json, ./token-attacher.zip'
         tag: ${{ github.event.release.tag_name }}
         body: ${{ github.event.release.body }}
