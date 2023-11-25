@@ -177,6 +177,7 @@ import {libWrapper} from './shim.js';
 				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
+				generatePrototypeAttached: TokenAttacher.generatePrototypeAttached,
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
