@@ -177,6 +177,7 @@ import {libWrapper} from './shim.js';
 				migrateElementsInCompendiums: TokenAttacher.migrateElementsInCompendiums,
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
+				generatePrototypeAttached: TokenAttacher.generatePrototypeAttached,
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
 			};
@@ -2275,6 +2276,14 @@ import {libWrapper} from './shim.js';
 			ui.notifications.info(game.i18n.format(localizedStrings.info.ImportingJSONFinished, {name: imported.folder || imported.compendium?.name}));
 		}
 
+		static getDefaultActorForSystem(){
+			let actorType;
+			if(game.system.id == 'wfrp4e') actorType = game.system.template.Actor.types.find(a => a == 'character');
+			if(!actorType) actorType = game.system.template.Actor.types.find(a => a == 'npc');
+			if(!actorType) actorType = game.system.template.Actor.types[0]
+			return actorType;
+		}
+
 		static async importFromJSONWithFolders(imported, options={}){
 			const folders = imported.folder;
 			const actors = imported.actors;
@@ -2301,11 +2310,7 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			await Promise.all(allPromises);
-			let actorType;
-			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
-			if(game.system.id == 'wfrp4e') actorType = game.system.documentTypes.Actor.find(a => a == 'character');
-			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
-			if(!actorType) actorType = game.system.documentTypes.Actor[0];
+			const actorType = getDefaultActorForSystem();
 			actors.forEach(async actor => {
 				await Actor.create({type: actorType, img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
@@ -2325,11 +2330,7 @@ import {libWrapper} from './shim.js';
 			const parentMap = {null:{value:null}};
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
 			let creates = [];
-			let actorType;
-			actorType = game.system.documentTypes.Actor.find(a => a == 'basic');
-			if(game.system.id == 'wfrp4e') actorType = game.system.documentTypes.Actor.find(a => a == 'character');
-			if(!actorType) actorType = game.system.documentTypes.Actor.find(a => a == 'npc');
-			if(!actorType) actorType = game.system.documentTypes.Actor[0];
+			const actorType = getDefaultActorForSystem();
 			actors.forEach(async actor => {
 				creates.push({type: actorType, img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
