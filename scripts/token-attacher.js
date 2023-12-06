@@ -2310,7 +2310,7 @@ import {libWrapper} from './shim.js';
 				}
 			}
 			await Promise.all(allPromises);
-			const actorType = getDefaultActorForSystem();
+			const actorType = TokenAttacher.getDefaultActorForSystem();
 			actors.forEach(async actor => {
 				await Actor.create({type: actorType, img:actor.img, name:actor.name, folder:await parentMap[actor.folder].value, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
@@ -2330,7 +2330,7 @@ import {libWrapper} from './shim.js';
 			const parentMap = {null:{value:null}};
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
 			let creates = [];
-			const actorType = getDefaultActorForSystem();
+			const actorType = TokenAttacher.getDefaultActorForSystem();
 			actors.forEach(async actor => {
 				creates.push({type: actorType, img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
 			});
