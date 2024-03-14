@@ -2170,13 +2170,37 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async exportCompendiumToJSON(pack){
+			const folders = {};
 			const packIndex = await pack.getIndex();
 			let actors = [];
 			for (const index of packIndex) {
 				const entity = await pack.getDocument(index._id);
 				actors.push(TokenAttacher.mapActorForExport(entity));
 			}
-			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({compendium: {name:pack.metadata.name, label:pack.metadata.label}, actors: actors, ['data-model']: game.settings.get(moduleName, "data-model-version")})});
+
+			let addParentFolder = (folders, folder) =>{
+				const parent = folder.folder || null;
+				if(parent && !folders[parent._id]){
+					folders[parent._id] = parent;
+					addParentFolder(folders, parent);
+				}
+			};
+
+			actors.forEach(actor => {
+				const folder = actor.folder || null;
+				if(folder){
+					folders[folder._id] = folder;
+					addParentFolder(folders, folder);
+				}
+				actor.folder = actor.folder._id;
+			});
+
+			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({
+				compendium: {name:pack.metadata.name, label:pack.metadata.label}, 
+				actors: actors, 
+				['data-model']: game.settings.get(moduleName, "data-model-version"),
+				compendiumFolders: folders
+			})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
 
@@ -2250,6 +2274,7 @@ import {libWrapper} from './shim.js';
 		static async importFromJSONWithCompendium(imported, options={}){
 			const compendium = imported.compendium;
 			const actors = imported.actors;
+			const folders = imported.compendiumFolders || {};
 			let name = compendium.name;
 			let label = compendium.label;
 			if(options.hasOwnProperty("module")) name = options.module + "-" + name;
@@ -2258,13 +2283,44 @@ import {libWrapper} from './shim.js';
 			if(name !== slugified_name){
 				console.error("Token Attacher - Importing a JSON Compendium where the name is not slugified, contact the author to slugify the name: ", label, name);
 			} 
-			const parentMap = {null:{value:null}};
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
+
+			const parentMap = {null:{value:null}};
+			let allPromises = [];
+			for (const key in folders) {
+				if (folders.hasOwnProperty(key)) {
+					const folder = folders[key];
+					allPromises.push((async (folder)=>{
+						if(!parentMap.hasOwnProperty(folder.folder)) {
+							let resolver;
+							parentMap[folder.folder] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
+						}
+						const parent = await parentMap[folder.folder].value;
+						const newFolder = await Folder.create({name: folder.name, type: "Actor", folder: parent}, {pack: worldCompendium.collection});
+						if(!parentMap.hasOwnProperty(folder._id)) {
+							parentMap[folder._id] = {value:new Promise((resolve) => (resolve(newFolder._id)))};
+						}
+						else {
+							parentMap[folder._id].signal(newFolder._id);
+						}
+					})(folder));
+				}
+			}
+			await Promise.all(allPromises);
+			allPromises = [];
 			let creates = [];
 			const actorType = TokenAttacher.getDefaultActorForSystem();
-			actors.forEach(async actor => {
-				creates.push({type: actorType, img:actor.img, name:actor.name, prototypeToken: actor.prototypeToken ?? actor.token, flags: actor.flags});
+			actors.forEach(actor => {
+				allPromises.push((async (actor) =>{
+					creates.push({type: actorType, 
+						img:actor.img, 
+						name:actor.name, 
+						prototypeToken: actor.prototypeToken ?? actor.token, 
+						flags: actor.flags,
+						folder:await parentMap[actor.folder].value});
+				})(actor));
 			});
+			await Promise.all(allPromises);
 			// if(!imported.hasOwnProperty('data-model') || imported['data-model'] !== game.settings.get(moduleName, "data-model-version")){
 			// 		//Maybe add some compendium migration code if necessary	
 			// }
