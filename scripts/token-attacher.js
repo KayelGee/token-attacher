@@ -593,7 +593,7 @@ import {libWrapper} from './shim.js';
 			//Get Entities
 			for (const key in attached) {
 				const layer = canvas.getLayerByEmbeddedName(key);
-				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id));
+				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(layer, id)).filter(entity => entity?.document);
 			}
 
 			let updates = {};
