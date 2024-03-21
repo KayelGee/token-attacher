@@ -1930,7 +1930,6 @@ import {libWrapper} from './shim.js';
 				grid_multi.w = canvas.grid.w / grid_multi.w;
 				grid_multi.h = canvas.grid.h / grid_multi.h ;
 				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options);
-				
 			}
 			return;
 		}
@@ -1946,6 +1945,13 @@ import {libWrapper} from './shim.js';
 					let pos = TokenAttacher.getCenter(type, token.document ?? token);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
 					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, grid_multi, {}, true);
+					if(toCreate[key]) {
+						let updates = await TokenAttacher.offsetPositionOfElements(key, toCreate[key], type, token.document, {});
+						for(let i = 0; i< updates.length; i++) {
+							delete updates[i]._id;
+							mergeObject(toCreate[key][i], updates[i])
+						}
+					}
 					if(!toCreate[key]) delete toCreate[key];					
 				}
 			}
