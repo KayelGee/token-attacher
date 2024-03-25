@@ -1947,9 +1947,11 @@ import {libWrapper} from './shim.js';
 					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, grid_multi, {}, true);
 					if(toCreate[key]) {
 						let updates = await TokenAttacher.offsetPositionOfElements(key, toCreate[key], type, token.document, {});
-						for(let i = 0; i< updates.length; i++) {
-							delete updates[i]._id;
-							mergeObject(toCreate[key][i], updates[i])
+						if(updates) {
+							for(let i = 0; i< updates.length; i++) {
+								delete updates[i]._id;
+								mergeObject(toCreate[key][i], updates[i])
+							}
 						}
 					}
 					if(!toCreate[key]) delete toCreate[key];					
