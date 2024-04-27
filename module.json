@@ -61,6 +61,6 @@
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
   "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.5.15/v4.5.15.zip",
+  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.5.15/token-attacher.zip",
   "readme": "https://github.com/KayelGee/token-attacher/blob/v4.5.15/README.md"
 }
