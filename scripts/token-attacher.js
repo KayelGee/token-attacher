@@ -2170,7 +2170,8 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async exportCompendiumToJSON(pack){
-			const folders = {};
+			const folders = {};			
+			const sidebarFolders = {};
 			const packIndex = await pack.getIndex();
 			let actors = [];
 			for (const index of packIndex) {
@@ -2179,27 +2180,40 @@ import {libWrapper} from './shim.js';
 			}
 
 			let addParentFolder = (folders, folder) =>{
+				if(!folder) return;
 				const parent = folder.folder || null;
 				if(parent && !folders[parent._id]){
 					folders[parent._id] = parent;
 					addParentFolder(folders, parent);
 				}
 			};
+			//Sidebar folders of compendium
+			const bottomLevelSidebarFolder = pack.folder || null;
+			if(bottomLevelSidebarFolder) {
+				sidebarFolders[bottomLevelSidebarFolder._id] = bottomLevelSidebarFolder;
+				addParentFolder(sidebarFolders, bottomLevelSidebarFolder);
+			}
 
+			//folders in compendium
 			actors.forEach(actor => {
 				const folder = actor.folder || null;
 				if(folder){
 					folders[folder._id] = folder;
 					addParentFolder(folders, folder);
+					actor.folder = actor.folder._id;
 				}
-				actor.folder = actor.folder._id;
 			});
 
 			const html = await renderTemplate(`${templatePath}/ImExportUI.html`, {label_content:"Copy the JSON below:", content:JSON.stringify({
-				compendium: {name:pack.metadata.name, label:pack.metadata.label}, 
+				compendium: {
+					name:pack.metadata.name, 
+					label:pack.metadata.label,
+					folder: bottomLevelSidebarFolder?._id
+				}, 
 				actors: actors, 
 				['data-model']: game.settings.get(moduleName, "data-model-version"),
-				compendiumFolders: folders
+				compendiumFolders: folders,
+				sidebarFolders: sidebarFolders
 			})});
 			Dialog.prompt({title:"Export Actors to JSON", callback: html => {}, content: html});
 		}
@@ -2275,6 +2289,7 @@ import {libWrapper} from './shim.js';
 			const compendium = imported.compendium;
 			const actors = imported.actors;
 			const folders = imported.compendiumFolders || {};
+			const sidebarFolders = imported.sidebarFolders || {};
 			let name = compendium.name;
 			let label = compendium.label;
 			if(options.hasOwnProperty("module")) name = options.module + "-" + name;
@@ -2283,10 +2298,41 @@ import {libWrapper} from './shim.js';
 			if(name !== slugified_name){
 				console.error("Token Attacher - Importing a JSON Compendium where the name is not slugified, contact the author to slugify the name: ", label, name);
 			} 
-			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor"});
-
-			const parentMap = {null:{value:null}};
+			//Add folder of compendium before creating the compendium
+			let parentMap = {null:{value:null}};
 			let allPromises = [];
+			let sideBarFolder = null;
+			if(options.addSidebarFolders){
+				for (const key in sidebarFolders) {
+					if (sidebarFolders.hasOwnProperty(key)) {
+						const folder = sidebarFolders[key];
+						allPromises.push((async (folder)=>{
+							if(!parentMap.hasOwnProperty(folder.folder)) {
+								let resolver;
+								parentMap[folder.folder] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
+							}
+							const parent = await parentMap[folder.folder].value;
+							const newFolder = await Folder.create({name: folder.name, type: "Compendium", folder: parent}, {});
+							if(!parentMap.hasOwnProperty(folder._id)) {
+								parentMap[folder._id] = {value:new Promise((resolve) => (resolve(newFolder._id)))};
+							}
+							else {
+								parentMap[folder._id].signal(newFolder._id);
+							}
+						})(folder));
+					}
+				}
+				await Promise.all(allPromises);
+				sideBarFolder = await parentMap[compendium.folder].value;
+			}
+
+			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor", folder: sideBarFolder});
+
+
+			//Add Folders in compedium
+			parentMap = {null:{value:null}};
+			allPromises = [];
+
 			for (const key in folders) {
 				if (folders.hasOwnProperty(key)) {
 					const folder = folders[key];
@@ -2565,7 +2611,7 @@ import {libWrapper} from './shim.js';
 			if($(window.document.getElementById("tokenAttacher")).find(".control-tool.select.active").length <= 0 ) return;
 			$(window.document.getElementById("tokenAttacher")).find(".control-tool.select")[0].classList.toggle("active");	
 			
-			const {coords, originalEvent} = event.data;
+			const {coords, originalEvent} = event.interactionData;
 			const {x, y, width, height, releaseOptions={}, controlOptions={}}=coords;
 			let selected = {};	
 			const baseId= canvas.scene.getFlag(moduleName, "attach_base").element;		
@@ -2573,6 +2619,7 @@ import {libWrapper} from './shim.js';
 			for (const type of TokenAttacher.registeredLayers) {
 				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 				const selectAll = (layer) => {
+					if(!layer) return;
 					//if (layer.options.controllableObjects) {
 						// Identify controllable objects
 						const controllable = layer.placeables.filter(obj => obj.visible && (obj.control instanceof Function));
