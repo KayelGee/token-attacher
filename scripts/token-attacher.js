@@ -2585,14 +2585,14 @@ import {libWrapper} from './shim.js';
 			ui.notifications.info(game.i18n.format(localizedStrings.info.ObjectsAttached));
 		}
 
-		static arefoundry.utils.duplicatesInAttachChain(base, attached){
+		static areDuplicatesInAttachChain(base, attached){
 			//Check if base tried to attach itself
 			const type = base.layer.constructor.documentName;
 			const att = foundry.utils.getProperty(attached, type) || [];
 			if(att.indexOf(base.document._id) !== -1) return base;
 
 			let bases = {};
-			let foundry.utils.duplicate = null;
+			let duplicate = null;
 			//Add base to bases object and return true when no foundry.utils.duplicate was found
 			const add_base = (element) => {
 				const type = element.layer.constructor.documentName;
