@@ -959,7 +959,7 @@ import {libWrapper} from './shim.js';
 			attached = attached.filter((item) => TokenAttacher.layerGetElement(layer, item));
 			let all_attached=foundry.utils.duplicate(token.document.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
-			const dup = TokenAttacher.arefoundry.utils.duplicatesInAttachChain(token, all_attached);
+			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
 			if(dup !== false){
 				console.log("Token Attacher | You tried to attach an Element that is already attached somwhere in the chain: ", dup);
 				return ui.notifications.error(game.i18n.format(localizedStrings.error.ElementAlreadyAttachedInChain));
