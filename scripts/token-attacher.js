@@ -1616,10 +1616,11 @@ import {libWrapper} from './shim.js';
 					}
 				}				
 			}
+			const currentGrid = TokenAttacher.getCurrentGrid();
 			let grid_multi = copyObjects.grid;
-				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.sizeX = canvas.grid.sizeX / grid_multi.sizeX;
-				grid_multi.sizeY = canvas.grid.sizeY / grid_multi.sizeY ;
+				grid_multi.size = currentGrid.size / grid_multi.size;
+				grid_multi.sizeX = currentGrid.sizeX / grid_multi.sizeX;
+				grid_multi.sizeY = currentGrid.sizeY / grid_multi.sizeY;
 			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi, {});
 		}
 
@@ -1894,10 +1895,12 @@ import {libWrapper} from './shim.js';
 				//Convert pre V12
 				grid_multi.sizeX = grid_multi.w ?? grid_multi.sizeX; 
 				grid_multi.sizeY = grid_multi.h ?? grid_multi.sizeY; 
+				
+				const currentGrid = TokenAttacher.getCurrentGrid();
 
-				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.sizeX = canvas.grid.sizeX / grid_multi.sizeX;
-				grid_multi.sizeY = canvas.grid.sizeY / grid_multi.sizeY ;
+				grid_multi.size = currentGrid.size / grid_multi.size;
+				grid_multi.sizeX = currentGrid.sizeX / grid_multi.sizeX;
+				grid_multi.sizeY = currentGrid.sizeY / grid_multi.sizeY;
 				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options);
 			}
 			return;
@@ -2495,11 +2498,13 @@ import {libWrapper} from './shim.js';
 			return false;
 		}
 		
-		static isMovingInParent(child, base) {
-			return Number.between(child.x, base.x, base.x + (base.width * canvas.grid.sizeX)) 
-			&& Number.between(child.y, base.y, base.y + (base.height * canvas.grid.sizeY))
-			&& Number.between(child.x + (child.width * canvas.grid.sizeX), base.x, base.x + (base.width * canvas.grid.sizeX)) 
-			&& Number.between(child.y + (child.height * canvas.grid.sizeY), base.y, base.y + (base.height * canvas.grid.sizeY));;
+		static isMovingInParent(child, base) {			
+			const currentGrid = TokenAttacher.getCurrentGrid();
+
+			return Number.between(child.x, base.x, base.x + (base.width * currentGrid.sizeX)) 
+			&& Number.between(child.y, base.y, base.y + (base.height * currentGrid.sizeY))
+			&& Number.between(child.x + (child.width * currentGrid.sizeX), base.x, base.x + (base.width * currentGrid.sizeX)) 
+			&& Number.between(child.y + (child.height * currentGrid.sizeY), base.y, base.y + (base.height * currentGrid.sizeY));;
 		}
 
 		static handleBaseMoved(document, change, options, userId){
