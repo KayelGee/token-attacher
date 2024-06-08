@@ -402,7 +402,7 @@ import {libWrapper} from './shim.js';
 		
 		static async migrateActor(actor, return_data = false){
 			let tokenData = await TokenAttacher.migrateElement(null, null, foundry.utils.duplicate(foundry.utils.getProperty(actor, `prototypeToken`)), "Token");
-			foundry.utils.setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h});
+			foundry.utils.setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY});
 			if(!return_data) await actor.update({prototypeToken: tokenData});
 			return tokenData;
 		}
@@ -1587,7 +1587,7 @@ import {libWrapper} from './shim.js';
 					copyObjects.map[key] = TokenAttacher.getObjectsFromIds("Token", token.document, key, attached[key]);
 				}
 			}
-			copyObjects.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
+			copyObjects.grid = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
 			await game.user.unsetFlag(moduleName, "copy");			
 			await game.user.setFlag(moduleName, "copy", copyObjects);	
 			ui.notifications.info(`Copied attached elements.`);	
@@ -1607,8 +1607,8 @@ import {libWrapper} from './shim.js';
 			}
 			let grid_multi = copyObjects.grid;
 				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.w = canvas.grid.w / grid_multi.w;
-				grid_multi.h = canvas.grid.h / grid_multi.h ;
+				grid_multi.w = canvas.grid.sizeX / grid_multi.w;
+				grid_multi.h = canvas.grid.sizeY / grid_multi.h ;
 			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi, {});
 		}
 
@@ -1719,7 +1719,7 @@ import {libWrapper} from './shim.js';
 			delete newToken.flags[`${moduleName}`].prototypeAttached;
 			newToken[`flags.${moduleName}.-=attached`] = null;
 			newToken[`flags.${moduleName}.prototypeAttached`] = prototypeAttached;
-			newToken[`flags.${moduleName}.grid`] = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
+			newToken[`flags.${moduleName}.grid`] = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
 			await document.update({prototypeToken: newToken}, {diff:false});
 		}
 
@@ -1743,7 +1743,7 @@ import {libWrapper} from './shim.js';
 				}
 			});
 			copyPrototypeMap.map[layer.constructor.documentName] = prototypeMap;
-			copyPrototypeMap.grid = {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h};
+			copyPrototypeMap.grid = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
 			await game.user.unsetFlag(moduleName, "copyPrototypeMap");
 			await game.user.setFlag(moduleName, "copyPrototypeMap", copyPrototypeMap);
 		}
@@ -1858,10 +1858,10 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(prototypeAttached).length > 0){
 				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format(localizedStrings.error.ActorDataModelNeedsMigration));
 				
-				let grid_multi = token.document.getFlag(moduleName, "grid") || {size: canvas.grid.size, w:canvas.grid.w, h:canvas.grid.h};
+				let grid_multi = token.document.getFlag(moduleName, "grid") || {size: canvas.grid.size, w:canvas.grid.sizeX, h:canvas.grid.sizeY};
 				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.w = canvas.grid.w / grid_multi.w;
-				grid_multi.h = canvas.grid.h / grid_multi.h ;
+				grid_multi.w = canvas.grid.sizeX / grid_multi.w;
+				grid_multi.h = canvas.grid.sizeY / grid_multi.h ;
 				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options);
 				
 			}
@@ -2449,10 +2449,10 @@ import {libWrapper} from './shim.js';
 		}
 		
 		static isMovingInParent(child, base) {
-			return Number.between(child.x, base.x, base.x + (base.width * canvas.grid.w)) 
-			&& Number.between(child.y, base.y, base.y + (base.height * canvas.grid.h))
-			&& Number.between(child.x + (child.width * canvas.grid.w), base.x, base.x + (base.width * canvas.grid.w)) 
-			&& Number.between(child.y + (child.height * canvas.grid.h), base.y, base.y + (base.height * canvas.grid.h));;
+			return Number.between(child.x, base.x, base.x + (base.width * canvas.grid.sizeX)) 
+			&& Number.between(child.y, base.y, base.y + (base.height * canvas.grid.sizeY))
+			&& Number.between(child.x + (child.width * canvas.grid.sizeX), base.x, base.x + (base.width * canvas.grid.sizeX)) 
+			&& Number.between(child.y + (child.height * canvas.grid.sizeY), base.y, base.y + (base.height * canvas.grid.sizeY));;
 		}
 
 		static handleBaseMoved(document, change, options, userId){
@@ -2696,19 +2696,19 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getCenter(type, objData, grid = {}){
-			grid = foundry.utils.mergeObject({w: canvas.grid.w, h:canvas.grid.h}, grid);
+			grid = foundry.utils.mergeObject({w: canvas.grid.sizeX, h:canvas.grid.sizeY}, grid);
 			const [x,y] = [objData.x, objData.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
 			if (objData.width && objData.height && objData.width != null) {
 				let [width, height] = [objData.width, objData.height];
-				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
+				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.sizeX, height * grid.sizeY]
 				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
 			}
 			//Drawings
 			if (objData.shape?.width && objData.shape?.height && objData.shape?.width != null) {
 				let [width, height] = [objData.shape.width, objData.shape.height];
-				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.w, height * grid.h]
+				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.sizeX, height * grid.sizeY]
 				center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
 			}
 			//Walls
