@@ -2,11 +2,11 @@
 	"id": "token-attacher",
 	"title": "Token Attacher",
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
-	"version": "4.5.15",
+	"version": "4.6.0",
 	"compatibility" :{
-		"minimum": 11,	
-		"verified": 11,
-		"maximum": 11	
+		"minimum": 12,	
+		"verified": 12,
+		"maximum": 12	
 	},
 	"authors": [
 		{
@@ -26,7 +26,8 @@
 		"scripts/token-attacher.js",
 		"scripts/compatiblity/levels.js",
 		"scripts/compatiblity/wall-height.js",
-		"scripts/compatiblity/enhanced-terrain-layer.js"
+		"scripts/compatiblity/enhanced-terrain-layer.js",
+		"scripts/compatiblity/core.js"
 	],
 	"styles": [
 		"./css/token-attacher.css"],
@@ -64,6 +65,6 @@
 	"socket": true,
 	"url": "https://github.com/KayelGee/token-attacher",
   "manifest": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/module.json",
-  "download": "https://github.com/KayelGee/token-attacher/releases/download/v4.5.15/v4.5.15.zip",
-  "readme": "https://github.com/KayelGee/token-attacher/blob/v4.5.15/README.md"
+  "download": "https://github.com/KayelGee/token-attacher/releases/latest/download/token-attacher.zip",
+  "readme": "https://raw.githubusercontent.com/KayelGee/token-attacher/master/README.md"
 }
