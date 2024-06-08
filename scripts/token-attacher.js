@@ -401,7 +401,7 @@ import {libWrapper} from './shim.js';
 		}
 		
 		static async migrateActor(actor, return_data = false){
-			let tokenData = await TokenAttacher.migrateElement(null, null, duplicate(foundry.utils.getProperty(actor, `prototypeToken`)), "Token");
+			let tokenData = await TokenAttacher.migrateElement(null, null, foundry.utils.duplicate(foundry.utils.getProperty(actor, `prototypeToken`)), "Token");
 			foundry.utils.setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.w, h:canvas.grid.h});
 			if(!return_data) await actor.update({prototypeToken: tokenData});
 			return tokenData;
@@ -421,7 +421,7 @@ import {libWrapper} from './shim.js';
 			if(parent_data){
 				const offset = foundry.utils.getProperty(objData, `flags.${moduleName}.offset`);
 				if(!offset){
-					let parent_pos = duplicate(foundry.utils.getProperty(parent_data, `flags.${moduleName}.pos`));
+					let parent_pos = foundry.utils.duplicate(foundry.utils.getProperty(parent_data, `flags.${moduleName}.pos`));
 					foundry.utils.setProperty(objData, `flags.${moduleName}.parent`, parent_pos.base_id);
 					foundry.utils.setProperty(objData, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, objData, parent_type, foundry.utils.mergeObject(foundry.utils.mergeObject(parent_pos, parent_data), parent_pos.xy), {}));
 				}
@@ -546,7 +546,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(!document.getFlag(moduleName, "attached")) return true;
 
-			let baseData = duplicate(document);
+			let baseData = foundry.utils.duplicate(document);
 			foundry.utils.mergeObject(baseData, change);
 			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
 			foundry.utils.mergeObject(change, basePos);
@@ -572,13 +572,13 @@ import {libWrapper} from './shim.js';
 			}
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(foundry.utils.getProperty(options, `${moduleName}.QuickEdit`)) return;
-			const tokenCenter = duplicate(base.center);
+			const tokenCenter = foundry.utils.duplicate(base.center);
 			if(Object.keys(attached).length == 0) return true;
 			if(foundry.utils.getProperty(options, `${moduleName}.update`)) return true;
 
 			TokenAttacher.detectGM();
 
-			const eventdata = [type, foundry.utils.mergeObject(duplicate(base.document), change)];
+			const eventdata = [type, foundry.utils.mergeObject(foundry.utils.duplicate(base.document), change)];
 			if(TokenAttacher.isFirstActiveGM()) return TokenAttacher._UpdateAttachedOfBase(...eventdata);
 			else return game.socket.emit(`module.${moduleName}`, {event: `_UpdateAttachedOfBase`, eventdata: eventdata});
 		}
@@ -598,7 +598,7 @@ import {libWrapper} from './shim.js';
 			for (const key in attachedEntities) {
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(!updates.hasOwnProperty(key)) updates[key] = [];
-					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => duplicate(entity.document)), type, baseData, {});
+					updates[key] = await TokenAttacher.offsetPositionOfElements(key, attachedEntities[key].map(entity => foundry.utils.duplicate(entity.document)), type, baseData, {});
 					if(!updates[key]) delete updates[key];
 				}
 			}
@@ -612,7 +612,7 @@ import {libWrapper} from './shim.js';
 						const elem_attached=foundry.utils.getProperty(element.document, `flags.${moduleName}.attached`) || {};
 						if(Object.keys(elem_attached).length > 0){
 							const elem_update = updates[key].find(item => item._id === elem_id );
-							const updatedElementData = foundry.utils.mergeObject(duplicate(element.document), elem_update);
+							const updatedElementData = foundry.utils.mergeObject(foundry.utils.duplicate(element.document), elem_update);
 							const subUpdates = await TokenAttacher._UpdateAttachedOfBase(key, updatedElementData, true);
 							for (const key in subUpdates) {
 								if (subUpdates.hasOwnProperty(key)) {
@@ -649,7 +649,7 @@ import {libWrapper} from './shim.js';
 		static getBasePositon(type, base, overrideData){
 			let pos;
 			let objData = base.document ?? base;
-			objData = duplicate(objData);
+			objData = foundry.utils.duplicate(objData);
 			const center = TokenAttacher.getCenter(type, objData);
 			if(overrideData) objData = foundry.utils.mergeObject(objData, overrideData);
 
@@ -661,7 +661,7 @@ import {libWrapper} from './shim.js';
 				, elevation: objData.elevation ?? objData.flags?.levels?.rangeBottom ?? objData.flags?.wallHeight?.wallHeightBottom ?? objData.flags?.['wall-height']?.bottom
 			};
 
-			let objSizeData = duplicate(base.document ?? base);
+			let objSizeData = foundry.utils.duplicate(base.document ?? base);
 			let validKeys = [
 				'width', 'radius', 'distance', 'config','height'
 				];
@@ -722,7 +722,7 @@ import {libWrapper} from './shim.js';
 
 			//Line Entities
 			if('c' in objData){
-				let c = duplicate(objData.c);	
+				let c = foundry.utils.duplicate(objData.c);	
 				[offset.x, offset.y] = [offset.c[0], offset.c[1]];
 				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
 				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
@@ -763,7 +763,7 @@ import {libWrapper} from './shim.js';
 					update.radius 	= offset.size.radius * size_multi.w;
 				}
 				if(objData.hasOwnProperty('points')){
-					let points = duplicate(objData.points);
+					let points = foundry.utils.duplicate(objData.points);
 					for (let i = 0; i < points.length; i++) {
 						points[i][0] = offset.points[i][0] * size_multi.w;
 						points[i][1] = offset.points[i][1] * size_multi.h;					
@@ -771,7 +771,7 @@ import {libWrapper} from './shim.js';
 					update.points = points;
 				}
 				if(objData.shape?.hasOwnProperty('points')){
-					let points = duplicate(objData.shape.points);
+					let points = foundry.utils.duplicate(objData.shape.points);
 					for (let i = 0; i < points.length/2; i+=2) {
 						points[i] = offset.points[i/2][0] * size_multi.w;
 						points[i+1] = offset.points[i/2][1] * size_multi.h;					
@@ -930,12 +930,12 @@ import {libWrapper} from './shim.js';
 			if(!elements.hasOwnProperty("type")) return;
 			
 			let updates = {};
-			let attached=duplicate(token.document.getFlag(moduleName, `attached.${elements.type}`) || []);
+			let attached=foundry.utils.duplicate(token.document.getFlag(moduleName, `attached.${elements.type}`) || []);
 			
 			attached = attached.concat(elements.ids.filter((item) => attached.indexOf(item) < 0))
 			//Filter non existing
 			attached = attached.filter((item) => TokenAttacher.layerGetElement(elements.type, item));
-			let all_attached=duplicate(token.document.getFlag(moduleName, `attached`) || {});
+			let all_attached=foundry.utils.duplicate(token.document.getFlag(moduleName, `attached`) || {});
 			all_attached[elements.type] = attached;
 			const dup = TokenAttacher.areDuplicatesInAttachChain(token, all_attached);
 			if(dup !== false){
@@ -1558,12 +1558,12 @@ import {libWrapper} from './shim.js';
 			for (const elementid of idArray) {
 				const element = TokenAttacher.layerGetElement(type, elementid);
 				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
-				let dup_data = duplicate(element.document);
+				let dup_data = foundry.utils.duplicate(element.document);
 				delete dup_data._id;
 				foundry.utils.setProperty(dup_data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, dup_data, base_type, 
 					foundry.utils.mergeObject(
 						foundry.utils.mergeObject(
-							duplicate(base_data), 
+							foundry.utils.duplicate(base_data), 
 							foundry.utils.getProperty(base_data, `flags.${moduleName}.pos.xy`)), 
 							foundry.utils.getProperty(base_data, `flags.${moduleName}.pos`)
 							), {}));
@@ -1594,7 +1594,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async pasteAttached(token){
-			const copyObjects = duplicate(game.user.getFlag(moduleName, "copy")) || {};
+			const copyObjects = foundry.utils.duplicate(game.user.getFlag(moduleName, "copy")) || {};
 			if(Object.keys(copyObjects).length == 0) return;
 			await TokenAttacher.saveBasePositon(token.layer.constructor.documentName, token);
 			//Set parent in copyObjects
@@ -1619,7 +1619,7 @@ import {libWrapper} from './shim.js';
 			// Iterate over objects
 			const toCreate = [];
 			for ( let dat of objects) {
-				let objData = duplicate(dat);
+				let objData = foundry.utils.duplicate(dat);
 				delete objData._id;
 				objData.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls, objData.flags[moduleName].offset, grid_multi);
 				const offset = objData.flags[moduleName].offset;
@@ -1714,7 +1714,7 @@ import {libWrapper} from './shim.js';
 			}
 
 			let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken, attached);
-			let newToken = duplicate(change.prototypeToken);
+			let newToken = foundry.utils.duplicate(change.prototypeToken);
 			//delete newToken.flags[`${moduleName}`].attached;			
 			delete newToken.flags[`${moduleName}`].prototypeAttached;
 			newToken[`flags.${moduleName}.-=attached`] = null;
@@ -1970,7 +1970,7 @@ import {libWrapper} from './shim.js';
 						const baseDoc = arr[i];
 						const old_base_id = foundry.utils.getProperty(baseDoc , `flags.${moduleName}.pos.base_id`);
 						if(old_base_id) {
-							let current_attached = duplicate(foundry.utils.getProperty(baseDoc , `flags.${moduleName}.attached`) ?? {});
+							let current_attached = foundry.utils.duplicate(foundry.utils.getProperty(baseDoc , `flags.${moduleName}.attached`) ?? {});
 							let new_attached = {}; 
 							for (const type in createdDocs) {
 								if (createdDocs.hasOwnProperty(type)) {
@@ -2086,7 +2086,7 @@ import {libWrapper} from './shim.js';
 			let myCreatedDocs = createdDocs;
 			if(foundry.utils.getProperty(options, `${moduleName}.base`)){
 				const base = foundry.utils.getProperty(options, `${moduleName}.base`);
-				myCreatedDocs = duplicate(createdDocs);
+				myCreatedDocs = foundry.utils.duplicate(createdDocs);
 				if(!foundry.utils.getProperty(myCreatedDocs, base.type)) myCreatedDocs[base.type] = [base.doc];
 				else{
 					if(!myCreatedDocs[base.type].find(doc => doc._id === base.doc._id)){
@@ -2424,7 +2424,7 @@ import {libWrapper} from './shim.js';
 				const parent_token = canvas.tokens.get(objParent);
 				const canMoveConstrained = foundry.utils.getProperty(document, `flags.${moduleName}.canMoveConstrained`);
 				
-				const updatedDocumentData= foundry.utils.mergeObject(duplicate(document), change);
+				const updatedDocumentData= foundry.utils.mergeObject(foundry.utils.duplicate(document), change);
 
 				let isAllowed = false;
 				switch(canMoveConstrained.type){
@@ -2798,7 +2798,7 @@ import {libWrapper} from './shim.js';
 					//Update Offsets
 					clearTimeout(window.tokenAttacher.quickEdit.timer);
 					window.tokenAttacher.quickEdit.timer = null;
-					const quickEdit = duplicate(window.tokenAttacher.quickEdit);
+					const quickEdit = foundry.utils.duplicate(window.tokenAttacher.quickEdit);
 					delete quickEdit[game.userId];
 					delete window.tokenAttacher.quickEdit;
 					await TokenAttacher.saveAllQuickEditOffsets(quickEdit);
@@ -2810,7 +2810,7 @@ import {libWrapper} from './shim.js';
 
 		static async saveAllQuickEditOffsets(quickEdit){
 			if(!quickEdit) {
-				quickEdit = duplicate(window.tokenAttacher.quickEdit);
+				quickEdit = foundry.utils.duplicate(window.tokenAttacher.quickEdit);
 				window.tokenAttacher.quickEdit.elements = {};
 				window.tokenAttacher.quickEdit.bases = {};
 				window.tokenAttacher.quickEdit.timer = null;
@@ -2969,7 +2969,7 @@ import {libWrapper} from './shim.js';
 								}
 							}
 						}
-						let new_token = duplicate(foundry.utils.getProperty(entity, `prototypeToken`));
+						let new_token = foundry.utils.duplicate(foundry.utils.getProperty(entity, `prototypeToken`));
 						if(elementTypes.includes("Token")) updateElement(new_token, "Token", entity);
 						if(!topLevelOnly) updateBase(new_token, 'Token', entity);
 						elementCount++;
@@ -3012,7 +3012,7 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				}
-				let new_token = duplicate(foundry.utils.getProperty(actor, `prototypeToken`));
+				let new_token = foundry.utils.duplicate(foundry.utils.getProperty(actor, `prototypeToken`));
 				if(elementTypes.includes("Token")) updateElement(new_token, "Token", actor);
 				if(!topLevelOnly) updateBase(new_token, 'Token', actor);
 				await actor.update({prototypeToken: new_token}, options);
@@ -3070,7 +3070,7 @@ import {libWrapper} from './shim.js';
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(elementTypes.includes(key)){
 						if(!updates.hasOwnProperty(key)) updates[key] = [];
-						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => duplicate(entity.document)), baseElement.document);
+						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => foundry.utils.duplicate(entity.document)), baseElement.document);
 						if(!updates[key]) delete updates[key];
 					}
 				}
@@ -3085,7 +3085,7 @@ import {libWrapper} from './shim.js';
 						const elem_attached=foundry.utils.getProperty(element.document, `flags.${moduleName}.attached`) || {};
 						if(Object.keys(elem_attached).length > 0){
 							const elem_update = updates[key]?.find(item => item._id === elem_id );
-							const updatedElementData = foundry.utils.mergeObject(duplicate(element.document), elem_update);
+							const updatedElementData = foundry.utils.mergeObject(foundry.utils.duplicate(element.document), elem_update);
 							const subUpdates = await TokenAttacher.migrateAttached(key, updatedElementData, migrateFunc, elementTypes, topLevelOnly, true);
 							for (const key in subUpdates) {
 								if(!updates.hasOwnProperty(key)) updates[key] = subUpdates[key];
