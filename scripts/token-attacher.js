@@ -695,7 +695,7 @@ import {libWrapper} from './shim.js';
 				[`flags.${moduleName}.pos`]: pos};
 		}
 
-		static offsetPositionOfElements(type, objData, baseType, baseData, grid){
+		static offsetPositionOfElements(type, objData, baseType, baseData, grid, grid_multi=TokenAttacher.getDefaultGridMultiplier()){
 			let baseOffset = {};
 			baseOffset.center = TokenAttacher.getCenter(baseType, baseData, grid);
 			baseOffset.rotation = foundry.utils.getProperty(baseData, "rotation") ?? foundry.utils.getProperty(baseData, "direction");
@@ -704,21 +704,29 @@ import {libWrapper} from './shim.js';
 			
 			if(!Array.isArray(objData)) objData = [objData];
 
-			let updates = objData.map(w => {
+			let updates = objData.map(document => {
 				return foundry.utils.mergeObject(
-					{_id: w._id},
-					TokenAttacher.offsetPositionOfElement(type, w, baseType, baseData, baseOffset)
+					{_id: document._id},
+					TokenAttacher.offsetPositionOfElement(type, document, baseType, baseData, baseOffset, grid_multi)
 					);
 			});
 			if(Object.keys(updates).length == 0)  return; 
 			return updates;		
 		}
 
-		static offsetPositionOfElement(type, objData, baseType, baseData, baseOffset){
+		static offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, grid_multi=TokenAttacher.getDefaultGridMultiplier()){
+			foundry.utils.setProperty(objData, `flags.${moduleName}.offset`, 
+				TokenAttacher.updateOffsetWithGridMultiplicator(type, objData.flags[moduleName].offset, grid_multi));
 			const offset = foundry.utils.getProperty(objData, `flags.${moduleName}.offset`);
 			const size_multi = {w: baseOffset.size[0] / offset.size.widthBase, h: baseOffset.size[1] / offset.size.heightBase};
 			let update = {};
-			
+
+			//V12 changed z to sort				
+			if('z' in objData){
+				objData.sort = objData.z;
+				delete objData.z;
+			}
+
 			//Elevation
 			if(offset.elevation?.hasOwnProperty('elevation')){
 				update.elevation = baseOffset.elevation + offset.elevation.elevation;
@@ -1897,24 +1905,27 @@ import {libWrapper} from './shim.js';
 
 		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options={},  return_data = false){
 			grid_multi = foundry.utils.mergeObject({size:1, sizeX: 1, sizeY:1}, grid_multi);
+			const grid = this.getCurrentGrid();
+			grid.size *= grid_multi.size;
+			grid.sizeX *= grid_multi.sizeX;
+			grid.sizeY *= grid_multi.sizeY;
 			let pasted = {};
 			let toCreate = {};
+			
+			prototypeAttached = foundry.utils.duplicate(prototypeAttached);
+
 			for (const key in prototypeAttached) {
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
-					let layer = TokenAttacher.getLayerOrCollection(key);
-
-					let pos = TokenAttacher.getCenter(type, token.document ?? token);
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
-					toCreate[key] = await TokenAttacher.pasteObjects(layer, prototypeAttached[key], pos, grid_multi, {}, true);
-					if(toCreate[key]) {
-						let updates = await TokenAttacher.offsetPositionOfElements(key, toCreate[key], type, token.document, {});
-						if(updates) {
-							for(let i = 0; i< updates.length; i++) {
-								delete updates[i]._id;
-								mergeObject(toCreate[key][i], updates[i])
-							}
-						}
+					toCreate[key] = await TokenAttacher.offsetPositionOfElements(key, prototypeAttached[key], type, token.document, grid, grid_multi);
+					
+					for (let i = 0; i < toCreate[key].length; i++) {
+						let entity = toCreate[key][i];
+						entity = foundry.utils.mergeObject(prototypeAttached[key][i], entity);
+						delete entity._id;
+						toCreate[key][i] = entity;
 					}
+
 					if(!toCreate[key]) delete toCreate[key];					
 				}
 			}
@@ -3177,6 +3188,10 @@ import {libWrapper} from './shim.js';
 
 		static getCurrentGrid(){
 			return {size: canvas.grid.size, sizeX: canvas.grid.sizeX, sizeY: canvas.grid.sizeY};
+		}
+
+		static getDefaultGridMultiplier(){
+			return {size: 1, sizeX: 1, sizeY: 1};
 		}
 	}
 	TokenAttacher.registerHooks();
