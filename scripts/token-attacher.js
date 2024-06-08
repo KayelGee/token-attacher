@@ -178,6 +178,8 @@ import {libWrapper} from './shim.js';
 				migrateAttachedOfBase: TokenAttacher.migrateAttachedOfBase,
 				migrateElementsOfActor: TokenAttacher.migrateElementsOfActor,
 				generatePrototypeAttached: TokenAttacher.generatePrototypeAttached,
+				transformBaseIntoPrototype: TokenAttacher.transformBaseIntoPrototype,
+				isAttachmentBase: TokenAttacher.isAttachmentBase,
 				_compatiblity: {
 					registerLayerByDocumentName: TokenAttacher._registerLayerByDocumentName,
 					updateOffset : TokenAttacher.updateOffset,
@@ -402,7 +404,7 @@ import {libWrapper} from './shim.js';
 		
 		static async migrateActor(actor, return_data = false){
 			let tokenData = await TokenAttacher.migrateElement(null, null, foundry.utils.duplicate(foundry.utils.getProperty(actor, `prototypeToken`)), "Token");
-			foundry.utils.setProperty(tokenData, `flags.${moduleName}.grid`, {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY});
+			foundry.utils.setProperty(tokenData, `flags.${moduleName}.grid`, TokenAttacher.getCurrentGrid());
 			if(!return_data) await actor.update({prototypeToken: tokenData});
 			return tokenData;
 		}
@@ -1522,26 +1524,26 @@ import {libWrapper} from './shim.js';
 
 		//Modify offset based on grid_multi
 		static updateOffsetWithGridMultiplicator(type, offset, grid_multi){
-			offset.x *= grid_multi.w;
-			offset.y *= grid_multi.h;
-			offset.centerX *= grid_multi.w;
-			offset.centerY *= grid_multi.h;
+			offset.x *= grid_multi.sizeX;
+			offset.y *= grid_multi.sizeY;
+			offset.centerX *= grid_multi.sizeX;
+			offset.centerY *= grid_multi.sizeY;
 			if(offset.hasOwnProperty('c')){
-				offset.c[0] *= grid_multi.w;
-				offset.c[2] *= grid_multi.w;
-				offset.c[1] *= grid_multi.h;
-				offset.c[3] *= grid_multi.h;
+				offset.c[0] *= grid_multi.sizeX;
+				offset.c[2] *= grid_multi.sizeX;
+				offset.c[1] *= grid_multi.sizeY;
+				offset.c[3] *= grid_multi.sizeY;
 			}
 			if(offset.hasOwnProperty('points')){
 				for (let i = 0; i < offset.points.length; i++) {
-					offset.points[i][0] *= grid_multi.w;
-					offset.points[i][1] *= grid_multi.h;					
+					offset.points[i][0] *= grid_multi.sizeX;
+					offset.points[i][1] *= grid_multi.sizeY;					
 				}
 			}
 
 			if(type === "Tile" || type === "Drawing"){
-				offset.size.width  *= grid_multi.w;
-				offset.size.height *= grid_multi.h;
+				offset.size.width  *= grid_multi.sizeX;
+				offset.size.height *= grid_multi.sizeY;
 			}
 			return offset;
 		}
@@ -1557,7 +1559,6 @@ import {libWrapper} from './shim.js';
 			let copyArray = [];
 			for (const elementid of idArray) {
 				const element = TokenAttacher.layerGetElement(type, elementid);
-				const elem_attached = element.document.getFlag(moduleName, "attached") ?? {};
 				let dup_data = foundry.utils.duplicate(element.document);
 				delete dup_data._id;
 				foundry.utils.setProperty(dup_data, `flags.${moduleName}.offset`, TokenAttacher.getElementOffset(type, dup_data, base_type, 
@@ -1567,8 +1568,8 @@ import {libWrapper} from './shim.js';
 							foundry.utils.getProperty(base_data, `flags.${moduleName}.pos.xy`)), 
 							foundry.utils.getProperty(base_data, `flags.${moduleName}.pos`)
 							), {}));
-				if(Object.keys(elem_attached).length > 0){
-					const prototypeAttached = TokenAttacher.generatePrototypeAttached(element.document, elem_attached);
+				if(TokenAttacher.isAttachmentBase(element.document)){
+					const prototypeAttached = TokenAttacher.generatePrototypeAttached(element.document);
 					delete dup_data.flags[moduleName].attached;
 					dup_data.flags[moduleName].prototypeAttached = prototypeAttached;
 				}
@@ -1587,7 +1588,7 @@ import {libWrapper} from './shim.js';
 					copyObjects.map[key] = TokenAttacher.getObjectsFromIds("Token", token.document, key, attached[key]);
 				}
 			}
-			copyObjects.grid = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
+			copyObjects.grid = TokenAttacher.getCurrentGrid();
 			await game.user.unsetFlag(moduleName, "copy");			
 			await game.user.setFlag(moduleName, "copy", copyObjects);	
 			ui.notifications.info(`Copied attached elements.`);	
@@ -1607,8 +1608,8 @@ import {libWrapper} from './shim.js';
 			}
 			let grid_multi = copyObjects.grid;
 				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.w = canvas.grid.sizeX / grid_multi.w;
-				grid_multi.h = canvas.grid.sizeY / grid_multi.h ;
+				grid_multi.sizeX = canvas.grid.sizeX / grid_multi.sizeX;
+				grid_multi.sizeY = canvas.grid.sizeY / grid_multi.sizeY ;
 			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi, {});
 		}
 
@@ -1705,26 +1706,27 @@ import {libWrapper} from './shim.js';
 			if(!TokenAttacher.isFirstActiveGM()) return;
 			if(!change.prototypeToken?.flags?.[moduleName]) return;
 
-			const attached = change.prototypeToken.flags[moduleName].attached || {};
-			if(Object.keys(attached).length == 0) return;
+			if(!TokenAttacher.isAttachmentBase(change.prototypeToken)) return;
 
 			if(TokenAttacher.isAttachmentUIOpen()){			
 				console.log("Token Attacher | " + 	game.i18n.format(localizedStrings.error.UIisOpenOnAssign));			
 				ui.notifications.error(game.i18n.format(localizedStrings.error.UIisOpenOnAssign));
 			}
 
-			let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken, attached);
+			let prototypeAttached = TokenAttacher.generatePrototypeAttached(change.prototypeToken);
 			let newToken = foundry.utils.duplicate(change.prototypeToken);
 			//delete newToken.flags[`${moduleName}`].attached;			
 			delete newToken.flags[`${moduleName}`].prototypeAttached;
 			newToken[`flags.${moduleName}.-=attached`] = null;
 			newToken[`flags.${moduleName}.prototypeAttached`] = prototypeAttached;
-			newToken[`flags.${moduleName}.grid`] = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
+			newToken[`flags.${moduleName}.grid`] = TokenAttacher.getCurrentGrid();
 			await document.update({prototypeToken: newToken}, {diff:false});
 		}
 
-		static generatePrototypeAttached(token_data, attached){
-			let prototypeAttached = {};
+		static generatePrototypeAttached(token_data, attached={}){
+			let prototypeAttached = {};			
+			if(Object.keys(attached).length == 0) attached = token_data.flags[moduleName].attached;
+
 			for (const key in attached) {
 				if (attached.hasOwnProperty(key)) {
 					prototypeAttached[key] = TokenAttacher.getObjectsFromIds("Token", token_data, key, attached[key]);
@@ -1733,17 +1735,30 @@ import {libWrapper} from './shim.js';
 			return prototypeAttached;
 		}
 
+		static transformBaseIntoPrototype(baseDocument){
+			const transformedData = baseDocument.toCompendium();
+			const prototypeAttached = generatePrototypeAttached(transformedData);
+
+			delete transformedData.flags[moduleName].attached;
+			transformedData.flags[moduleName].prototypeAttached = prototypeAttached;
+			transformedData.flags[moduleName].grid = TokenAttacher.getCurrentGrid();
+			return transformedData;
+		}
+
+		static isAttachmentBase(document){
+			return document?.flags?.[moduleName]?.hasOwnProperty("attached");
+		}
+
 		static async copyTokens(layer, tokens){
 			const copyPrototypeMap = {map: {}};
 			const prototypeMap= {};
 			tokens.forEach(token => {
-				if(token.document.flags.hasOwnProperty(moduleName)
-					&& 	token.document.flags[moduleName].hasOwnProperty("attached")){
-					prototypeMap[token.document.id] = TokenAttacher.generatePrototypeAttached(token.document, token.document.flags[moduleName].attached);
+				if(TokenAttacher.isAttachmentBase(token.document)){
+					prototypeMap[token.document.id] = TokenAttacher.generatePrototypeAttached(token.document);
 				}
 			});
 			copyPrototypeMap.map[layer.constructor.documentName] = prototypeMap;
-			copyPrototypeMap.grid = {size:canvas.grid.size, w: canvas.grid.sizeX, h:canvas.grid.sizeY};
+			copyPrototypeMap.grid = TokenAttacher.getCurrentGrid();
 			await game.user.unsetFlag(moduleName, "copyPrototypeMap");
 			await game.user.setFlag(moduleName, "copyPrototypeMap", copyPrototypeMap);
 		}
@@ -1858,10 +1873,14 @@ import {libWrapper} from './shim.js';
 			if(Object.keys(prototypeAttached).length > 0){
 				if(TokenAttacher.isPrototypeAttachedModel(prototypeAttached, 2)) return ui.notifications.error(game.i18n.format(localizedStrings.error.ActorDataModelNeedsMigration));
 				
-				let grid_multi = token.document.getFlag(moduleName, "grid") || {size: canvas.grid.size, w:canvas.grid.sizeX, h:canvas.grid.sizeY};
+				let grid_multi = token.document.getFlag(moduleName, "grid") || TokenAttacher.getCurrentGrid();
+				//Convert pre V12
+				grid_multi.sizeX = grid_multi.w ?? grid_multi.sizeX; 
+				grid_multi.sizeY = grid_multi.h ?? grid_multi.sizeY; 
+
 				grid_multi.size = canvas.grid.size / grid_multi.size;
-				grid_multi.w = canvas.grid.sizeX / grid_multi.w;
-				grid_multi.h = canvas.grid.sizeY / grid_multi.h ;
+				grid_multi.sizeX = canvas.grid.sizeX / grid_multi.sizeX;
+				grid_multi.sizeY = canvas.grid.sizeY / grid_multi.sizeY ;
 				await TokenAttacher.regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options);
 				
 			}
@@ -1869,7 +1888,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options={},  return_data = false){
-			grid_multi = foundry.utils.mergeObject({size:1, w: 1, h:1}, grid_multi);
+			grid_multi = foundry.utils.mergeObject({size:1, sizeX: 1, sizeY:1}, grid_multi);
 			let pasted = {};
 			let toCreate = {};
 			for (const key in prototypeAttached) {
@@ -2696,7 +2715,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		static getCenter(type, objData, grid = {}){
-			grid = foundry.utils.mergeObject({w: canvas.grid.sizeX, h:canvas.grid.sizeY}, grid);
+			grid = foundry.utils.mergeObject({sizeX: canvas.grid.sizeX, sizeY:canvas.grid.sizeY}, grid);
 			const [x,y] = [objData.x, objData.y];
 			let center = {x:x, y:y};
 			//Tokens, Tiles
@@ -3137,6 +3156,10 @@ import {libWrapper} from './shim.js';
 
 		static getLayerByEmbeddedName(type){
 			return canvas.layers.find(l => l.constructor.documentName === type);
+		}
+
+		static getCurrentGrid(){
+			return {size: canvas.grid.size, sizeX: canvas.grid.sizeX, sizeY: canvas.grid.sizeY};
 		}
 	}
 	TokenAttacher.registerHooks();
