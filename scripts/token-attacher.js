@@ -2302,29 +2302,37 @@ import {libWrapper} from './shim.js';
 			let parentMap = {null:{value:null}};
 			let allPromises = [];
 			let sideBarFolder = null;
-			if(options.addSidebarFolders){
-				for (const key in sidebarFolders) {
-					if (sidebarFolders.hasOwnProperty(key)) {
-						const folder = sidebarFolders[key];
-						allPromises.push((async (folder)=>{
-							if(!parentMap.hasOwnProperty(folder.folder)) {
-								let resolver;
-								parentMap[folder.folder] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
-							}
-							const parent = await parentMap[folder.folder].value;
-							const newFolder = await Folder.create({name: folder.name, type: "Compendium", folder: parent}, {});
-							if(!parentMap.hasOwnProperty(folder._id)) {
-								parentMap[folder._id] = {value:new Promise((resolve) => (resolve(newFolder._id)))};
-							}
-							else {
-								parentMap[folder._id].signal(newFolder._id);
-							}
-						})(folder));
-					}
-				}
-				await Promise.all(allPromises);
-				sideBarFolder = await parentMap[compendium.folder].value;
-			}
+			
+			// if(options.addSidebarFolders){
+			// 	for (const key in sidebarFolders) {
+			// 		if (sidebarFolders.hasOwnProperty(key)) {
+			// 			const folder = sidebarFolders[key];
+			// 			allPromises.push((async (folder)=>{
+			// 				if(!parentMap.hasOwnProperty(folder.folder)) {
+			// 					let resolver;
+			// 					parentMap[folder.folder] = {value:new Promise((resolve)=>{resolver = resolve}), signal: resolver};
+			// 				}
+			// 				const parent = await parentMap[folder.folder].value._id;
+			// 				let newFolder;
+			// 				let existingFolders = game.folders.filter(f => f.name == folder.name);
+			// 				if(existingFolders.length == 0){
+			// 					newFolder = await Folder.create({name: folder.name, type: "Compendium", folder: parent}, {});
+			// 				} 
+			// 				else {
+								
+			// 				}
+			// 				if(!parentMap.hasOwnProperty(folder._id)) {
+			// 					parentMap[folder._id] = {value:new Promise((resolve) => (resolve(newFolder)))};
+			// 				}
+			// 				else {
+			// 					parentMap[folder._id].signal(newFolder);
+			// 				}
+			// 			})(folder));
+			// 		}
+			// 	}
+			// 	await Promise.all(allPromises);
+			// 	sideBarFolder = await parentMap[compendium.folder].value;
+			// }
 
 			let worldCompendium = await CompendiumCollection.createCompendium({label:label, name: slugified_name, type:"Actor", folder: sideBarFolder});
 
