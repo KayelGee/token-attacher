@@ -5,13 +5,13 @@
 	const moduleName = "wall-height";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
+		if(foundry.utils.getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
 		if(!(change.flags?.[moduleName]?.hasOwnProperty("top")
 			|| change.flags?.[moduleName]?.hasOwnProperty("bottom")
 		)) return;
 
-		setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
+		foundry.utils.setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
 	}
 
 	// const myLayer = "SomeLayerName";
@@ -52,7 +52,7 @@
 	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, update){
 		if(!["Wall"].includes(type)) return;
 		
-		const offset = getProperty(objData, `flags.${moduleNameTA}.offset`);
+		const offset = foundry.utils.getProperty(objData, `flags.${moduleNameTA}.offset`);
 
 		//Legacy code
 		if(offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightBottom') || offset.elevation?.flags?.wallHeight?.hasOwnProperty('wallHeightTop')){

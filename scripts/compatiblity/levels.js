@@ -5,13 +5,13 @@
 	const moduleName = "levels";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
+		if(foundry.utils.getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
 		if(!(change.flags?.[moduleName]?.hasOwnProperty("rangeTop")
 			|| change.flags?.[moduleName]?.hasOwnProperty("rangeBottom")
 		)) return;
 
-		setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
+		foundry.utils.setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
 	}
 
 	// const myLayer = "SomeLayerName";
@@ -48,7 +48,7 @@
 	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, update){
 		if(!["Drawings","Tile", "AmbientLight", "AmbientSound"].includes(type)) return;
 		
-		const offset = getProperty(objData, `flags.${moduleNameTA}.offset`);
+		const offset = foundry.utils.getProperty(objData, `flags.${moduleNameTA}.offset`);
 
 		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('elevation')){
 			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.elevation) === false) update[`flags.${moduleName}.elevation`] = baseOffset.elevation + offset.elevation.flags[moduleName].elevation;

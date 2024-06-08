@@ -5,13 +5,13 @@
 	const moduleNameTA = "token-attacher";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
+		if(foundry.utils.getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
 		if(!(change.elevation?.rangeBottom)
 			|| (change.elevation?.rangeTop)
 		) return;
 
-		setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
+		foundry.utils.setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
 	}
 
 	// const myLayer = "SomeLayerName";
@@ -40,7 +40,7 @@
 	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, update){
 		//As this is core functionality, allow all PlacableObjects to be checked
 		
-		const offset = getProperty(objData, `flags.${moduleNameTA}.offset`);
+		const offset = foundry.utils.getProperty(objData, `flags.${moduleNameTA}.offset`);
 
 		if(offset.elevation?.rangeTop){
 			if([null, Infinity, -Infinity].includes(offset.elevation?.rangeTop) === false) update[`elevation.rangeTop`] = baseOffset.elevation + offset.offset.elevation?.rangeTop;

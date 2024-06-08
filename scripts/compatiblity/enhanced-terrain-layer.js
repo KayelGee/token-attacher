@@ -5,7 +5,7 @@
 	const moduleName = "enhanced-terrain-layer";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
+		if(foundry.utils.getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
 		// if(!(change.flags?.[moduleName]?.hasOwnProperty("top")
 		// 	|| change.flags?.[moduleName]?.hasOwnProperty("bottom")
@@ -32,7 +32,7 @@
 	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, update){
 		if(!["Terrain"].includes(type)) return;
 
-		const offset = getProperty(objData, `flags.${moduleNameTA}.offset`);
+		const offset = foundry.utils.getProperty(objData, `flags.${moduleNameTA}.offset`);
 	}
 
 	function isGridSpace(type){

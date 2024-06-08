@@ -4,9 +4,9 @@
 	const moduleNameTA = "token-attacher";
 
 	function doAttachmentsNeedUpdate(document, change, options, userId){
-		if(getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
+		if(foundry.utils.getProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`)) return;
 
-		if(change.z) setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
+		if(change.z) foundry.utils.setProperty(options, `${moduleNameTA}.attachmentsNeedUpdate`, true);
 	}
 
 	const myLayer = "SomeLayerName"
