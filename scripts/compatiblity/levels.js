@@ -53,8 +53,7 @@
 		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('elevation')){
 			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.elevation) === false) update[`flags.${moduleName}.elevation`] = baseOffset.elevation + offset.elevation.flags[moduleName].elevation;
 		}
-		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('rangeBottom') || offset.elevation?.flags?.[moduleName]?.hasOwnProperty('rangeTop')){
-			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.rangeBottom) === false) update[`flags.${moduleName}.rangeBottom`] = baseOffset.elevation + offset.elevation.flags[moduleName].rangeBottom;
+		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('rangeTop')){
 			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.rangeTop) === false) update[`flags.${moduleName}.rangeTop`] = baseOffset.elevation + offset.elevation.flags[moduleName].rangeTop;
 		}
 	}
