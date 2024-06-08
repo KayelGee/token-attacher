@@ -1622,6 +1622,13 @@ import {libWrapper} from './shim.js';
 			for ( let dat of objects) {
 				let objData = foundry.utils.duplicate(dat);
 				delete objData._id;
+
+				//V12 changed z to sort				
+				if(objData.hasOwnProperty('z')){
+					objData.sort = objData.z;
+					delete objData.z;
+				}
+
 				objData.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls, objData.flags[moduleName].offset, grid_multi);
 				const offset = objData.flags[moduleName].offset;
 				if(objData.hasOwnProperty('c')){
@@ -2757,14 +2764,14 @@ import {libWrapper} from './shim.js';
 			let z_background = 0;
 			let z_foreround = 0;
 			if ( up ) {
-				elements_data.sort((a, b) => a.z - b.z);
-			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.document.z)) + 1 : 1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.z)) + 1 : 1;
+				elements_data.sort((a, b) => a.sort - b.sort);
+			  	z_background = siblings.length ? Math.max(...siblings.map(o => o.document.sort)) + 1 : 1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.sort)) + 1 : 1;
 			}
 			else {
-				elements_data.sort((a, b) => b.z - a.z);
-			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.document.z)) - 1 : -1;
-			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.z)) + 1 : 1;
+				elements_data.sort((a, b) => b.sort - a.sort);
+			  	z_background = siblings.length ? Math.min(...siblings.map(o => o.document.sort)) - 1 : -1;
+			  	z_foreround = overhead_siblings.length ? Math.max(...overhead_siblings.map(o => o.document.sort)) + 1 : 1;
 			}
 		
 			// Update all controlled objects
@@ -2776,7 +2783,7 @@ import {libWrapper} from './shim.js';
 				else{					
 					d = up ? j++ : j++ * -1;
 				}
-				elements_data[i].z = z_background + d;				
+				elements_data[i].sort = z_background + d;				
 			}
 			return elements_data;
 		}
