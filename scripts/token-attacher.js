@@ -592,6 +592,8 @@ import {libWrapper} from './shim.js';
 			//Get Entities
 			for (const key in attached) {
 				attachedEntities[key] = attached[key].map(id => TokenAttacher.layerGetElement(key, id));
+				//Filter null entities incase an invalid id was looked up
+				attachedEntities[key] = attachedEntities[key].filter(entity => entity != null);
 			}
 
 			let updates = {};
