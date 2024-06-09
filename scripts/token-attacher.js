@@ -3102,12 +3102,14 @@ import {libWrapper} from './shim.js';
 			console.log("All Token Attacher Data has been removed from scene.");
 		}
 		
+		//base can be a document or a placableObject
 		static async migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false){
-			return TokenAttacher.migrateAttached(base.layer.constructor.documentName, base, migrateFunc, elementTypes, topLevelOnly, return_data);
+			return TokenAttacher.migrateAttached(base.layer?.constructor?.documentName, base, migrateFunc, elementTypes, topLevelOnly, return_data);
 		}
 
 		static async migrateAttached(type, baseElement, migrateFunc, elementTypes, topLevelOnly, return_data=false){
-			const attached=foundry.utils.getProperty(baseElement.document, `flags.${moduleName}.attached`) || {};
+			const baseDocument = baseElement.document ?? baseElement;
+			const attached=foundry.utils.getProperty(baseDocument `flags.${moduleName}.attached`) || {};
 			let attachedEntities = {};
 			
 			//Get Entities
@@ -3122,7 +3124,7 @@ import {libWrapper} from './shim.js';
 				if (attachedEntities.hasOwnProperty(key)) {
 					if(elementTypes.includes(key)){
 						if(!updates.hasOwnProperty(key)) updates[key] = [];
-						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => foundry.utils.duplicate(entity.document)), baseElement.document);
+						updates[key] = await migrateFunc(key, attachedEntities[key].map(entity => foundry.utils.duplicate(entity.document)), baseDocument);
 						if(!updates[key]) delete updates[key];
 					}
 				}
