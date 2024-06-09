@@ -192,6 +192,8 @@ import {libWrapper} from './shim.js';
 					PreInstantAttach : TokenAttacher.PreInstantAttach,
 					InstantAttach : TokenAttacher.InstantAttach,
 					updateOffset : TokenAttacher.updateOffset,
+					getCenter : TokenAttacher.getCenter,
+					moveRotatePoint: TokenAttacher.moveRotatePoint,
 				},
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
@@ -800,7 +802,7 @@ import {libWrapper} from './shim.js';
 				update.y = y;
 			}
 			//Other Modules
-			Hooks.callAll(`${moduleName}.offsetPositionOfElement`, type, objData, baseType, baseData, baseOffset, update);
+			Hooks.callAll(`${moduleName}.offsetPositionOfElement`, type, objData, baseType, baseData, baseOffset, grid_multi, update);
 
 			return update;
 		}
@@ -1453,8 +1455,8 @@ import {libWrapper} from './shim.js';
 			const center = TokenAttacher.getCenter(base_type, baseDoc, grid);
 			const rotation =  baseDoc.rotation ?? baseDoc.direction;
 			let offset = {x:Number.MAX_SAFE_INTEGER, y:Number.MAX_SAFE_INTEGER, rot:Number.MAX_SAFE_INTEGER};
-			offset.x = objData.x ?? (objData.c[0] < objData.c[2] ? objData.c[0] : objData.c[2]);
-			offset.y = objData.y ?? (objData.c[1] < objData.c[3] ? objData.c[1] : objData.c[3]);
+			offset.x = objData.x ?? (objData.c?.[0] < objData.c?.[2] ? objData.c?.[0] : objData.c?.[2]);
+			offset.y = objData.y ?? (objData.c?.[1] < objData.c?.[3] ? objData.c?.[1] : objData.c?.[3]);
 			const offsetCenter = TokenAttacher.getCenter(type, objData, grid);;
 			[offset.centerX, offset.centerY] = [offsetCenter.x, offsetCenter.y];
 			offset.rot = objData.rotation ?? objData.direction ?? rotation;
@@ -1519,7 +1521,7 @@ import {libWrapper} from './shim.js';
 			if(objData.hasOwnProperty('radius')){
 				offset.size.radius= objData.radius;
 			}
-			let  base_elevation = baseDoc.elevation ?? baseDoc.flags['levels']?.elevation ?? baseDoc.flags['levels']?.rangeBottom ?? baseDoc.flags['wallHeight']?.wallHeightBottom ?? baseDoc.flags['wall-height']?.bottom ?? 0;
+			let  base_elevation = baseDoc.elevation?.bottom ?? baseDoc.elevation ?? baseDoc.flags['levels']?.elevation ?? baseDoc.flags['levels']?.rangeBottom ?? baseDoc.flags['wallHeight']?.wallHeightBottom ?? baseDoc.flags['wall-height']?.bottom ?? 0;
 			offset.elevation = {};
 			offset.elevation.flags = {};
 			if(objData.hasOwnProperty('elevation')){
@@ -2767,9 +2769,13 @@ import {libWrapper} from './shim.js';
 			if("c" in objData){
 				center = {x:(objData.c[0] + objData.c[2]) / 2, y: (objData.c[1] + objData.c[3]) / 2}
 			}
+			//TODO: Add hook
 			return center;
 			
 		}
+
+		//TODO: Add getRotation and hook
+		//TODO: Add getElevation and hook
 
 		static getSize(objData){
 			return [objData.width ?? objData.radius  ?? objData.distance 

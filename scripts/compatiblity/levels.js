@@ -45,7 +45,7 @@
 		}
 	}
 	
-	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, update){
+	function offsetPositionOfElement(type, objData, baseType, baseData, baseOffset, grid_multi, update){
 		if(!["Drawings","Tile", "AmbientLight", "AmbientSound"].includes(type)) return;
 		
 		const offset = foundry.utils.getProperty(objData, `flags.${moduleNameTA}.offset`);
