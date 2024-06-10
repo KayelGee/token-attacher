@@ -1757,7 +1757,7 @@ import {libWrapper} from './shim.js';
 
 		static transformBaseIntoPrototype(baseDocument){
 			const transformedData = baseDocument.toCompendium();
-			const prototypeAttached = generatePrototypeAttached(transformedData);
+			const prototypeAttached = TokenAttacher.generatePrototypeAttached(transformedData);
 
 			delete transformedData.flags[moduleName].attached;
 			transformedData.flags[moduleName].prototypeAttached = prototypeAttached;
@@ -3042,6 +3042,14 @@ import {libWrapper} from './shim.js';
 		static async migrateElementsOfActor(actor, migrateFunc, elementTypes, topLevelOnly, options={}){
 			const prototypeAttached = foundry.utils.getProperty(actor, `prototypeToken.flags.${moduleName}.prototypeAttached`);
 			if(prototypeAttached){
+				const new_token = TokenAttacher.migratePrototype(foundry.utils.getProperty(actor, `prototypeToken`), migrateFunc, elementTypes, topLevelOnly, options);
+				await actor.update({prototypeToken: new_token}, options);
+			}
+		}
+
+		static async migratePrototype(prototypeToken, migrateFunc, elementTypes, topLevelOnly, options={}){
+			const prototypeAttached = foundry.utils.getProperty(prototypeToken, `flags.${moduleName}.prototypeAttached`);
+			if(prototypeAttached){
 				const updateElement = migrateFunc;
 				const updateBase = (base, type, base_entity) =>{
 					const children = foundry.utils.getProperty(base, `flags.${moduleName}.prototypeAttached`) ?? foundry.utils.getProperty(base, `flags.${moduleName}.attached`);
@@ -3062,7 +3070,7 @@ import {libWrapper} from './shim.js';
 							for (let i = 0; i < children[key].length; i++) {
 								const element = children[key][i];
 								if(typeof element === 'string' || element instanceof String){
-									console.error(`Token Attacher - Migration Error, attached child is not an object. Base Token and Actor: `, base_entity.name, base, base_entity);
+									console.error(`Token Attacher - Migration Error, attached child is not an object. Base and top level Base: `, base, base_entity);
 									continue;
 								}
 								updateBase(element, key, base_entity);
@@ -3070,11 +3078,12 @@ import {libWrapper} from './shim.js';
 						}
 					}
 				}
-				let new_token = foundry.utils.duplicate(foundry.utils.getProperty(actor, `prototypeToken`));
-				if(elementTypes.includes("Token")) updateElement(new_token, "Token", actor);
-				if(!topLevelOnly) updateBase(new_token, 'Token', actor);
-				await actor.update({prototypeToken: new_token}, options);
+				let new_token = foundry.utils.duplicate(prototypeToken);
+				if(elementTypes.includes("Token")) updateElement(new_token, "Token", prototypeToken);
+				if(!topLevelOnly) updateBase(new_token, 'Token', prototypeToken);
+				return new_token;
 			}
+			return prototypeToken;
 		}
 
 		static async purgeTAData(){		
