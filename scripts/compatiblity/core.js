@@ -37,8 +37,11 @@
 					case 'rectangle':
 						offset.shapes[i].width = shape.width;
 						offset.shapes[i].height = shape.height;	
+						offset.shapes[i].center = {};
 						offset.shapes[i].center.x = shape.x + shape.width/2  - baseCenter.x;
 						offset.shapes[i].center.y = shape.y + shape.height/2 - baseCenter.y;
+						offset.shapes[i].x = offset.shapes[i].center.x;
+						offset.shapes[i].y = offset.shapes[i].center.y;
 						offset.shapes[i].rotation = shape.rotation % 360;
 						offset.shapes[i].offsetRotation = (shape.rotation - baseRotation) % 360;
 						break;
@@ -49,6 +52,16 @@
 						offset.shapes[i].y = shape.y - baseCenter.y;
 						offset.shapes[i].rotation = shape.rotation % 360;	
 						offset.shapes[i].offsetRotation = (shape.rotation - baseRotation) % 360;		
+						break;	
+					case 'polygon':
+						offset.shapes[i].points = [];
+						for (let j = 0; j < shape.points.length; j+=2) {
+							offset.shapes[i].points[j/2] = [];
+							offset.shapes[i].points[j/2][0] = shape.points[j] 	- baseCenter.x;
+							offset.shapes[i].points[j/2][1] = shape.points[j+1] - baseCenter.y;			
+						}	
+						offset.shapes[i].rotation = 0;	
+						offset.shapes[i].offsetRotation = (-baseRotation) % 360;		
 						break;				
 					default:
 						break;
@@ -79,23 +92,53 @@
 		if(offset.shapes){
 			const shapes = foundry.utils.duplicate(objData.shapes);	
 			for (let i = 0; i < offset.shapes.length; i++) {
-				const shape = offset.shapes[i];		
-				switch (shape.type) {
+				const shapeOffset = offset.shapes[i];	
+				let x,y;	
+				switch (shapeOffset.type) {
 					case 'rectangle':
-						shapes[i].width = shape.width * size_multi.w;
-						shapes[i].height = shape.height * size_multi.h;	
-						shapes[i].center.x = shape.x + shape.width/2  - baseCenter.x;
-						shapes[i].center.y = shape.y + shape.height/2 - baseCenter.y;
-						shapes[i].rotation = (shape.rotation - baseRotation) % 360;
+						shapes[i].width = shapeOffset.width * size_multi.w;
+						shapes[i].height = shapeOffset.height * size_multi.h;	
+						[x,y] = tokenAttacher._compatiblity.moveRotatePoint(
+							{
+								...shapeOffset, 
+								rot: shapeOffset.rotation, 
+								offRot:  shapeOffset.offsetRotation
+							}, 
+							baseOffset.center, baseOffset.rotation, size_multi);
+						shapes[i].x = x - shapes[i].width  / 2;
+						shapes[i].y = y - shapes[i].height / 2;
+						shapes[i].rotation = (shapeOffset.offsetRotation + baseRotation) % 360;
 						break;
 					case 'ellipse':
-						shapes[i].radiusX = shape.radiusX * size_multi.w;
-						shapes[i].radiusY = shape.radiusY * size_multi.h;	
-						const [x,y] = tokenAttacher._compatiblity.moveRotatePoint({x:shape.x, y:shape.y, rotation:0}, {...shape, rot: shape.rotation, offRot:  shape.offsetRotation}, baseOffset.center, baseOffset.rotation, size_multi);
+						shapes[i].radiusX = shapeOffset.radiusX * size_multi.w;
+						shapes[i].radiusY = shapeOffset.radiusY * size_multi.h;	
+						[x,y] = tokenAttacher._compatiblity.moveRotatePoint(
+							{
+								...shapeOffset, 
+								rot: shapeOffset.rotation,
+								 offRot:  shapeOffset.offsetRotation
+							}, 
+							baseOffset.center, baseOffset.rotation, size_multi);
 						shapes[i].x = x;
 						shapes[i].y = y;		
-						shapes[i].rotation = (shape.offsetRotation + baseRotation) % 360;		
-						break;				
+						shapes[i].rotation = (shapeOffset.offsetRotation + baseRotation) % 360;		
+						break;	
+					case 'polygon':								
+						const points = shapes[i].points;
+						for (let j = 0; j < points.length; j+=2) {
+							[x,y] = tokenAttacher._compatiblity.moveRotatePoint(
+								{
+									x: shapeOffset.points[j/2][0], 
+									y: shapeOffset.points[j/2][1], 
+									...shapeOffset, 
+									rot: shapeOffset.rotation,
+									 offRot:  shapeOffset.offsetRotation
+								}, 
+								baseOffset.center, baseOffset.rotation, size_multi);
+							points[j] 	= x;
+							points[j+1] = y;					
+						}
+					break;
 					default:
 						break;
 				}

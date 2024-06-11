@@ -739,9 +739,9 @@ import {libWrapper} from './shim.js';
 			if('c' in objData){
 				let c = foundry.utils.duplicate(objData.c);	
 				[offset.x, offset.y] = [offset.c[0], offset.c[1]];
-				[c[0],c[1]]  = TokenAttacher.moveRotatePoint({x:c[0], y:c[1], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				[c[0],c[1]]  = TokenAttacher.moveRotatePoint(offset, baseOffset.center, baseOffset.rotation, size_multi);
 				[offset.x, offset.y] = [offset.c[2], offset.c[3]];
-				[c[2],c[3]]  = TokenAttacher.moveRotatePoint({x:c[2], y:c[3], rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				[c[2],c[3]]  = TokenAttacher.moveRotatePoint(offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.c=c;
 				//return update;
 			}
@@ -798,7 +798,7 @@ import {libWrapper} from './shim.js';
 			}
 			//Point Entities
 			else{
-				const [x,y] = TokenAttacher.moveRotatePoint({x:objData.x, y:objData.y, rotation:0}, offset, baseOffset.center, baseOffset.rotation, size_multi);
+				const [x,y] = TokenAttacher.moveRotatePoint(offset, baseOffset.center, baseOffset.rotation, size_multi);
 				update.x = x;
 				update.y = y;
 			}
@@ -841,7 +841,12 @@ import {libWrapper} from './shim.js';
 		 * Moves a point by offset values and rotates around an anchor
 		 * A point is defined by x,y,rotation
 		 */
-		static moveRotatePoint(point, offset, anchorCenter, anchorRot, size_multi){			
+		static moveRotatePoint(offset, anchorCenter, anchorRot, size_multi){		
+			const point = {
+				x: 0,
+				y: 0,
+				rotation: 0
+			}	
 			point.x = anchorCenter.x + offset.x;
 			point.y = anchorCenter.y + offset.y; 
 			point.rotation=(anchorRot + offset.offRot) % 360;
