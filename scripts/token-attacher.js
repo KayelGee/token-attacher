@@ -525,7 +525,7 @@ import {libWrapper} from './shim.js';
 					element.interactive = interactive;
 			}
 		}
-		static async UpdateBasePosition(type, document, change, options, userId){
+		static UpdateBasePosition(type, document, change, options, userId){
 			//Ignore anything from anyone not in your scene
 			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
 
@@ -553,7 +553,7 @@ import {libWrapper} from './shim.js';
 
 			let baseData = foundry.utils.duplicate(document);
 			foundry.utils.mergeObject(baseData, change);
-			let basePos = await TokenAttacher.saveBasePositon(type, baseData, true);
+			let basePos = TokenAttacher.saveBasePositon(type, baseData, true);
 			foundry.utils.mergeObject(change, basePos);
 			return true;
 		}
@@ -689,7 +689,7 @@ import {libWrapper} from './shim.js';
 		}
 
 		//base can be an PlacableObject but also plain data if return_data is true
-		static async saveBasePositon(type, base, return_data=false, overrideData){
+		static saveBasePositon(type, base, return_data=false, overrideData){
 			let objData = base.document ?? base;
 			const pos = TokenAttacher.getBasePositon(type, base, overrideData);
 			if(!return_data) return base.document.setFlag(moduleName, "pos", pos);
