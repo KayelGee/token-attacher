@@ -1632,99 +1632,6 @@ import {libWrapper} from './shim.js';
 			await TokenAttacher.regenerateAttachedFromPrototype(token.layer.constructor.documentName, token, copyObjects.map, grid_multi, {});
 		}
 
-		static async pasteObjects(layer, objects, pos, grid_multi, {hidden = false} = {}, return_data=false){
-			if ( !objects.length ) return [];
-			const cls = layer.constructor.documentName;
-
-			// Iterate over objects
-			const toCreate = [];
-			for ( let dat of objects) {
-				let objData = foundry.utils.duplicate(dat);
-				delete objData._id;
-
-				//V12 changed z to sort				
-				if(objData.hasOwnProperty('z')){
-					objData.sort = objData.z;
-					delete objData.z;
-				}
-
-				objData.flags[moduleName].offset = TokenAttacher.updateOffsetWithGridMultiplicator(cls, objData.flags[moduleName].offset, grid_multi);
-				const offset = objData.flags[moduleName].offset;
-				if(objData.hasOwnProperty('c')){
-					objData.c = objData.c.map((c, i) => {
-						if(!(i%2)) return pos.x + offset.c[i];
-						else	return pos.y + offset.c[i];
-					});
-				}
-				else{
-					foundry.utils.mergeObject(objData, {
-						x: pos.x + offset.x,
-						y: pos.y + offset.y,
-						hidden: objData.hidden || hidden
-					});
-				}
-
-				if(objData.hasOwnProperty('points')){
-					objData.points = objData.points.map((c, i) => {
-						return [offset.points[i][0], offset.points[i][1]];
-					});
-				}
-
-				if(objData.shape?.hasOwnProperty('points')){
-					objData.shape.points = objData.shape.points.map((c, i) => {
-						return offset.points[Math.floor(i/2)][i%2];
-					});
-				}
-				
-				if(objData.hasOwnProperty('width') && objData.width != null){
-					foundry.utils.mergeObject(objData, {
-						width : offset.size.width,
-						height: offset.size.height
-					});
-				}
-
-				if(objData.shape?.hasOwnProperty('width') && objData.shape.width != null){
-					foundry.utils.mergeObject(objData, {
-						shape:{
-							width : offset.size.width,
-							height: offset.size.height
-						}
-					});
-				}
-
-				if(objData.hasOwnProperty('distance')){
-					foundry.utils.mergeObject(objData, {
-						distance : offset.size.distance
-					});
-				}
-				if(objData.hasOwnProperty('dim')){
-					foundry.utils.mergeObject(objData, {
-						dim : offset.size.dim,
-						bright: offset.size.bright
-					});
-				}
-				if(objData.hasOwnProperty('config') && objData.config.hasOwnProperty('dim')){
-					foundry.utils.mergeObject(objData.config, {
-						dim : offset.size.config?.dim ?? offset.size.dim,
-						bright: offset.size.config?.bright ?? offset.size.bright
-					});
-				}
-				if(objData.hasOwnProperty('radius')){
-					foundry.utils.mergeObject(objData, {
-						radius : offset.size.radius
-					});
-				}
-
-				toCreate.push(objData);
-			}
-
-			if(return_data) return toCreate;
-			// Create all objects
-			const created = await canvas.scene.createEmbeddedDocuments(cls, toCreate);
-			//ui.notifications.info(`Pasted data for ${toCreate.length} ${cls.name} objects.`);
-			return created;
-		}
-
 		static async updateAttachedPrototype(document, change, options, userId){
 			//Ignore anything from anyone not in your scene
 			if(game.users.find(u => u._id ==userId)?.viewedScene != game.user.viewedScene) return;
@@ -1914,7 +1821,7 @@ import {libWrapper} from './shim.js';
 			return;
 		}
 
-		static async regenerateAttachedFromPrototype(type, token, prototypeAttached, grid_multi, options={},  return_data = false){
+		static async regenerateAttachedFromPrototype(baseType, base, prototypeAttached, grid_multi, options={},  return_data = false){
 			grid_multi = foundry.utils.mergeObject({size:1, sizeX: 1, sizeY:1}, grid_multi);
 			const grid = this.getCurrentGrid();
 			grid.size *= grid_multi.size;
@@ -1922,13 +1829,14 @@ import {libWrapper} from './shim.js';
 			grid.sizeY *= grid_multi.sizeY;
 			let pasted = {};
 			let toCreate = {};
+			const baseDocument = base.document ?? base;
 			
 			prototypeAttached = foundry.utils.duplicate(prototypeAttached);
 
 			for (const key in prototypeAttached) {
 				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown" && prototypeAttached[key].length > 0) {
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
-					toCreate[key] = await TokenAttacher.offsetPositionOfElements(key, prototypeAttached[key], type, token.document, grid, grid_multi);
+					toCreate[key] = await TokenAttacher.offsetPositionOfElements(key, prototypeAttached[key], baseType, baseDocument, grid, grid_multi);
 					
 					for (let i = 0; i < toCreate[key].length; i++) {
 						let entity = toCreate[key][i];
@@ -1961,7 +1869,7 @@ import {libWrapper} from './shim.js';
 			}
 			if(return_data) return toCreate;
 			
-			foundry.utils.setProperty(options,`${moduleName}.base`, {type: token.layer.constructor.documentName, doc:token.document})
+			foundry.utils.setProperty(options,`${moduleName}.base`, {type: baseType, doc: baseDocument})
 			foundry.utils.setProperty(options,`${moduleName}.update`, true)
 			const allowed = Hooks.call("preCreatePlaceableObjects", canvas.scene, toCreate, options, game.userId);
 			if (allowed === false) {
