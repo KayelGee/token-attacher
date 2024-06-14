@@ -1926,7 +1926,7 @@ import {libWrapper} from './shim.js';
 			prototypeAttached = foundry.utils.duplicate(prototypeAttached);
 
 			for (const key in prototypeAttached) {
-				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown") {
+				if (prototypeAttached.hasOwnProperty(key) && key !== "unknown" && prototypeAttached[key].length > 0) {
 					if(!toCreate.hasOwnProperty(key)) toCreate[key] = [];
 					toCreate[key] = await TokenAttacher.offsetPositionOfElements(key, prototypeAttached[key], type, token.document, grid, grid_multi);
 					
@@ -2113,6 +2113,7 @@ import {libWrapper} from './shim.js';
 			};
 			for (const type of TokenAttacher.registeredLayers) {
 				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
+				if(!layer) continue;
 				const deleteLinks = (layer) => {
 						for (let i = 0; i < layer.placeables.length; i++) {
 							const element = layer.placeables[i];
@@ -2795,6 +2796,7 @@ import {libWrapper} from './shim.js';
 		//Update z in elements_data and return elements_data
 		static zSort(up, type, elements_data) {	
 			const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
+			if(!layer) return elements_data;
 			const overhead_layer = canvas.foreground ?? layer;
 			const siblings = layer.placeables;	
 			const overhead_siblings = overhead_layer.placeables;	
@@ -2984,7 +2986,7 @@ import {libWrapper} from './shim.js';
 			const layerObj = canvas.getLayerByEmbeddedName(layer) ?? TokenAttacher.getLayerByEmbeddedName(layer);
 			const foreground = canvas.foreground ?? layerObj;
 			let result = {element:null};
-			result.element = layerObj.get(id) ?? foreground.get(id);
+			if(layer) result.element = layerObj.get(id) ?? foreground.get(id);
 			if(!result.element) Hooks.callAll(`${moduleName}.layerGetElement`, layer, id, result);
 			return result.element;
 		}
@@ -3104,6 +3106,7 @@ import {libWrapper} from './shim.js';
 			for (const type of TokenAttacher.registeredLayers) {
 				const layer = canvas.getLayerByEmbeddedName(type) ?? TokenAttacher.getLayerByEmbeddedName(type);
 				const deleteLinks = (layer) => {
+						if(!layer) return;
 						for (let i = 0; i < layer.placeables.length; i++) {
 							const element = layer.placeables[i];
 							if(foundry.utils.getProperty(element.document, `flags.${moduleName}`)) pushUpdate(type, {_id:element.document._id, [`flags.-=${moduleName}`]:null}, updates);
