@@ -4,7 +4,7 @@
 ![GitHub Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/latest/total?style=for-the-badge) 
 ![GitHub All Releases](https://img.shields.io/github/downloads/KayelGee/token-attacher/total?style=for-the-badge&label=Downloads+total)  
 
-**[Compatibility]**: *FoundryVTT* v10+ 
+**[Compatibility]**: *FoundryVTT* v12+ 
 **[Systems]**: *any*  
 **[Languages]**: *English*, *Korean*, *Japanese*    
 
@@ -57,6 +57,9 @@ A public interface for usage in macros can be accessed via tokenAttacher, follow
  - tokenAttacher.regenerateLinks(elements)
  - tokenAttacher.migrateElementsInCompendiums(migrateFunc, elementTypes, topLevelOnly)
  - tokenAttacher.migrateAttachedOfBase(base, migrateFunc, elementTypes, topLevelOnly, return_data=false)
+ - tokenAttacher.migratePrototype(prototypeToken, migrateFunc, elementTypes, topLevelOnly, options={})
+ - tokenAttacher.isAttachmentBase (document)
+ - tokenAttacher.transformBaseIntoPrototype(baseDocument)
 
 There are some example macros bundled in a macro compendium.
  - Mount Up!:

@@ -36,12 +36,10 @@
 		}
 		if(objData.flags[moduleName]?.hasOwnProperty('rangeTop') || objData.flags[moduleName]?.hasOwnProperty('rangeBottom')){
 			offset.elevation.flags[moduleName] = {
-				rangeTop:objData.flags[moduleName].rangeTop ?? null, 
-				rangeBottom:objData.flags[moduleName].rangeBottom ?? null
+				rangeTop:objData.flags[moduleName].rangeTop ?? null
 			};
 			
 			if([null, Infinity, -Infinity].includes(offset.elevation.flags[moduleName].rangeTop) === false) offset.elevation.flags[moduleName].rangeTop -= base_elevation;
-			if([null, Infinity, -Infinity].includes(offset.elevation.flags[moduleName].rangeBottom) === false) offset.elevation.flags[moduleName].rangeBottom -= base_elevation;
 		}
 	}
 	
@@ -55,6 +53,10 @@
 		}
 		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('rangeTop')){
 			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.rangeTop) === false) update[`flags.${moduleName}.rangeTop`] = baseOffset.elevation + offset.elevation.flags[moduleName].rangeTop;
+		}
+		//V11 Compatibility for V12
+		if(offset.elevation?.flags?.[moduleName]?.hasOwnProperty('rangeBottom')){
+			if([null, Infinity, -Infinity].includes(offset.elevation?.flags?.[moduleName]?.rangeBottom) === false) update[`elevation`] = baseOffset.elevation + offset.elevation.flags[moduleName].rangeBottom;
 		}
 	}
 
