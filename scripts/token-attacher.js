@@ -1260,7 +1260,7 @@ import {libWrapper} from './shim.js';
 			});
 		}
 		static async setElementsMoveConstrainedStatus(elements, canMoveConstrained, suppressNotification = false, options={}){
-			options = foundry.utils.foundry.utils.mergeObject({type: TokenAttacher.CONSTRAINED_TYPE.TOKEN_CONSTRAINED}, options, {
+			options = foundry.utils.mergeObject({type: TokenAttacher.CONSTRAINED_TYPE.TOKEN_CONSTRAINED}, options, {
 				insertKeys: true,
 				insertValues: true,
 				overwrite: true,
