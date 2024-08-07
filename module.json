@@ -2,7 +2,7 @@
 	"id": "token-attacher",
 	"title": "Token Attacher",
 	"description": "Attach anything(even tokens) to tokens, so that they move when the token moves and rotate/move when the token rotates. Create prefabs and many more features, see the github readme for more details.",
-	"version": "4.6.9",
+	"version": "4.6.10",
 	"compatibility" :{
 		"minimum": 12,	
 		"verified": 12,

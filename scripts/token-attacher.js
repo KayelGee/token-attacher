@@ -2684,9 +2684,8 @@ import {libWrapper} from './shim.js';
 					let verticalSpacing = 3/4 * grid.sizeY;
 					let [width, height] = [
 						objData.width * horizontalSpacing, 
-						objData.height * verticalSpacing 
+						objData.height * verticalSpacing + (1/3 * verticalSpacing)
 					];
-					height+= height*1/4;
 					center={
 						x:x + (Math.abs(width) / 2),
 					 	y:y + (Math.abs(height) / 2)
@@ -2698,10 +2697,9 @@ import {libWrapper} from './shim.js';
 					let horizontalSpacing = 3/4 * grid.sizeX;
 					let verticalSpacing = grid.sizeY;
 					let [width, height] = [
-						objData.width * horizontalSpacing, 
+						objData.width * horizontalSpacing  + (1/3 * horizontalSpacing), 
 						objData.height * verticalSpacing 
 					];
-					width+= width*1/4;
 					center={
 						x:x + (Math.abs(width) / 2),
 					 	y:y + (Math.abs(height) / 2)
@@ -2711,7 +2709,7 @@ import {libWrapper} from './shim.js';
 				}
 			}
 
-			//Tokens, Tiles
+			//Tiles
 			if (objData.width && objData.height && objData.width != null) {
 				let [width, height] = [objData.width, objData.height];
 				if(TokenAttacher.isGridSpace(type)) [width, height] = [width * grid.sizeX, height * grid.sizeY]
