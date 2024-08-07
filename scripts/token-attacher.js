@@ -2690,7 +2690,6 @@ import {libWrapper} from './shim.js';
 						x:x + (Math.abs(width) / 2),
 					 	y:y + (Math.abs(height) / 2)
 					};
-					TokenAttacher.visualizeVector(objData.x, objData.y, center.x, center.y);
 					return center;
 				}
 				if([CONST.GRID_TYPES.HEXODDQ, CONST.GRID_TYPES.HEXEVENQ].includes(canvas.grid.type)){
@@ -2704,7 +2703,6 @@ import {libWrapper} from './shim.js';
 						x:x + (Math.abs(width) / 2),
 					 	y:y + (Math.abs(height) / 2)
 					};
-					TokenAttacher.visualizeVector(objData.x, objData.y, center.x, center.y);
 					return center;
 				}
 			}
