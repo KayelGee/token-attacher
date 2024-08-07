@@ -195,6 +195,7 @@ import {libWrapper} from './shim.js';
 					updateOffset : TokenAttacher.updateOffset,
 					getCenter : TokenAttacher.getCenter,
 					moveRotatePoint: TokenAttacher.moveRotatePoint,
+					visualizeVector: TokenAttacher.visualizeVector
 				},
 
 				CONSTRAINED_TYPE: TokenAttacher.CONSTRAINED_TYPE,
@@ -2670,6 +2671,46 @@ import {libWrapper} from './shim.js';
 			grid = foundry.utils.mergeObject({sizeX: canvas.grid.sizeX, sizeY:canvas.grid.sizeY}, grid);
 			const [x,y] = [objData.x, objData.y];
 			let center = {x:x, y:y};
+
+			//Tokens are a special case because their center depends on the type of grid
+			if(type == "Token"){
+				if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || canvas.grid.type == CONST.GRID_TYPES.SQUARE){
+					let [width, height] = [objData.width * grid.sizeX, objData.height * grid.sizeY]
+					center={x:x + (Math.abs(width) / 2), y:y + (Math.abs(height) / 2)};
+					return center;
+				}
+				if([CONST.GRID_TYPES.HEXODDR, CONST.GRID_TYPES.HEXEVENR].includes(canvas.grid.type)){
+					let horizontalSpacing = grid.sizeX;
+					let verticalSpacing = 3/4 * grid.sizeY;
+					let [width, height] = [
+						objData.width * horizontalSpacing, 
+						objData.height * verticalSpacing 
+					];
+					height+= height*1/4;
+					center={
+						x:x + (Math.abs(width) / 2),
+					 	y:y + (Math.abs(height) / 2)
+					};
+					TokenAttacher.visualizeVector(objData.x, objData.y, center.x, center.y);
+					return center;
+				}
+				if([CONST.GRID_TYPES.HEXODDQ, CONST.GRID_TYPES.HEXEVENQ].includes(canvas.grid.type)){
+					let horizontalSpacing = 3/4 * grid.sizeX;
+					let verticalSpacing = grid.sizeY;
+					let [width, height] = [
+						objData.width * horizontalSpacing, 
+						objData.height * verticalSpacing 
+					];
+					width+= width*1/4;
+					center={
+						x:x + (Math.abs(width) / 2),
+					 	y:y + (Math.abs(height) / 2)
+					};
+					TokenAttacher.visualizeVector(objData.x, objData.y, center.x, center.y);
+					return center;
+				}
+			}
+
 			//Tokens, Tiles
 			if (objData.width && objData.height && objData.width != null) {
 				let [width, height] = [objData.width, objData.height];
@@ -2689,6 +2730,27 @@ import {libWrapper} from './shim.js';
 			//TODO: Add hook
 			return center;
 			
+		}
+
+		static visualizeColor = parseInt("FFFFFF", 16);
+
+		static async visualizeVector(x1, y1, x2, y2){
+			const drawingData = {
+				shape: {
+					height: 50, 
+					points : [0, 0, x2-x1, y2-y1], 
+					type: Drawing.SHAPE_TYPES.POLYGON, 
+					width: 50
+				}, 
+				x:x1, 
+				y:y1,
+				strokeColor: "#" + TokenAttacher.visualizeColor.toString(16)
+			};
+			TokenAttacher.visualizeColor = Math.round(Math.random() * 16777215);
+			const options = {};
+			foundry.utils.setProperty(options,`${moduleName}.base`, {});
+
+			return await canvas.scene.createEmbeddedDocuments("Drawing", [drawingData], options);
 		}
 
 		//TODO: Add getRotation and hook
