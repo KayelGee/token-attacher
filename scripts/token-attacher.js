@@ -1408,23 +1408,23 @@ import {libWrapper} from './shim.js';
 			return await canvas.scene.unsetFlag(moduleName, "attach_base");		
 		}
 
-		static detachElementFromToken(element, target_token, suppressNotification=false){
+		static async detachElementFromToken(element, target_token, suppressNotification=false){
 			const type = element.layer.constructor.documentName;
-			const selected = [element.document._id];
+			const selected = [element.document?._id ?? element._id];
 			
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._DetachFromToken(target_token, {type:type, ids:selected}, suppressNotification);
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._DetachFromToken(target_token, {type:type, ids:selected}, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `DetachFromToken`, eventdata: [target_token.document._id, {type:type, ids:selected}, suppressNotification]});
 		}
 
-		static detachElementsFromToken(element_array, target_token, suppressNotification=false){
+		static async detachElementsFromToken(element_array, target_token, suppressNotification=false){
 			let selected = {}
 			for (const element of element_array) {
 				const type = element.layer.constructor.documentName;
 				if(!selected.hasOwnProperty(type)) selected[type] = [];
-				selected[type].push(element.document._id);
+				selected[type].push(element.document?._id ?? element._id);
 			}
 		
-			if(TokenAttacher.isFirstActiveGM()) TokenAttacher._detachElementsFromToken(selected, target_token, suppressNotification);
+			if(TokenAttacher.isFirstActiveGM()) await TokenAttacher._detachElementsFromToken(selected, target_token, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `detachElementsFromToken`, eventdata: [selected, target_token.document._id, suppressNotification]});
 		}
 
