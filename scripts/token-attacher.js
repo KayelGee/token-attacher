@@ -1151,9 +1151,11 @@ import {libWrapper} from './shim.js';
 				}
 			}
 		}
+
 		static isAttachmentUIOpen(){
 			return window.document.getElementById("tokenAttacher") !== null;
 		}
+		
 		static async showTokenAttacherUI(token){
 			if(!token) return;
 			if(TokenAttacher.isAttachmentUIOpen()) await TokenAttacher.closeTokenAttacherUI();			
@@ -1564,6 +1566,9 @@ import {libWrapper} from './shim.js';
 				offset.size.width  *= grid_multi.sizeX;
 				offset.size.height *= grid_multi.sizeY;
 			}
+			
+			//Other Modules
+			Hooks.callAll(`${moduleName}.updateOffsetWithGridMultiplicator`, type, offset, grid_multi);
 			return offset;
 		}
 
@@ -1825,9 +1830,6 @@ import {libWrapper} from './shim.js';
 		static async regenerateAttachedFromPrototype(baseType, base, prototypeAttached, grid_multi, options={},  return_data = false){
 			grid_multi = foundry.utils.mergeObject({size:1, sizeX: 1, sizeY:1}, grid_multi);
 			const grid = this.getCurrentGrid();
-			grid.size *= grid_multi.size;
-			grid.sizeX *= grid_multi.sizeX;
-			grid.sizeY *= grid_multi.sizeY;
 			let pasted = {};
 			let toCreate = {};
 			const baseDocument = base.document ?? base;

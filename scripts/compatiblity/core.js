@@ -154,6 +154,43 @@
 		}
 	}
 
+	//Modify offset based on grid_multi
+	function updateOffsetWithGridMultiplicator(type, offset, grid_multi){	
+		//As this is core functionality, allow all PlacableObjects to be checked	
+
+		//Regions consist of multiple shapes
+		if(offset.shapes){
+			const shapes = offset.shapes;	
+			for (let i = 0; i < shapes.length; i++) {
+				const shapeOffset = shapes[i];	
+				switch (shapeOffset.type) {
+					case 'rectangle':
+						shapes[i].width  *= grid_multi.sizeX;
+						shapes[i].height *= grid_multi.sizeY;	
+						shapes[i].x *= grid_multi.sizeX;
+						shapes[i].y *= grid_multi.sizeY;
+						break;
+					case 'ellipse':
+						shapes[i].radiusX *= grid_multi.sizeX;
+						shapes[i].radiusY *= grid_multi.sizeY;	
+						shapes[i].x *= grid_multi.sizeX;
+						shapes[i].y *= grid_multi.sizeY;	
+						break;	
+					case 'polygon':								
+						const points = shapes[i].points;
+						for (let j = 0; j < points.length; j+=2) {
+							points[j] 	*= grid_multi.sizeX;
+							points[j+1] *= grid_multi.sizeY;					
+						}
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		return offset;
+	}
+
 	function initCompatibility(){
 		window.tokenAttacher._compatiblity.registerLayerByDocumentName("Region");
 	}
@@ -162,6 +199,7 @@
 	//Hooks.on(`${moduleNameTA}.layerGetElement`, layerGetElement);
 	Hooks.on(`${moduleNameTA}.getElementOffset`, getElementOffset);
 	Hooks.on(`${moduleNameTA}.offsetPositionOfElement`, offsetPositionOfElement);
+	Hooks.on(`${moduleNameTA}.updateOffsetWithGridMultiplicator`, updateOffsetWithGridMultiplicator);
 	Hooks.once(`${moduleNameTA}.macroAPILoaded`, initCompatibility);
 
 })();
