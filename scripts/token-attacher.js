@@ -1424,7 +1424,7 @@ import {libWrapper} from './shim.js';
 				selected[type].push(element.document?._id ?? element._id);
 			}
 		
-			if(TokenAttacher.isFirstActiveGM()) await TokenAttacher._detachElementsFromToken(selected, target_token, suppressNotification);
+			if(TokenAttacher.isFirstActiveGM()) return await TokenAttacher._detachElementsFromToken(selected, target_token, suppressNotification);
 			else game.socket.emit(`module.${moduleName}`, {event: `detachElementsFromToken`, eventdata: [selected, target_token.document._id, suppressNotification]});
 		}
 
