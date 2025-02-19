@@ -2215,11 +2215,11 @@ import {libWrapper} from './shim.js';
 
 		static getDefaultActorForSystem(){
 			let actorType;
-			let documentTypes = game.system.documentTypes?.Actor ?? game.system.template.Actor.types;
+			let documentTypes = game.system.documentTypes?.Actor ?? game.system.template.Actor;
 			let typesArray = Object.keys(documentTypes);
 			if(game.system.id == 'wfrp4e') actorType = typesArray.find(a => a == 'character');
 			if(!actorType) actorType = typesArray.find(a => a == 'npc');
-			if(!actorType) actorType = typesArray.types[0]
+			if(!actorType) actorType = typesArray[0]
 			return actorType;
 		}
 
